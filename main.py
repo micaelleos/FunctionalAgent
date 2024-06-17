@@ -1,15 +1,11 @@
 
 import streamlit as st
 import time
-from scripts.llm_openai import Jira_Agent
-from scripts.tools import Toolkit_Jira
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
 from atlassian import Jira
-from dotenv import dotenv_values
 from langchain.agents import tool
 from langchain_core.tools import StructuredTool,BaseTool
-from dotenv import dotenv_values
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import AgentExecutor
 from langchain.agents.format_scratchpad import format_to_openai_functions

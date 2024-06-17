@@ -90,7 +90,7 @@ prompt_2 = ChatPromptTemplate.from_messages([
 ])
 
 
-OPENAI_API_KEY= "sk-proj-FsQ2UsUaoWPgPqlmq9QfT3BlbkFJGYuwpqUv1U2rpdCg8r0S"
+OPENAI_API_KEY= "sk-proj-QrkF5nkdqiHGvcbnkAQFT3BlbkFJFqOfQCVxwy5kUz5xH9Om"
 
 model = ChatOpenAI(openai_api_key=OPENAI_API_KEY,temperature=0.5)
 

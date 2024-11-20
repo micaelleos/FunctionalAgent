@@ -27,8 +27,8 @@ The application leverages **Python**, **Streamlit** for the user interface, and 
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/your-username/functional-ai-agent-jira.git
-   cd functional-ai-agent-jira
+   git clone https://github.com/micaelleos/FunctionalAgent.git
+   cd FunctionalAgent
    ```
 
 2. **Set Up a Virtual Environment**
@@ -45,9 +45,6 @@ The application leverages **Python**, **Streamlit** for the user interface, and 
 4. **Set Up Environment Variables**
    - Create a `.env` file in the root directory with the following:
      ```env
-     JIRA_BASE_URL=https://your-domain.atlassian.net
-     JIRA_API_TOKEN=your-jira-api-token
-     JIRA_EMAIL=your-email@example.com
      OPENAI_API_KEY=your-openai-api-key
      ```
    Replace the placeholders with your actual credentials.
@@ -76,8 +73,9 @@ The application leverages **Python**, **Streamlit** for the user interface, and 
 
 ## Example Workflow
 
-1. Describe the feature: _"As a user, I want to log in using my email and password."_
-2. The agent generates:
+1. Enter your jira credentials. Click in gear icon.
+2. Describe the feature: _"As a user, I want to log in using my email and password."_
+3. The agent generates:
    ```
    User Story:
    - As a user, I want to log in using my email and password so that I can access my account securely.
@@ -85,8 +83,8 @@ The application leverages **Python**, **Streamlit** for the user interface, and 
    - The system validates user credentials.
    - Invalid attempts show an appropriate error message.
    ```
-3. Refine the story and add additional details if necessary.
-4. Export it to Jira under the project key **PROJ**.
+4. Refine the story and add additional details if necessary.
+5. Ask the agent to export it to Jira under the project key you want (**PROJ**).
 
 ---
 
@@ -109,9 +107,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contact
 
 For any questions, feel free to reach out:
-- **Email**: your-email@example.com
-- **GitHub Issues**: [Submit an issue](https://github.com/your-username/functional-ai-agent-jira/issues)
-
+- **Email**: micaelle.osouza@gmail.com
 ---
 
 Happy Building 🚀

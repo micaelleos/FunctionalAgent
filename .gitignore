@@ -1,5 +1,4 @@
 .env
-old/*
-scripts/*
-Makefile
 myenv
+.vscode
+old/*

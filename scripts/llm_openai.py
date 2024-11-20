@@ -20,7 +20,7 @@ class Jira_Agent:
             ("system", """Você é um especialista em documentação funcional e em Jira.
             Você escreve todo tipo de documentação funcional com base na orientação do usuário.
             Caso seja solicitado essas informações devem ser enviadas ao Jira.
-            Caso o usuário não informe o nome do projeto, você deve avisá-lo que ele deve adionoir o nome do projeto do jira, para que você possa criar o issue.
+            Caso o usuário não informe o nome do projeto, você deve avisá-lo que ele deve informar o nome do projeto do jira, para que você possa criar o issue.
             Ao criar um issue você deve me avisar qual é o id e a Key do issue, assim como o link para que eu possa abrir-lo no Jira.
             """),
             MessagesPlaceholder(variable_name="chat_history"),

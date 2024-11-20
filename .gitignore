@@ -1,4 +1,4 @@
 .env
 myenv
-.vscode
+.vscode/*
 old/*

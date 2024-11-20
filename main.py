@@ -1,7 +1,7 @@
 import streamlit as st
 
 pages = {
-    "Your account": [
+    "Menu": [
         st.Page("chat.py", title="Chat with agent"),
         st.Page("jira_list.py", title="View your projects"),
     ],
@@ -11,5 +11,6 @@ pages = {
     ],
 }
 
+#st.logo("logo.png", icon_image="logo.png")
 pg = st.navigation(pages)
 pg.run()

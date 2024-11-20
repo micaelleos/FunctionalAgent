@@ -15,7 +15,7 @@ def project_bloc(proj):
                 st.image(proj['avatarUrls']['16x16'],use_container_width=True)
             with col2x:
                 st.write(f"**Título:** {proj['name']}")
-
+        st.write(f"Issues: {jira.get_project_issues_count(proj['key'])}")
         st.link_button("Abrir projeto", f"{st.session_state.credenciais['url']}/jira/software/projects/{proj['key']}/issues", use_container_width=True)
 
         
@@ -35,9 +35,9 @@ if "credenciais" not in st.session_state:
         if submitted:
             st.session_state.credenciais = {"url": url, "email": email,"api_key": api_key}       
 else:
+    st.title("Seus projetos no Jira:")
     jira = config_jira()
     projects = jira.get_all_projects(included_archived=None, expand=None)
-    print(st.session_state.credenciais["url"])
     cols = st.columns(3)
     i=0
     for proj in projects:

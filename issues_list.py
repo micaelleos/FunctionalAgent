@@ -1,0 +1,1 @@
+# lsita issues criados na sessão

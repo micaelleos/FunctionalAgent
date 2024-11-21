@@ -11,6 +11,6 @@ pages = {
     ],
 }
 
-#st.logo("logo.png", icon_image="logo.png")
+st.logo("logo.png", icon_image="jira_logo.png", size="large")
 pg = st.navigation(pages)
 pg.run()

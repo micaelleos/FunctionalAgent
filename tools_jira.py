@@ -35,16 +35,13 @@ def criar_issue_jira(**dict_info:IssueJira) -> dict:
     try:    # Create issue
         jira = config_jira()
         result = jira.issue_create(fields)
-        print(result)
         issue = result | fields
         st.session_state.issues.append(issue)
-        print(st.session_state.issues)
     except Exception as e:
-        print(e)
         if type(e).__name__ in ['MissingSchema','NameError']:
             return "Aconteceu um erro ao enviar o issue ao Jira. O usuário não configurou as credenciais da sua conta do Jira"
         else:
-            return f"Aconteceu o erro {type(e).__name__} ao enviar o issue ao Jira"
+            return f"Erro: {e}"
     
     return result
 
@@ -61,7 +58,7 @@ def get_all_projects() -> dict:
         if type(e).__name__ in ['MissingSchema','NameError']:
             return "Aconteceu um erro consultar os projetos no Jira. O usuário não configurou as credenciais da sua conta do Jira"
         else:
-            return f"Aconteceu o erro {type(e).__name__} ao consultar o projeto no Jira"
+            return f"Erro: {e}"
     
     return result
 
@@ -83,7 +80,7 @@ def consultar_issue(**dict_info:ConsultaIssue) -> dict:
         if type(e).__name__ in ['MissingSchema','NameError']:
             return "Aconteceu um erro ao consultar o issue ao Jira. O usuário não configurou as credenciais da sua conta do Jira"
         else:
-            return f"Aconteceu o erro {type(e).__name__} ao consultar o issue ao Jira"
+            return f"Erro: {e}"
     
     return result
 
@@ -121,7 +118,7 @@ def atualizar_issue_jira(**dict_info:AtualizarIssueJira) -> dict:
         if type(e).__name__ in ['MissingSchema','NameError']:
             return "Aconteceu um erro ao atualizar o issue ao Jira. O usuário não configurou as credenciais da sua conta do Jira"
         else:
-            return f"Aconteceu o erro {type(e).__name__} ao atualizar o issue ao Jira"
+            return f"Erro: {e}"
     
     return result
 
@@ -143,7 +140,7 @@ def consultar_epic(**dict_info:ConsultaEpic) -> dict:
         if type(e).__name__ in ['MissingSchema','NameError']:
             return "Aconteceu um erro ao consultar os issue do Épico ao Jira. O usuário não configurou as credenciais da sua conta do Jira"
         else:
-            return f"Aconteceu o erro {type(e).__name__} ao consultar os issue do Épico no Jira"
+            return f"Erro: {e}"
     
     return result
 

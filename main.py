@@ -6,10 +6,9 @@ pages = {
         st.Page("jira_list.py", title="Seus projetos Jira"),
         st.Page("issues_list.py", title="Issues criados"),
     ],
-    # "Resources": [
-    #     #st.Page("learn.py", title="Learn about us"),
-    #     #st.Page("trial.py", title="Try it out"),
-    # ],
+    "Recursos": [
+         st.Page("learn.py", title="Sobre"),
+     ]
 }
 
 st.logo("logo.png", icon_image="jira_logo.png", size="large")

@@ -13,10 +13,14 @@ else:
 
             for issue in st.session_state.issues:
                 with st.container(height=400, border=True):
-                    st.write(f"**Key:** {issue['key']}")
+                    col = st.columns([0.4,0.4,0.2])
+                    with col[0]:
+                        st.write(f"**Key:** {issue['key']}")
+                    with col[1]:
+                        st.write(f"**Tipo:** {issue['issuetype']['name']}")
+                    with col[2]:
+                        st.link_button(":link:",url=f"{st.session_state.credenciais['url']}browse/{issue['key']}",use_container_width=True)
                     st.write(f"**Título: {issue['summary']}**")
                     st.write(f"**Descrição**:{issue['description']}")
-                    st.write("Mais informações:")
-                    st.write(issue)
 
     

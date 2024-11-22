@@ -2,10 +2,6 @@
 import streamlit as st
 import os
 import time
-from pydantic import BaseModel, Field
-from typing import List, Literal, Optional
-from langchain.agents import tool
-from langchain_core.tools import StructuredTool,BaseTool
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import AgentExecutor
 from langchain.agents.format_scratchpad import format_to_openai_functions
@@ -15,7 +11,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import MessagesPlaceholder
 from langchain.schema.runnable import RunnablePassthrough
-from scripts.jira import config_jira
+from tools_jira import tools
+from prompt import *
 
 st.html(
     '''
@@ -43,55 +40,9 @@ def config():
         if st.button("Close",use_container_width=True):
             st.rerun()
 
-class IssueJira(BaseModel):
-    project: str = Field(description="nome do projeto onde será criado o issue")
-    title: str = Field(description="Nome do issue, em frase resumida com até 4 palavras")
-    description: str = Field(description="descrição do issue.")
-    issuetype: Literal['Task', 'Story', 'Epic'] =  Field(description="Tipo do issue a ser criado")
-    #priority: Literal['Highest', 'High', 'Medium','Low','Lowest'] = Field(description="An issue's priority indicates its relative importance. ")
 
-@tool(args_schema=IssueJira)
-def criar_issue_Jira(**dict_info:IssueJira) -> dict:
-    """Chame essa função para criar issues no Jira"""
-    fields = {
-        "project":
-        {
-            "key": dict_info["project"]
-        },
-        "summary": dict_info["title"],
-        "description": dict_info["description"],
-        "issuetype": {
-            "name": dict_info["issuetype"]
-        }
-        }
-    
-    try:    # Create issue
-        jira = config_jira()
-        result = jira.issue_create(fields)
-        print(result)
-    except Exception as e:
-        print(e)
-        if type(e).__name__ in ['MissingSchema','NameError']:
-            return "Aconteceu um erro ao enviar o issue ao Jira. O usuário não configurou as credenciais da sua conta do Jira"
-        else:
-            return f"Aconteceu o erro {type(e).__name__} ao enviar o issue ao Jira"
-    
-    return result
-
-tools = [criar_issue_Jira]
-
-prompt_2 = ChatPromptTemplate.from_messages([
-    ("system", """Você é um especialista em documentação funcional e em Jira.
-    Você escreve todo tipo de documentação funcional com base na orientação do usuário.
-    Você ajuda ao usuário, em uma jornada, para criar doumentações funcionais desde do nível macro ao micro.
-    Quando a documentação estiver a nível de storys, você pode enviálas ao jira, se o usuário solicitar.
-    Caso seja solicitado essas informações devem ser enviadas ao Jira.
-    Você não pode inventar o nome do projeto do Jira.
-    Caso o usuário não informe o nome do projeto, você deve avisá-lo que ele deve adicionar o nome do projeto do jira, para que você possa criar o issue.
-    Ao criar um issue você deve me avisar qual é o id e a Key do issue, assim como o link para que eu possa abrir-lo no Jira
-    Para casos de escrita de de histórias/Storys, você deve utilizar o formato BDD, com cenários e critérios de aceite.
-    As storys precisam ter formatação markdown na sua descrição.
-     """),
+prompt = ChatPromptTemplate.from_messages([
+    ("system", f"{prompt_2}"),
     MessagesPlaceholder(variable_name="chat_history"),
     ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad")
@@ -101,11 +52,11 @@ OPENAI_API_KEY = os.environ['OPEN_API_KEY']
 
 model = ChatOpenAI(openai_api_key=OPENAI_API_KEY,temperature=0.5)
 
-model_jira_with_tool_test = model.bind(functions=[format_tool_to_openai_function(criar_issue_Jira)])
+model_jira_with_tool_test = model.bind(functions=[format_tool_to_openai_function(t) for t in tools])
 
 agent_chain_2 = RunnablePassthrough.assign(
     agent_scratchpad= lambda x: format_to_openai_functions(x["intermediate_steps"])
-) | prompt_2 | model_jira_with_tool_test | OpenAIFunctionsAgentOutputParser()
+) | prompt | model_jira_with_tool_test | OpenAIFunctionsAgentOutputParser()
 
 @st.cache_resource()
 def memory():
@@ -113,7 +64,7 @@ def memory():
     return memory
 
 memory = memory()
-agent_executor = AgentExecutor(agent=agent_chain_2, tools=[criar_issue_Jira], verbose=True, memory=memory)
+agent_executor = AgentExecutor(agent=agent_chain_2, tools=tools, verbose=True, memory=memory)
 
 
 # Streamed response emulator

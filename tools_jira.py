@@ -4,6 +4,10 @@ from langchain.agents import tool
 from langchain_core.tools import StructuredTool,BaseTool
 from pydantic import BaseModel, Field
 
+import streamlit as st
+
+if "issues" not in st.session_state:
+    st.session_state.issues = []
 
 class IssueJira(BaseModel):
     project: str = Field(description="nome do projeto onde será criado o issue")
@@ -32,6 +36,9 @@ def criar_issue_jira(**dict_info:IssueJira) -> dict:
         jira = config_jira()
         result = jira.issue_create(fields)
         print(result)
+        issue = result | fields
+        st.session_state.issues.append(issue)
+        print(st.session_state.issues)
     except Exception as e:
         print(e)
         if type(e).__name__ in ['MissingSchema','NameError']:

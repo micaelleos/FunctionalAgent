@@ -1,6 +1,8 @@
 import streamlit as st
 from scripts.jira import config_jira
 
+st.title("Seus projetos no Jira")
+
 def project_bloc(proj):
     with st.container(height=200):
         with st.container():
@@ -23,7 +25,7 @@ def project_bloc(proj):
     
 
 if "credenciais" not in st.session_state:
-    st.info("Entre com suas credenciais do Jira")
+    st.info("Entre com suas credenciais do Jira para visualizar seus projetos")
     with st.form("my_form"):
         st.write(f"Entre com as suas credenciais do Jira:")
         url = st.text_input("Jira URL")

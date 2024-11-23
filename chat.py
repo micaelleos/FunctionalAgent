@@ -20,9 +20,16 @@ st.html(
             div[aria-label="dialog"]>button[aria-label="Close"] {
                 display: none;
             }
+            .st-emotion-cache-ocqkz7{
+                position: sticky;
+                top: 3.75rem; 
+                // width: 50%; 
+                z-index:999991; 
+                background-color: white;}
         </style>
     '''
 )
+
 
 @st.dialog("Configuração de Login")
 def config():
@@ -64,15 +71,15 @@ def memory():
     return memory
 
 memory = memory()
-agent_executor = AgentExecutor(agent=agent_chain_2, tools=tools, verbose=True, memory=memory)
+agent_executor = AgentExecutor(agent=agent_chain_2, tools=tools, verbose=True, memory=memory,)
 
 
 # Streamed response emulator
 def response_generator(response):
-    time.sleep(0.05)
+    time.sleep(0.03)
     for word in response.split(" "):
         yield word+ " "
-        time.sleep(0.05)
+        time.sleep(0.03)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -86,25 +93,38 @@ with st.container():
             config()
 
 
-initial_message = st.chat_message("assistant")
-initial_message.write(response_generator("Olá, como posso ajudá-lo hoje?"))  
+@st.fragment
+def atualizar_chat(chat_container,prompt=None):
+    with chat_container:
+        if not prompt:
+            initial_message = st.chat_message("assistant")
+            initial_message.write("Olá, como posso ajudá-lo hoje?")
+        messages = st.session_state.messages
 
-for message in st.session_state.messages:
-    if message['role'] == "assistant":
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    else:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    
+        for i in range(0,len(messages)):
+            message = messages[i]       
+                                
+            if message['role'] == "assistant":
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+            else:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])    
 
-if prompt := st.chat_input("Faça uma pergunta?"):
+        if prompt:
+            with st.chat_message("assistant"):
+                with st.spinner(''):
+                    response=agent_executor.invoke({'input':prompt})['output']
+                st.write_stream(response_generator(response))
+
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
+
+chat_container = st.container(height=400,border=False)
+atualizar_chat(chat_container)
+
+if prompt:= st.chat_input("Faça uma pergunta", key="user_input"):
+
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    atualizar_chat(chat_container,prompt)
 
-    with st.chat_message("assistant"):
-        with st.spinner(''):
-            response=agent_executor.invoke({'input':prompt})["output"]
-        st.write(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})

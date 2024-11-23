@@ -1,6 +1,8 @@
 # lista issues criados na sessão
 import streamlit as st
 
+st.title("Issues criados")
+
 if "issues" not in st.session_state:
     st.info("Você ainda não criou nenhum issue.")
 else:    

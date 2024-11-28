@@ -11,8 +11,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import MessagesPlaceholder
 from langchain.schema.runnable import RunnablePassthrough
-from tools_jira import tools
-from prompt import *
+from src.scripts.tools_jira import tools
+from src.scripts.prompt import *
 
 st.html(
     '''
@@ -55,7 +55,7 @@ prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
 
-OPENAI_API_KEY = os.environ['OPEN_API_KEY']
+OPENAI_API_KEY = os.getenv('OPEN_API_KEY')
 
 model = ChatOpenAI(openai_api_key=OPENAI_API_KEY,temperature=0.5)
 
@@ -83,6 +83,9 @@ def response_generator(response):
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+if "issues" not in st.session_state:
+    st.session_state.issues = []
 
 with st.container():
     col1, col2 = st.columns([0.8,0.2])

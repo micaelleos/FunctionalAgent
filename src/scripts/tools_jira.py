@@ -1,4 +1,4 @@
-from scripts.jira import config_jira
+from src.scripts.jira import config_jira
 from typing import List, Literal, Optional
 from langchain.agents import tool
 from langchain_core.tools import StructuredTool,BaseTool
@@ -11,11 +11,11 @@ if "issues" not in st.session_state:
 
 class IssueJira(BaseModel):
     project: str = Field(description="nome do projeto onde será criado o issue")
-    title: str = Field(description="Nome do issue, em frase resumida com até 4 palavras")
-    description: str = Field(description="descrição do issue, em formato markdown")
+    title: str = Field(description="Título do issue, em frase resumida com até 4 palavras, demonstrando sua funcionalidade e objetivo")
+    description: str = Field(description="descrição do issue")
     issuetype: Literal['Task', 'Story', 'Epic'] =  Field(description="Tipo do issue a ser criado")
     priority: Literal['Highest', 'High', 'Medium','Low','Lowest'] = Field(description="An issue's priority indicates its relative importance. ")
-
+    parentKey: Optional[str] = Field(description="chave do issue pai")
 
 @tool(args_schema=IssueJira)
 def criar_issue_jira(**dict_info:IssueJira) -> dict:
@@ -29,6 +29,9 @@ def criar_issue_jira(**dict_info:IssueJira) -> dict:
         "description": dict_info["description"],
         "issuetype": {
             "name": dict_info["issuetype"]
+        },
+        "parent": {
+            "key": dict_info["parentKey"]  # Chave da issue pai
         }
         }
     
@@ -127,7 +130,7 @@ class ConsultaEpic(BaseModel):
     epic_key: str = Field(description="chave do issue do tipo epic, no Jira")
 
 @tool(args_schema=ConsultaEpic)
-def consultar_epic(**dict_info:ConsultaEpic) -> dict:
+def consultar_issues_within_epic(**dict_info:ConsultaEpic) -> dict:
     """Chame essa ferramenta para consultar issues dentro de um Epic no Jira"""    
     key = dict_info["epic_key"]
     
@@ -144,6 +147,41 @@ def consultar_epic(**dict_info:ConsultaEpic) -> dict:
     
     return result
 
+class JQLjiraQuery(BaseModel):
+    jql_query: str = Field(description="query JQL")
+
+@tool(args_schema=JQLjiraQuery)
+def consultar_jql_query(jql_query:ConsultaEpic) -> dict:
+    """Chame essa ferramenta para fazer consultas no Jira com query jql"""  
+    try:    
+        jira = config_jira()
+        
+        # JQL para buscar as user stories dentro do projeto sem parent
+        
+
+        start_at = 0
+        max_results = 50  # Número máximo de issues por página
+        result = {}
+        while True:
+            response = jira.jql(jql_query, start=start_at, limit=max_results)
+            issues = response.get("issues", [])
+            if not issues:
+                break
+
+            for i in range(len(issues)):
+                issue = issues[i]
+                key = issue["key"]  # Chave da user story (ex.: PROJ-123)
+                result[key]={"issue_key":key, "fields": issue["fields"]}
+            start_at += max_results
+        
+    except Exception as e:
+        print(e)
+        if type(e).__name__ in ['MissingSchema','NameError']:
+            return "Aconteceu um erro ao consultar os issue do Épico ao Jira. O usuário não configurou as credenciais da sua conta do Jira"
+        else:
+            return f"Erro: {e}"
+    
+    return result
 
 # # Move issues to backlog
 # jira.move_issues_to_backlog(issue_keys)
@@ -162,4 +200,4 @@ def consultar_epic(**dict_info:ConsultaEpic) -> dict:
 # # Note, if the user does not have permission to view the board, no epics will be returned at all.
 # jira.get_epics(board_id, done=False, start=0, limit=50, )
 
-tools = [criar_issue_jira,get_all_projects,consultar_issue,atualizar_issue_jira,consultar_epic]
+tools = [criar_issue_jira,get_all_projects,consultar_issue,atualizar_issue_jira,consultar_issues_within_epic,consultar_jql_query]

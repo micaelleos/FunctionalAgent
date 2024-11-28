@@ -1,5 +1,5 @@
 import streamlit as st
-from scripts.jira import config_jira
+from src.scripts.jira import config_jira
 
 st.title("Seus projetos no Jira")
 
@@ -37,7 +37,6 @@ if "credenciais" not in st.session_state:
         if submitted:
             st.session_state.credenciais = {"url": url, "email": email,"api_key": api_key}       
 else:
-    st.title("Seus projetos no Jira:")
     jira = config_jira()
     projects = jira.get_all_projects(included_archived=None, expand=None)
     cols = st.columns(3)

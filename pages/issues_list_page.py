@@ -3,6 +3,9 @@ import streamlit as st
 
 st.title("Issues criados")
 
+#https://micaelleosouza.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10307?size=medium
+#st.image(proj['avatarUrls']['16x16'],use_container_width=True)
+
 if "issues" not in st.session_state:
     st.info("Você ainda não criou nenhum issue.")
 else:    

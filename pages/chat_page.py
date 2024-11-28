@@ -56,7 +56,6 @@ prompt = ChatPromptTemplate.from_messages([
 ])
 
 OPENAI_API_KEY = os.getenv('OPEN_API_KEY')
-
 model = ChatOpenAI(openai_api_key=OPENAI_API_KEY,temperature=0.5)
 
 model_jira_with_tool_test = model.bind(functions=[format_tool_to_openai_function(t) for t in tools])

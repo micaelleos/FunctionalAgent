@@ -31,7 +31,7 @@ def criar_issue_jira(**dict_info:IssueJira) -> dict:
             "name": dict_info["issuetype"]
         },
         "parent": {
-            "key": dict_info["parentKey"]  # Chave da issue pai
+            "key": dict_info.get("parentKey") # Chave da issue pai
         }
         }
     
@@ -171,7 +171,7 @@ def consultar_jql_query(jql_query:ConsultaEpic) -> dict:
             for i in range(len(issues)):
                 issue = issues[i]
                 key = issue["key"]  # Chave da user story (ex.: PROJ-123)
-                result[key]={"issue_key":key, "fields": issue["fields"]}
+                result[key]={ "issuetype": issue["fields"]["issuetype"],"description": issue["fields"]["description"],"title": issue["fields"]['summary']} # 'description''summary'
             start_at += max_results
         
     except Exception as e:
@@ -200,4 +200,4 @@ def consultar_jql_query(jql_query:ConsultaEpic) -> dict:
 # # Note, if the user does not have permission to view the board, no epics will be returned at all.
 # jira.get_epics(board_id, done=False, start=0, limit=50, )
 
-tools = [criar_issue_jira,get_all_projects,consultar_issue,atualizar_issue_jira,consultar_issues_within_epic,consultar_jql_query]
+tools = [criar_issue_jira,get_all_projects,consultar_issue,atualizar_issue_jira,consultar_jql_query]#consultar_issues_within_epic,

@@ -1,4 +1,34 @@
+# Segredos e ambientes locais
 .env
-myenv
+.env.*
+!.env.example
+myenv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node / frontend
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Firebase emuladores
+.firebase/
+*-debug.log
+emulator-data/
+
+# Editores e SO
 .vscode/*
+.idea/
+.DS_Store
+
 old/*

@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(backend|scripts)/
+      - id: ruff-format
+        files: ^(backend|scripts)/
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend lint
+        entry: bash -c 'cd frontend && npx eslint --max-warnings 0 . && npx prettier --check .'
+        language: system
+        files: ^frontend/
+        pass_filenames: false

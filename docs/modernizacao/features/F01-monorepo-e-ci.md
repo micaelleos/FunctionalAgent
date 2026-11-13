@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em implementação |
 | **Fase** | 0 — Fundação |
 | **Dependências** | — |
 | **ADRs** | ADR-005 |
@@ -94,12 +94,19 @@ Unit: `test_healthz`, render da página de status. CI: o próprio pipeline é o 
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F01-RF-01 | AT-F01-01 | ⬜ |
-| F01-RF-02 | AT-F01-01, `backend/tests/unit/test_health.py` | ⬜ |
-| F01-RF-03 | AT-F01-01, `frontend/src/App.test.tsx` | ⬜ |
-| F01-RF-04 | AT-F01-02 | ⬜ |
-| F01-RF-05 | AT-F01-03 | ⬜ |
+| F01-RF-01 | AT-F01-01 (com Docker: `make dev`) | ⬜ pendente — validado sem Docker, falta rodar o compose |
+| F01-RF-02 | AT-F01-01, `backend/tests/unit/test_health.py` | ✅ |
+| F01-RF-03 | AT-F01-01, `frontend/src/App.test.tsx` | ✅ |
+| F01-RF-04 | AT-F01-02 (PR de prova com erro de lint) | ⬜ pendente — exige o CI rodando no GitHub e branch protection |
+| F01-RF-05 | AT-F01-03 (`make legacy`) | ⬜ pendente |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-13 | (este PR) | local, sem Docker | backend `uvicorn` + frontend `vite` + Chromium/Playwright | AT-F01-01 parcial: página exibe "API: ok" ([screenshot](../evidencias/AT-F01-01.png)); `make lint` e `make test` verdes (back 100%, front 100% de linhas) | — |
+
+**Pendências para o Gate 3 da F01**
+- Rodar `make dev` numa máquina com Docker (o ambiente de desenvolvimento usado não tinha daemon Docker); o build da imagem também é verificado pelo job `backend` do CI.
+- Ativar branch protection em `master` exigindo os checks `ci / backend`, `ci / frontend`, `ci / repo-hygiene` e 1 review; depois abrir o PR de prova do AT-F01-02.
+- Executar AT-F01-03 (`make legacy`) com uma chave OpenAI válida.
+- Aviso conhecido: `npm audit` acusa 1 vulnerabilidade moderada (minimatch dentro do `typescript-eslint` 8.72.2, só em desenvolvimento, sem correção publicada na 8.x). O CI audita dependências de produção em nível alto.

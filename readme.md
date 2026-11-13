@@ -1,5 +1,10 @@
 # Functional AI Agent for Jira Integration
 
+> **🚧 Em modernização.** O app está sendo migrado para React + FastAPI em Firebase/Cloud Run.
+> Plano completo em [`docs/modernizacao/`](docs/modernizacao/README.md) · como contribuir em [`CONTRIBUTING.md`](CONTRIBUTING.md).
+> O app Streamlit descrito abaixo agora fica em `legacy/` e roda com `make legacy`.
+
+
 ## Overview
 This project is a **Functional AI Agent** designed to assist users in building **functional documentations** and seamlessly integrate with **Jira**. Using cutting-edge AI, this agent helps users generate and refine **User Stories** and other functional requirements. Once the User Stories are ready, they can be automatically exported to the desired Jira project.
 
@@ -39,7 +44,7 @@ The application leverages **Python**, **Streamlit** for the user interface, and 
 
 3. **Install Dependencies**
    ```bash
-   pip install -r requirements.txt
+   pip install -r legacy/requirements.txt
    ```
 
 4. **Set Up Environment Variables**
@@ -49,9 +54,10 @@ The application leverages **Python**, **Streamlit** for the user interface, and 
      ```
    Replace the placeholders with your actual credentials.
 
-5. **Run the Application**
+5. **Run the Application** (legacy Streamlit app)
    ```bash
-   streamlit run app.py
+   cd legacy
+   streamlit run main.py
    ```
 
 ---

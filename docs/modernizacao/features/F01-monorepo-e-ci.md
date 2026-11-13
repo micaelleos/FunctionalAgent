@@ -1,0 +1,105 @@
+# F01 — Monorepo, tooling e CI base
+
+| Campo | Valor |
+|---|---|
+| **Status** | Rascunho |
+| **Fase** | 0 — Fundação |
+| **Dependências** | — |
+| **ADRs** | ADR-005 |
+| **Estimativa** | 5 dias |
+
+## Parte A — Especificação
+
+### 1. Contexto e objetivo
+- **Problema:** sem estrutura para front/back/infra, dependências sem versão, `__pycache__` versionado, código morto,
+  nenhum teste ou CI (D15, D16, D18).
+- **Objetivo:** esqueleto do monorepo onde qualquer PR é validado automaticamente e o ambiente local sobe com um comando.
+- **Indicador:** tempo do CI de PR ≤ 10 min; 100% dos PRs passam pelo CI.
+
+### 2. Escopo
+- **Inclui:** estrutura de pastas, `backend/` (FastAPI com `/healthz`), `frontend/` (Vite + React com página inicial),
+  `legacy/` (Streamlit movido), tooling (uv, ruff, mypy, eslint, prettier, pre-commit), `docker-compose` com emuladores,
+  `ci.yml`, template de PR, script de rastreabilidade de requisitos, limpeza de `__pycache__` e código morto.
+- **Fora de escopo:** deploy (F02), autenticação (F03).
+
+### 3. Requisitos funcionais
+| ID | Requisito | Prio. |
+|---|---|---|
+| F01-RF-01 | Um dev com Docker consegue subir front + back + emuladores com `make dev` em uma máquina limpa | Must |
+| F01-RF-02 | `GET /healthz` do backend responde `200 {"status":"ok","version":<sha>}` | Must |
+| F01-RF-03 | A página inicial do React exibe o status retornado por `/healthz` | Must |
+| F01-RF-04 | Todo PR executa lint, tipos, testes e build de front e back, e o resultado aparece no PR | Must |
+| F01-RF-05 | O app Streamlit continua executável a partir de `legacy/` até o go-live | Must |
+
+### 4. Requisitos técnicos
+| ID | Requisito | Verificação |
+|---|---|---|
+| F01-RT-01 | Dependências travadas: `uv.lock` e `package-lock.json` versionados; CI usa `--frozen`/`npm ci` | CI |
+| F01-RT-02 | `.gitignore` cobre `__pycache__`, `.env*`, `node_modules`, `dist`; nenhum `.pyc` no repo | `git ls-files` no CI |
+| F01-RT-03 | mypy `strict` e TypeScript `strict` habilitados | config + CI |
+| F01-RT-04 | `import-linter` com as regras de camadas da arquitetura | CI |
+| F01-RT-05 | Imagem Docker do backend multi-stage, usuário não-root, < 300 MB | `docker inspect` no CI |
+| F01-RT-06 | gitleaks em pre-commit e CI | CI |
+| F01-RT-07 | `scripts/trace_requirements.py` falha se um RF de spec com status ≥ "Em validação" não tiver teste marcado | CI |
+
+### 5. Teste final de aceitação
+```gherkin
+Funcionalidade: Esqueleto do monorepo
+
+  Cenário: AT-F01-01 Ambiente local com um comando        # F01-RF-01, F01-RF-02, F01-RF-03
+    Dado um clone limpo do repositório com Docker instalado
+    Quando executo "make dev"
+    Então "http://localhost:8000/healthz" responde 200 com status "ok"
+    E "http://localhost:5173" exibe "API: ok"
+
+  Cenário: AT-F01-02 PR com erro de lint é bloqueado       # F01-RF-04
+    Dado um PR que introduz um import não utilizado no backend
+    Então o check "ci / backend-lint" falha e o merge fica bloqueado
+
+  Cenário: AT-F01-03 Streamlit legado continua rodando     # F01-RF-05
+    Quando executo "make legacy"
+    Então o app Streamlit abre a página "Agente Funcional"
+```
+
+### 6. Conformidade com a Constituição
+| Artigo | Cumprimento |
+|---|---|
+| III Segredos | gitleaks; `.env*` ignorado |
+| VI Testes | CI obrigatório desde o 1º dia; cobertura medida |
+| VIII IaC | Ambiente local declarativo (compose) |
+
+## Parte B — Plano técnico
+
+### 7. Desenho
+- Estrutura conforme `03-arquitetura.md §7`. `git mv` de `main.py`, `pages/`, `src/` para `legacy/`.
+- Remover `src/scripts/llm_openai.py`, `src/scripts/tools.py`, `prompt_1`, todos os `__pycache__`.
+- `Makefile` multiplataforma (ou `justfile`): `dev`, `test`, `lint`, `legacy`, `gen-client`.
+- `ci.yml` com jobs `backend` e `frontend` filtrados por caminho (`dorny/paths-filter`).
+- Branch protection em `master`: checks obrigatórios + 1 review.
+
+### 8. Tarefas
+| # | Tarefa | Teste | Est. |
+|---|---|---|---|
+| 1 | Mover legado, limpar código morto e pyc, `.gitignore` | AT-F01-03 | 0,5 d |
+| 2 | `backend/` com uv, FastAPI, `/healthz`, ruff/mypy/import-linter, pytest | `test_healthz` | 1 d |
+| 3 | `frontend/` com Vite/React/TS, Tailwind, Vitest, ESLint; página de status | `App.test.tsx` | 1 d |
+| 4 | Dockerfile backend + `docker-compose` com emuladores Firebase | AT-F01-01 | 1 d |
+| 5 | `ci.yml`, template de PR, pre-commit, branch protection | AT-F01-02 | 1 d |
+| 6 | `scripts/trace_requirements.py` + README de contribuição | teste do script | 0,5 d |
+
+### 9. Plano de testes
+Unit: `test_healthz`, render da página de status. CI: o próprio pipeline é o teste (AT-F01-02 com PR de prova).
+
+## Parte C — Validação
+### 10. Rastreabilidade
+| Requisito | Teste(s) | Status |
+|---|---|---|
+| F01-RF-01 | AT-F01-01 | ⬜ |
+| F01-RF-02 | AT-F01-01, `backend/tests/unit/test_health.py` | ⬜ |
+| F01-RF-03 | AT-F01-01, `frontend/src/App.test.tsx` | ⬜ |
+| F01-RF-04 | AT-F01-02 | ⬜ |
+| F01-RF-05 | AT-F01-03 | ⬜ |
+
+### 11. Evidências
+| Data | Commit | Ambiente | Execução | Resultado | Aceito por |
+|---|---|---|---|---|---|

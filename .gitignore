@@ -32,3 +32,10 @@ emulator-data/
 .DS_Store
 
 old/*
+playwright-report/
+test-results/
+
+# Terraform
+.terraform/
+*.tfplan
+*.tfstate*

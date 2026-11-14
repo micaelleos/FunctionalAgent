@@ -1,5 +1,10 @@
 # 06 — CI/CD e deploy
 
+> **Revisão 2026-11-14 (ADR-006):** por ser projeto de portfólio, a parte de **CD deste documento não
+> vale**: não há `deploy.yml`, `preview.yml`, `infra.yml`, canário, previews por PR nem WIF. O deploy
+> é `make deploy` (`scripts/deploy.sh`) e o rollback segue `docs/runbooks/rollback.md`. O CI do §2
+> (`ci.yml`) continua valendo. O texto abaixo fica como registro do plano original.
+
 ## 1. Estratégia de branches
 
 - **Trunk-based**: `master` (renomear para `main` é opcional) é sempre implantável e protegido
@@ -65,7 +70,7 @@ O provider WIF aceita apenas tokens com `repository == micaelleos/FunctionalAgen
 ## 3. Deploy do backend
 
 1. `docker build` multi-stage (`python:3.12-slim`, `uv sync --frozen --no-dev`, usuário não-root).
-2. Push para `southamerica-east1-docker.pkg.dev/<proj>/api/api@sha256:...` — deploy **sempre por digest**.
+2. Push para `us-central1-docker.pkg.dev/<proj>/api/api@sha256:...` — deploy **sempre por digest**.
 3. `gcloud run deploy api --image <digest> --no-traffic --tag rc-<sha>`.
 4. Smoke test na URL da tag (`/healthz`, `/api/v1/me` com usuário de teste).
 5. `gcloud run services update-traffic api --to-tags rc-<sha>=10` → observa 15 min:

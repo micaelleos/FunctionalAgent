@@ -11,7 +11,7 @@
 | ID | Feature | Fase | Status | Depende de | Est. | RF / RT | Artefatos |
 |---|---|---|---|---|---|---|---|
 | F01 | Monorepo, tooling e CI base | 0 | Em implementação | — | 5 d | 5 / 7 | [spec](001-monorepo-e-ci/spec.md) · [plano](001-monorepo-e-ci/plan.md) · [tarefas](001-monorepo-e-ci/tasks.md) |
-| F02 | Infraestrutura base GCP/Firebase (Terraform) e pipeline de deploy | 0 | Rascunho | F01 | 7 d | 4 / 8 | [spec](002-infraestrutura-base/spec.md) · [plano](002-infraestrutura-base/plan.md) · [tarefas](002-infraestrutura-base/tasks.md) |
+| F02 | Infraestrutura base GCP/Firebase (Terraform) e deploy por `make deploy` | 0 | Em implementação | F01 | 5 d | 4 / 8 | [spec](002-infraestrutura-base/spec.md) · [plano](002-infraestrutura-base/plan.md) · [tarefas](002-infraestrutura-base/tasks.md) |
 | F03 | Autenticação e conta do usuário | 1 | Rascunho | F02 | 5 d | 8 / 6 | [spec](003-autenticacao/spec.md) · [plano](003-autenticacao/plan.md) · [tarefas](003-autenticacao/tasks.md) |
 | F04 | Conexão Jira por usuário | 1 | Rascunho | F03 | 5 d | 7 / 6 | [spec](004-conexao-jira/spec.md) · [plano](004-conexao-jira/plan.md) · [tarefas](004-conexao-jira/tasks.md) |
 | F05 | API de chat com agente (LangGraph + streaming) | 1 | Rascunho | F04 | 10 d | 8 / 12 | [spec](005-agente-chat-api/spec.md) · [plano](005-agente-chat-api/plan.md) · [tarefas](005-agente-chat-api/tasks.md) |
@@ -25,6 +25,7 @@
 | F13 | Login Atlassian via OAuth 2.0 (3LO) | 4 | Rascunho · plano após GA | F04, F12 | 7 d | 4 / 4 | [spec](013-oauth-atlassian/spec.md) · [plano](013-oauth-atlassian/plan.md) |
 | F14 | Editor de artefatos antes da exportação | 4 | Rascunho · plano após GA | F06, F08 | 7 d | 5 / 3 | [spec](014-editor-artefatos/spec.md) · [plano](014-editor-artefatos/plan.md) |
 | F15 | Suíte contínua de avaliação do agente (evals) | 4 (baseline na 1) | Rascunho · plano após GA | F05 | 5 d | 3 / — | [spec](015-evals-agente/spec.md) · [plano](015-evals-agente/plan.md) |
+| F16 | Google Analytics (consentimento LGPD, CSP, eventos) | 4 | A especificar (aprovado pelo PO em 2026-11-14) | F02, F08 | — | — | — |
 
 **Totais:** 15 features · 84 requisitos funcionais · 85 técnicos · ~82 dias de estimativa.
 Status, dependências e estimativas vêm do cabeçalho de cada `spec.md` — atualize lá e reflita aqui.
@@ -41,7 +42,7 @@ gantt
     axisFormat  S%W
     section Fase 0 · Fundação
     F01 Monorepo, tooling e CI            :f01, 2026-11-23, 5d
-    F02 Infra base GCP/Firebase (Terraform):f02, after f01, 7d
+    F02 Infra base GCP/Firebase (Terraform):f02, after f01, 5d
     section Fase 1 · Núcleo
     F03 Autenticação e conta               :f03, after f02, 5d
     F04 Conexão Jira por usuário           :f04, after f03, 5d

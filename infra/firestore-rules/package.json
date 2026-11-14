@@ -1,0 +1,17 @@
+{
+  "name": "functional-agent-firestore-rules",
+  "private": true,
+  "type": "module",
+  "description": "Testes das regras do Firestore contra o emulador (F02-RT-04, AT-F02-04)",
+  "scripts": {
+    "test": "vitest run",
+    "test:emulator": "firebase emulators:exec --only firestore --project demo-functional-agent --config ../../firebase.json 'vitest run'"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "4.0.1",
+    "@types/node": "22.10.2",
+    "firebase": "11.1.0",
+    "typescript": "5.6.3",
+    "vitest": "4.1.12"
+  }
+}

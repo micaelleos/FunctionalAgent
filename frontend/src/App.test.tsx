@@ -8,7 +8,7 @@ afterEach(() => {
 })
 
 describe('F01-RF-03 página de status', () => {
-  it('exibe "API: ok" e a versão quando /healthz responde', async () => {
+  it('exibe "API: ok" e a versão quando /health responde', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(

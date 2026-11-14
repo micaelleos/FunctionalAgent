@@ -62,7 +62,7 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
 ## Spec-driven workflow (Spec Kit)
 
 - Constitution (non-negotiable rules, Articles I–XI): `.specify/memory/constitution.md`.
-  `docs/modernizacao/02-constituicao.md` is an older copy that must be kept in sync.
+  `docs/modernizacao/02-constituicao.md` is a mirror; amend both in the same PR.
 - Each feature `Fxx` lives in `specs/0xx-slug/` (`F05` → `specs/005-agente-chat-api/`):
   `spec.md` (requirements, Gherkin acceptance tests, constitution check, traceability, evidence),
   `plan.md`, `tasks.md`. Index, status, and dependencies: `specs/ROADMAP.md`.

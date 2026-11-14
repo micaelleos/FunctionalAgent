@@ -1,0 +1,124 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+
+  repo-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Nenhum arquivo compilado versionado (F01-RT-02)
+        run: |
+          if git ls-files | grep -E '(__pycache__/|\.pyc$|node_modules/)'; then
+            echo "::error::Arquivos gerados estão versionados"; exit 1
+          fi
+      - name: Busca de segredos (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.32"
+      - name: Testes do script de rastreabilidade
+        run: uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider -o addopts=""
+      - name: Rastreabilidade requisito → teste (F01-RT-07)
+        run: python3 scripts/trace_requirements.py
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.32"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Lint e formatação
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Tipos (mypy strict)
+        run: uv run mypy
+      - name: Regras de camadas (import-linter)
+        run: uv run lint-imports
+      - name: Testes com cobertura (mínimo 80%)
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml
+      - name: Auditoria de dependências
+        run: uvx pip-audit==2.7.3 --strict --progress-spinner off -r <(uv export --frozen --no-dev --no-hashes --no-emit-project)
+        shell: bash
+      - name: Build da imagem (F01-RT-05)
+        run: |
+          docker build --build-arg APP_VERSION=${{ github.sha }} -t api:ci .
+          size=$(docker image inspect api:ci --format '{{.Size}}')
+          echo "Tamanho da imagem: $((size / 1024 / 1024)) MB"
+          test "$size" -lt $((300 * 1024 * 1024))
+          user=$(docker image inspect api:ci --format '{{.Config.User}}')
+          test "$user" = "app"
+      - name: Smoke test da imagem
+        run: |
+          docker run -d --rm -p 8080:8080 -e ENV=test --name api api:ci
+          for i in $(seq 1 20); do curl -fsS localhost:8080/healthz && exit 0; sleep 1; done
+          docker logs api; exit 1
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Lint e formatação
+        run: |
+          npm run lint
+          npm run format:check
+      - name: Tipos
+        run: npm run typecheck
+      - name: Testes com cobertura (mínimo 70%)
+        run: npm run coverage
+      - name: Auditoria de dependências de produção
+        run: npm audit --omit=dev --audit-level=high
+      - name: Build
+        run: npm run build

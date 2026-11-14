@@ -1,0 +1,49 @@
+# Ambiente local completo: `make dev` (F01-RF-01).
+services:
+  emulators:
+    build: ./infra/emulators
+    volumes:
+      - ./firebase.json:/workspace/firebase.json:ro
+      - ./firestore.rules:/workspace/firestore.rules:ro
+      - ./firestore.indexes.json:/workspace/firestore.indexes.json:ro
+    ports:
+      - "4000:4000"   # UI dos emuladores
+      - "9099:9099"   # Auth
+      - "8081:8081"   # Firestore
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: local
+    environment:
+      ENV: local
+      PORT: "8000"
+      CORS_ORIGINS: '["http://localhost:5173"]'
+      GCP_PROJECT: demo-functional-agent
+      FIRESTORE_EMULATOR_HOST: emulators:8081
+      FIREBASE_AUTH_EMULATOR_HOST: emulators:9099
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
+    volumes:
+      - ./backend/app:/app/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - emulators
+
+  frontend:
+    image: node:22-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm run dev"]
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  frontend_node_modules:

@@ -1,0 +1,77 @@
+[project]
+name = "functional-agent-api"
+version = "0.1.0"
+description = "Backend do Agente Funcional (FastAPI)"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.32,<1",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "httpx>=0.27",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "import-linter>=2.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "S", "ASYNC", "RUF", "SIM", "PT"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["req(id): requisito da spec coberto pelo teste (ex.: F01-RF-02)"]
+addopts = "--strict-markers"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "Camadas da arquitetura (docs/modernizacao/03-arquitetura.md §2)"
+type = "layers"
+layers = [
+    "app.main",
+    "app.api",
+    "app.services",
+    "app.agent | app.integrations | app.repositories",
+    "app.core",
+]

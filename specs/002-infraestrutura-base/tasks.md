@@ -2,14 +2,35 @@
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
-> Cada tarefa ≤ 1 dia e acompanhada do seu teste (Constituição, Art. I e VI).
+**Entradas:** plan.md, spec.md · convertido da tabela §8 original para o formato do
+`tasks-template` do projeto (checklist lido por `/speckit-implement` e `/speckit-converge`).
 
-### 8. Tarefas
-| # | Tarefa | Teste | Est. |
-|---|---|---|---|
-| 1 | Bootstrap: projetos, billing, bucket de estado | checklist | 0,5 d |
-| 2 | Módulos: services, artifact_registry, firestore, secrets, kms | `terraform validate` + plan | 1,5 d |
-| 3 | Módulos: cloud_run, firebase (hosting, auth), wif, budget | plan/apply dev | 1,5 d |
-| 4 | `firebase.json` com headers, `firestore.rules`, índices | AT-F02-04, teste de headers | 0,5 d |
-| 5 | `deploy.yml` (dev, prd com aprovação, canário, rollback) | AT-F02-01..03 | 2 d |
-| 6 | `preview.yml` + `infra.yml` | PR de prova | 1 d |
+## Formato: `- [ ] Tnnn [P?] [Fxx-RF-nn?] Descrição — teste: <teste> — <est.>`
+
+- **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
+  acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
+
+**Total:** 6 tarefas · 7 d.
+**Dividir antes de implementar** (> 1 d, Art. I/VI): T002 (1,5 d), T003 (1,5 d), T005 (2 d).
+
+## 8. Tarefas
+
+### Fase 1: Fundação
+
+**Objetivo:** Projetos GCP e módulos Terraform base.
+
+- [ ] T001 Bootstrap: projetos, billing, bucket de estado — teste: checklist — 0,5 d
+- [ ] T002 Módulos: services, artifact_registry, firestore, secrets, kms — teste: `terraform validate` + plan — 1,5 d
+- [ ] T003 Módulos: cloud_run, firebase (hosting, auth), wif, budget — teste: plan/apply em dev — 1,5 d
+
+---
+
+### Fase 2: Incremento 1 — publicação automatizada
+
+**Objetivo:** Merge publica em dev; prd com aprovação, canário e rollback; previews por PR.
+
+**Aceitação:** AT-F02-01..04
+
+- [ ] T004 [F02-RT-04] `firebase.json` com headers, `firestore.rules`, índices — teste: AT-F02-04, teste de headers — 0,5 d
+- [ ] T005 [F02-RF-01][F02-RF-02][F02-RF-03] `deploy.yml` (dev, prd com aprovação, canário, rollback) — teste: AT-F02-01..03 — 2 d
+- [ ] T006 [F02-RF-04] `preview.yml` + `infra.yml` — teste: PR de prova — 1 d

@@ -72,9 +72,12 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
 - `scripts/trace_requirements.py` parses `specs/*/spec.md` (the `**Status**` row, `| Fxx-RF-nn |`
   table rows, and the `### 10. Rastreabilidade` section). It fails CI only for specs whose status
   is "Em validação", "Aceita" or "Em produção". Keep those headings/formats intact when editing specs.
-- New specs: `/speckit-specify` uses the project template override at
-  `.specify/templates/overrides/spec-template.md`. Scope changes during implementation must update
-  the spec in the same PR.
+- `/speckit-specify`, `/speckit-plan` and `/speckit-tasks` use project overrides in
+  `.specify/templates/overrides/` ({spec,plan,tasks}-template.md). In generated `tasks.md`, the
+  Spec Kit `[USn]` label is replaced by the requirement ID (`[F05-RF-01]`), tests are mandatory,
+  and each task names its test and an estimate ≤ 1 day; keep the `- [ ] Tnnn` checklist format,
+  which `/speckit-implement` and `/speckit-converge` parse. Scope changes during implementation must update the spec in
+  the same PR.
 
 ## Conventions
 

@@ -8,7 +8,7 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Rascunho: cria features/Fxx-*.md a partir do _TEMPLATE
+    [*] --> Rascunho: /speckit-specify cria specs/0xx-slug/spec.md
     Rascunho --> SpecAprovada: Gate 0
     SpecAprovada --> Planejada: Gate 1
     Planejada --> EmImplementacao
@@ -24,7 +24,8 @@ O campo **Status** no topo de cada spec reflete este estado.
 ## 2. Etapas e gates
 
 ### Etapa 1 — Especificação (o quê e por quê)
-Preencher a **Parte A** (seções 1–6) do [template](features/_TEMPLATE.md):
+Preencher a **Parte A** (seções 1–6) de `specs/0xx-slug/spec.md` (`/speckit-specify`, template em
+[`.specify/templates/overrides/spec-template.md`](../../.specify/templates/overrides/spec-template.md)):
 - **Contexto e problema**, **objetivo** e **fora de escopo**.
 - **Requisitos funcionais** `Fxx-RF-nn` — comportamento observável pelo usuário, cada um testável.
 - **Requisitos técnicos / não funcionais** `Fxx-RT-nn` — desempenho, segurança, observabilidade, compatibilidade.
@@ -37,7 +38,7 @@ Preencher a **Parte A** (seções 1–6) do [template](features/_TEMPLATE.md):
 - [ ] Dependências identificadas e já entregues (ou planejadas antes).
 
 ### Etapa 2 — Plano técnico (como)
-Preencher a **Parte B** (seções 7–9):
+Preencher `plan.md` (seções 7 e 9, `/speckit-plan`) e `tasks.md` (seção 8, `/speckit-tasks`):
 - **Desenho**: componentes afetados, contratos de API (rotas, esquemas, eventos), modelo de dados,
   mudanças de infraestrutura, flags.
 - **Decisões**: se alguma for estrutural, criar ADR.
@@ -118,5 +119,5 @@ Convenções:
 
 - Claude Code pode gerar o rascunho da spec a partir de uma conversa, o plano a partir da spec e os testes a
   partir dos cenários Gherkin — mas os **gates continuam humanos**.
-- Prompt sugerido: *"Leia `docs/modernizacao/02-constituicao.md` e `features/F05-*.md`. Gere o plano técnico
+- Prompt sugerido: *"Leia `.specify/memory/constitution.md` e `specs/005-agente-chat-api/spec.md`. Gere o plano técnico
   (Parte B, seções 7–9) respeitando a Constituição e a arquitetura em `03-arquitetura.md`."*

@@ -30,9 +30,9 @@ SPEC = """# F99 — Teste
 
 
 def _setup(tmp_path: Path, status: str) -> tuple[Path, Path]:
-    specs = tmp_path / "docs" / "modernizacao" / "features"
-    specs.mkdir(parents=True)
-    (specs / "F99-teste.md").write_text(SPEC.format(status=status), encoding="utf-8")
+    specs = tmp_path / "specs"
+    (specs / "099-teste").mkdir(parents=True)
+    (specs / "099-teste" / "spec.md").write_text(SPEC.format(status=status), encoding="utf-8")
     tests = tmp_path / "backend" / "tests"
     tests.mkdir(parents=True)
     (tests / "test_x.py").write_text(
@@ -64,7 +64,7 @@ def test_rascunho_e_apenas_informativo(tmp_path: Path) -> None:
 
 
 def test_specs_reais_do_repositorio_sao_lidas() -> None:
-    spec = tr.parse_spec(tr.SPECS_DIR / "F01-monorepo-e-ci.md")
+    spec = tr.parse_spec(tr.SPECS_DIR / "001-monorepo-e-ci" / "spec.md")
 
     assert spec.requirements[0].endswith("-RF-01")
     assert len(spec.requirements) == 5

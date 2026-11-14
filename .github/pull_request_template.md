@@ -1,6 +1,6 @@
 ## Feature e requisitos
 
-- Feature: `Fxx` — <link para docs/modernizacao/features/Fxx-*.md>
+- Feature: `Fxx` — <link para specs/0xx-slug/spec.md>
 - Requisitos atendidos neste PR: `Fxx-RF-nn`, `Fxx-RT-nn`
 
 ## O que muda

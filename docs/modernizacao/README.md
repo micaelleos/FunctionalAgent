@@ -32,7 +32,7 @@ Auth, modelo de documentos que encaixa em chat). A justificativa e as alternativ
 [ADR-001](adr/ADR-001-firestore.md).
 
 **Estimativa:** MVP em produção em **~11 semanas** com 1 dev full-stack (ou ~7 semanas com 2 devs, front e
-back em paralelo). Ver [07 — Roadmap](07-roadmap.md).
+back em paralelo). Ver [Roadmap](../../specs/ROADMAP.md).
 
 ---
 
@@ -46,11 +46,11 @@ back em paralelo). Ver [07 — Roadmap](07-roadmap.md).
 | 04 | [Stack tecnológica](04-stack.md) | Que tecnologias e versões, e por quê? |
 | 05 | [Infraestrutura](05-infraestrutura.md) | Que recursos GCP/Firebase, IAM, ambientes e custos? |
 | 06 | [CI/CD e deploy](06-cicd-deploy.md) | Como o código vai do PR até produção, e como volta (rollback)? |
-| 07 | [Roadmap](07-roadmap.md) | Em que ordem, em quais fases, com quais marcos? |
+| 07 | [Roadmap e índice de features](../../specs/ROADMAP.md) | Em que ordem, em quais fases, com quais marcos? |
 | 08 | [Processo de desenvolvimento](08-processo-de-desenvolvimento.md) | Como cada feature é especificada, planejada, implementada e **validada**? |
 | 09 | [Estratégia de testes](09-estrategia-de-testes.md) | Que testes existem em cada camada e o que bloqueia um merge? |
 | — | [ADRs](adr/) | Decisões arquiteturais registradas, com alternativas descartadas |
-| — | [Features](features/) | Uma especificação por feature: requisitos funcionais e técnicos, plano, teste final |
+| — | [Features](../../specs/) | Uma pasta por feature (`spec.md`, `plan.md`, `tasks.md`): requisitos, plano, teste final |
 
 ### Fluxo de trabalho resumido
 
@@ -72,23 +72,25 @@ flowchart LR
 
 ## 3. Índice de features
 
+> Status, dependências e estimativas atualizados ficam em [`specs/ROADMAP.md`](../../specs/ROADMAP.md).
+
 | ID | Feature | Fase | Spec |
 |---|---|---|---|
-| F01 | Monorepo, tooling e CI base | 0 — Fundação | [F01](features/F01-monorepo-e-ci.md) |
-| F02 | Infraestrutura base GCP/Firebase (Terraform) | 0 — Fundação | [F02](features/F02-infraestrutura-base.md) |
-| F03 | Autenticação e conta do usuário | 1 — Núcleo | [F03](features/F03-autenticacao.md) |
-| F04 | Conexão Jira por usuário | 1 — Núcleo | [F04](features/F04-conexao-jira.md) |
-| F05 | API de chat com agente (LangGraph + streaming) | 1 — Núcleo | [F05](features/F05-agente-chat-api.md) |
-| F06 | Confirmação humana antes de escrever no Jira | 1 — Núcleo | [F06](features/F06-confirmacao-humana.md) |
-| F07 | Conversas persistentes | 2 — Produto | [F07](features/F07-conversas-persistentes.md) |
-| F08 | Interface de chat em React | 2 — Produto | [F08](features/F08-interface-chat.md) |
-| F09 | Projetos Jira | 2 — Produto | [F09](features/F09-projetos-jira.md) |
-| F10 | Histórico de issues criados | 2 — Produto | [F10](features/F10-historico-issues.md) |
-| F11 | Observabilidade, limites de uso e proteção | 3 — Produção | [F11](features/F11-observabilidade-e-limites.md) |
-| F12 | Go-live e desativação do Streamlit | 3 — Produção | [F12](features/F12-go-live.md) |
-| F13 | Login Atlassian via OAuth 2.0 (3LO) | 4 — Evolução | [F13](features/F13-oauth-atlassian.md) |
-| F14 | Editor de artefatos antes da exportação | 4 — Evolução | [F14](features/F14-editor-artefatos.md) |
-| F15 | Suíte contínua de avaliação do agente (evals) | 4 — Evolução | [F15](features/F15-evals-agente.md) |
+| F01 | Monorepo, tooling e CI base | 0 — Fundação | [F01](../../specs/001-monorepo-e-ci/spec.md) |
+| F02 | Infraestrutura base GCP/Firebase (Terraform) | 0 — Fundação | [F02](../../specs/002-infraestrutura-base/spec.md) |
+| F03 | Autenticação e conta do usuário | 1 — Núcleo | [F03](../../specs/003-autenticacao/spec.md) |
+| F04 | Conexão Jira por usuário | 1 — Núcleo | [F04](../../specs/004-conexao-jira/spec.md) |
+| F05 | API de chat com agente (LangGraph + streaming) | 1 — Núcleo | [F05](../../specs/005-agente-chat-api/spec.md) |
+| F06 | Confirmação humana antes de escrever no Jira | 1 — Núcleo | [F06](../../specs/006-confirmacao-humana/spec.md) |
+| F07 | Conversas persistentes | 2 — Produto | [F07](../../specs/007-conversas-persistentes/spec.md) |
+| F08 | Interface de chat em React | 2 — Produto | [F08](../../specs/008-interface-chat/spec.md) |
+| F09 | Projetos Jira | 2 — Produto | [F09](../../specs/009-projetos-jira/spec.md) |
+| F10 | Histórico de issues criados | 2 — Produto | [F10](../../specs/010-historico-issues/spec.md) |
+| F11 | Observabilidade, limites de uso e proteção | 3 — Produção | [F11](../../specs/011-observabilidade-e-limites/spec.md) |
+| F12 | Go-live e desativação do Streamlit | 3 — Produção | [F12](../../specs/012-go-live/spec.md) |
+| F13 | Login Atlassian via OAuth 2.0 (3LO) | 4 — Evolução | [F13](../../specs/013-oauth-atlassian/spec.md) |
+| F14 | Editor de artefatos antes da exportação | 4 — Evolução | [F14](../../specs/014-editor-artefatos/spec.md) |
+| F15 | Suíte contínua de avaliação do agente (evals) | 4 — Evolução | [F15](../../specs/015-evals-agente/spec.md) |
 
 ---
 

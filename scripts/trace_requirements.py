@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rastreabilidade requisito → teste (Constituição, Artigo I.2 / F01-RT-07).
 
-Lê as specs em docs/modernizacao/features/*.md e procura os IDs dos requisitos
+Lê as specs em specs/*/spec.md (Spec Kit) e procura os IDs dos requisitos
 funcionais (Fxx-RF-nn) nos arquivos de teste do repositório.
 
 Um requisito está coberto quando:
@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SPECS_DIR = ROOT / "docs" / "modernizacao" / "features"
+SPECS_DIR = ROOT / "specs"
 TEST_GLOBS = (
     "backend/tests/**/*.py",
     "frontend/src/**/*.test.ts",
@@ -80,7 +80,7 @@ def check(specs_dir: Path, root: Path) -> tuple[list[str], list[str]]:
     tests = collect_test_text(root)
     report: list[str] = []
     missing: list[str] = []
-    for path in sorted(specs_dir.glob("F*.md")):
+    for path in sorted(specs_dir.glob("[0-9]*/spec.md")):
         spec = parse_spec(path)
         uncovered = [
             r for r in spec.requirements if r not in tests and r not in spec.checked
@@ -88,7 +88,7 @@ def check(specs_dir: Path, root: Path) -> tuple[list[str], list[str]]:
         covered = len(spec.requirements) - len(uncovered)
         flag = "OBRIGATÓRIO" if spec.enforced else "informativo"
         report.append(
-            f"{path.stem:<40} {spec.status:<18} {covered}/{len(spec.requirements)} ({flag})"
+            f"{path.parent.name:<40} {spec.status:<18} {covered}/{len(spec.requirements)} ({flag})"
         )
         if spec.enforced:
             missing.extend(uncovered)

@@ -1,2 +1,3 @@
-bucket = "functional-agent-tfstate-prd"
-prefix = "app"
+# Bucket de estado compartilhado do portfólio; cada app usa o próprio prefixo.
+bucket = "pcb-inspect-tfstate"
+prefix = "specflow/prd"

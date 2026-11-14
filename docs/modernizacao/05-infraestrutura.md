@@ -1,5 +1,10 @@
 # 05 — Infraestrutura (GCP + Firebase)
 
+> **Revisão 2026-11-14 (decisão do PO):** o app vive no projeto compartilhado `pcb-inspect`, com um
+> ambiente só (produção) + previews, recursos com prefixo `specflow` e banco Firestore `specflow`.
+> As tabelas abaixo descrevem o plano original por ambiente; a configuração vigente está em
+> `infra/terraform/envs/prd.tfvars` e em `infra/bootstrap/README.md`.
+
 ## 1. Ambientes
 
 | Ambiente | Projeto GCP/Firebase | Propósito | Cloud Run | Dados |

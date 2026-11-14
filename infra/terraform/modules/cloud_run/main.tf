@@ -1,6 +1,7 @@
 variable "project_id" { type = string }
 variable "region" { type = string }
-variable "env" { type = string }
+variable "service_name" { type = string }
+variable "firestore_database" { type = string }
 variable "service_account_email" { type = string }
 variable "min_instances" { type = number }
 variable "max_instances" { type = number }
@@ -13,7 +14,7 @@ variable "deletion_protection" { type = bool }
 # pipeline (deploy.yml), que publica sempre por digest. Por isso image/traffic são ignorados.
 resource "google_cloud_run_v2_service" "api" {
   project             = var.project_id
-  name                = "api"
+  name                = var.service_name
   location            = var.region
   ingress             = "INGRESS_TRAFFIC_ALL" # público; autenticação na aplicação (ADR-002)
   deletion_protection = var.deletion_protection
@@ -47,7 +48,11 @@ resource "google_cloud_run_v2_service" "api" {
 
       env {
         name  = "ENV"
-        value = var.env
+        value = "prd"
+      }
+      env {
+        name  = "FIRESTORE_DATABASE"
+        value = var.firestore_database
       }
       env {
         name  = "GCP_PROJECT"
@@ -65,7 +70,7 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "KMS_KEY_NAME"
         value = var.kms_key_name
       }
-      # LLM_API_KEY (secret llm-api-key) entra na F05, quando o backend passar a usá-lo:
+      # LLM_API_KEY (secret specflow-llm-api-key) entra na F05, quando o backend passar a usá-lo:
       # montar um secret sem versão impede a revisão de subir.
 
       startup_probe {

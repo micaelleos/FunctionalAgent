@@ -1,6 +1,7 @@
 # Publicação contínua (F02-RF-01..03; 06-cicd-deploy.md §2–4).
-# merge em master → build → dev (100%) → aceitação em dev → aprovação (environment prd)
-# → revisão sem tráfego → canário 10% por 15 min → promoção ou rollback automático.
+# Ambiente único (decisão do PO, 2026-11-14); a validação antes de produção é o preview do PR.
+# merge em master → build → aprovação (environment prd) → revisão sem tráfego + smoke
+# → canário 10% por 15 min → promoção ou rollback automático → frontend → aceitação em produção.
 # Só roda quando a variável de repositório DEPLOY_ENABLED = "true" (após o bootstrap da F02).
 name: deploy
 
@@ -32,88 +33,8 @@ jobs:
           path: api.tar.gz
           retention-days: 1
 
-  deploy-dev:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: dev
-      url: ${{ steps.web.outputs.url }}
-    permissions:
-      contents: read
-      id-token: write
-    outputs:
-      web-url: ${{ steps.web.outputs.url }}
-    env:
-      PROJECT: ${{ vars.GCP_PROJECT_ID }}
-      REGION: ${{ vars.GCP_REGION }}
-      SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOYER_SA }}
-      - uses: google-github-actions/setup-gcloud@v2
-      - id: image
-        uses: ./.github/actions/push-image
-        with:
-          repository: ${{ vars.GCP_ARTIFACT_REPO }}
-          tag: ${{ github.sha }}
-      - id: api
-        uses: ./.github/actions/deploy-api
-        with:
-          project: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION }}
-          service: ${{ vars.CLOUD_RUN_SERVICE }}
-          image: ${{ steps.image.outputs.image }}
-          tag: rc-${{ github.sha }}
-          expected-version: ${{ github.sha }}
-      - name: Dev recebe 100% do tráfego
-        run: |
-          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
-            --to-revisions "${{ steps.api.outputs.revision }}=100"
-      - id: web
-        uses: ./.github/actions/deploy-web
-        with:
-          project: ${{ vars.GCP_PROJECT_ID }}
-          api-base-url: ${{ steps.api.outputs.service-url }}
-      - name: Remove tags rc- antigas
-        run: |
-          old=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json \
-            | jq -r --arg keep "rc-${{ github.sha }}" '[.status.traffic[] | select(.tag != null and (.tag | startswith("rc-")) and .tag != $keep) | .tag] | join(",")')
-          if [ -n "$old" ]; then
-            gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --remove-tags "$old"
-          fi
-
-  acceptance-dev:
-    needs: deploy-dev
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: AT-F02-01 + cabeçalhos (F02-RT-06) em dev
-        env:
-          E2E_BASE_URL: ${{ needs.deploy-dev.outputs.web-url }}
-          E2E_EXPECTED_VERSION: ${{ github.sha }}
-        run: npm run e2e
-      - if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-dev
-          path: frontend/playwright-report
-          retention-days: 7
-
   deploy-prd:
-    needs: acceptance-dev
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Revisores obrigatórios configurados no GitHub Environment "prd" (AT-F02-02).
@@ -183,6 +104,7 @@ jobs:
         uses: ./.github/actions/deploy-web
         with:
           project: ${{ vars.GCP_PROJECT_ID }}
+          site: ${{ vars.FIREBASE_SITE_ID }}
           api-base-url: ${{ steps.api.outputs.service-url }}
       - name: Remove tags rc- antigas
         run: |
@@ -207,7 +129,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Smoke de produção (AT-F02-01 + cabeçalhos)
+      - name: AT-F02-01 + cabeçalhos (F02-RT-06) em produção
         env:
           E2E_BASE_URL: ${{ needs.deploy-prd.outputs.web-url }}
           E2E_EXPECTED_VERSION: ${{ github.sha }}

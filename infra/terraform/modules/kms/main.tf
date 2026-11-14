@@ -1,10 +1,11 @@
 variable "project_id" { type = string }
 variable "region" { type = string }
 variable "encrypter_decrypter_sa" { type = string }
+variable "key_ring_name" { type = string }
 
 resource "google_kms_key_ring" "app" {
   project  = var.project_id
-  name     = "app"
+  name     = var.key_ring_name
   location = var.region
 }
 

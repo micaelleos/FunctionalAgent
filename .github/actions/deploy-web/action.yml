@@ -3,6 +3,9 @@ description: Builda o SPA apontando para a API informada e publica no Firebase H
 inputs:
   project:
     required: true
+  site:
+    description: Site do Firebase Hosting (o mesmo de firebase.json)
+    required: true
   api-base-url:
     required: true
   channel:
@@ -33,6 +36,7 @@ runs:
       env:
         PROJECT: ${{ inputs.project }}
         CHANNEL: ${{ inputs.channel }}
+        SITE: ${{ inputs.site }}
         FIREBASE_TOOLS: firebase-tools@13.35.1
       run: |
         if [ -n "$CHANNEL" ]; then
@@ -41,7 +45,7 @@ runs:
           url=$(echo "$out" | jq -r '.result | to_entries[0].value.url')
         else
           npx --yes "$FIREBASE_TOOLS" deploy --only hosting --project "$PROJECT" --non-interactive
-          url="https://$PROJECT.web.app"
+          url="https://$SITE.web.app"
         fi
         echo "url=$url" >> "$GITHUB_OUTPUT"
         echo "Frontend publicado: $url"

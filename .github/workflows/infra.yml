@@ -1,6 +1,8 @@
-# Terraform (F02-RT-01; 05-infraestrutura.md). Em PR: fmt/validate/tflint e plan de dev comentado.
-# Em master: apply em dev; apply em prd após aprovação no GitHub Environment "infra-prd".
-# Jobs com credenciais só rodam quando INFRA_ENABLED = "true" (após o bootstrap).
+# Terraform do SpecFlow AI (F02-RT-01; infra/terraform).
+# Em todo PR: fmt/validate/tflint, sem credenciais.
+# Em master: plan + apply, depois de aprovação no GitHub Environment "infra-prd" (revisores);
+# o plano aparece no log e no resumo do job antes do apply.
+# O job com credenciais só roda quando INFRA_ENABLED = "true" (após o bootstrap).
 name: infra
 
 on:
@@ -15,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: infra-${{ github.ref }}
+  group: infra
   cancel-in-progress: false
 
 env:
@@ -42,74 +44,14 @@ jobs:
           tflint_version: v0.54.0
       - run: tflint --init && tflint --recursive --config "$PWD/.tflint.hcl"
 
-  plan-dev:
-    if: github.event_name == 'pull_request' && vars.INFRA_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
-    needs: static
-    runs-on: ubuntu-latest
-    environment: infra-dev
-    permissions:
-      contents: read
-      id-token: write
-      pull-requests: write
-    env:
-      TF_VAR_billing_account_id: ${{ vars.GCP_BILLING_ACCOUNT }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_TERRAFORM_SA }}
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-      - run: terraform init -input=false -backend-config=envs/dev.backend.hcl
-      - id: plan
-        run: |
-          set -o pipefail
-          terraform plan -input=false -no-color -var-file=envs/dev.tfvars -out=dev.tfplan | tee plan.txt
-      - name: Comenta o plano no PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs')
-            const plan = fs.readFileSync('infra/terraform/plan.txt', 'utf8')
-            const summary = plan.split('\n').filter((l) => /^(Plan:|No changes)/.test(l)).join('\n') || 'sem resumo'
-            const body = [
-              '<!-- terraform-plan-dev -->',
-              `### Terraform plan — dev`,
-              '',
-              `**${summary}**`,
-              '',
-              '<details><summary>Plano completo</summary>',
-              '',
-              '```',
-              plan.slice(-60000),
-              '```',
-              '</details>',
-            ].join('\n')
-            const { owner, repo } = context.repo
-            const issue_number = context.issue.number
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number })
-            const existing = comments.find((c) => c.body?.includes('<!-- terraform-plan-dev -->'))
-            if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body })
-            else await github.rest.issues.createComment({ owner, repo, issue_number, body })
-
   apply:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && vars.INFRA_ENABLED == 'true'
     needs: static
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 1
-      matrix:
-        env: [dev, prd]
-    # infra-prd exige aprovação (revisores no GitHub Environment).
-    environment: infra-${{ matrix.env }}
+    environment: infra-prd
     permissions:
       contents: read
       id-token: write
-    env:
-      TF_VAR_billing_account_id: ${{ vars.GCP_BILLING_ACCOUNT }}
     steps:
       - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
@@ -120,8 +62,17 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
-      - run: terraform init -input=false -backend-config=envs/${{ matrix.env }}.backend.hcl
-      - run: terraform plan -input=false -var-file=envs/${{ matrix.env }}.tfvars -out=${{ matrix.env }}.tfplan
-      - run: terraform apply -input=false ${{ matrix.env }}.tfplan
+      - run: terraform init -input=false -backend-config=envs/prd.backend.hcl
+      - name: Plan
+        run: |
+          set -o pipefail
+          terraform plan -input=false -no-color -var-file=envs/prd.tfvars -out=prd.tfplan | tee plan.txt
+          {
+            echo '### Terraform plan (prd)'
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - run: terraform apply -input=false prd.tfplan
       - name: Sem diferenças após o apply (F02-RT-01)
-        run: terraform plan -input=false -detailed-exitcode -var-file=envs/${{ matrix.env }}.tfvars
+        run: terraform plan -input=false -detailed-exitcode -var-file=envs/prd.tfvars

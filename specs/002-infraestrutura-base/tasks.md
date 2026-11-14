@@ -19,9 +19,9 @@
 
 **Objetivo:** Projetos GCP e módulos Terraform base.
 
-- [ ] T001 Bootstrap: projetos, billing, bucket de estado — teste: checklist — 0,5 d (roteiro pronto em `infra/bootstrap/README.md`; execução manual pendente)
+- [ ] T001 Bootstrap: bucket de estado, primeiro apply, GitHub — teste: checklist — 0,5 d (roteiro pronto em `infra/bootstrap/README.md`; execução manual pendente)
 - [ ] T002 Módulos: services, artifact_registry, firestore, secrets, kms em infra/terraform/modules/ — teste: `terraform validate` + plan — 1,5 d (validate/tflint ok; falta plan com credenciais)
-- [ ] T003 Módulos: cloud_run, firebase (hosting, auth), wif, budget em infra/terraform/modules/ — teste: plan/apply em dev — 1,5 d (código pronto; falta apply em dev)
+- [ ] T003 Módulos: cloud_run, firebase (web app + import do site), wif em infra/terraform/modules/ — teste: plan/apply — 1,5 d (código pronto; budget e Auth saíram do escopo, F02-RT-07/09; falta apply)
 
 ---
 
@@ -31,6 +31,6 @@
 
 **Aceitação:** AT-F02-01..04
 
-- [ ] T004 [F02-RT-04] `firebase.json` com headers, `firestore.rules`, índices — teste: AT-F02-04, teste de headers — 0,5 d (AT-F02-04 verde no emulador; teste de headers aguarda o Hosting em dev)
-- [ ] T005 [F02-RF-01][F02-RF-02][F02-RF-03] `deploy.yml` (dev, prd com aprovação, canário, rollback) + scripts/canary.py — teste: AT-F02-01..03 — 2 d (workflow e canário prontos; AT-F02-01 verde localmente; falta rodar no pipeline)
+- [ ] T004 [F02-RT-04] `firebase.json` com headers, `firestore.rules`, índices — teste: AT-F02-04, teste de headers — 0,5 d (AT-F02-04 verde no emulador; teste de headers aguarda o Hosting publicado)
+- [ ] T005 [F02-RF-01][F02-RF-02][F02-RF-03] `deploy.yml` (dev, prd com aprovação, canário, rollback) + scripts/canary.py — teste: AT-F02-01..03 — 2 d (sem estágio dev, por decisão do PO; workflow e canário prontos; AT-F02-01 verde localmente; falta rodar no pipeline)
 - [ ] T006 [F02-RF-04] `preview.yml` + `infra.yml` — teste: PR de prova — 1 d (workflows prontos; falta PR de prova após o bootstrap)

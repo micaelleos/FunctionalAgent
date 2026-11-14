@@ -8,16 +8,16 @@ from fastapi.testclient import TestClient
 from app.core.config import get_settings
 from app.main import create_app
 
-SITE = "https://functional-agent-dev.web.app"
-PREVIEW = "https://functional-agent-dev--pr-12-a1b2c3d4.web.app"
+SITE = "https://specsflow-ai.web.app"
+PREVIEW = "https://specsflow-ai--pr-12-a1b2c3d4.web.app"
 
 
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    # Mesmos valores que o Terraform injeta no Cloud Run de dev (infra/terraform/main.tf).
-    monkeypatch.setenv("ENV", "dev")
+    # Mesmos valores que o Terraform injeta no Cloud Run (infra/terraform/main.tf).
+    monkeypatch.setenv("ENV", "prd")
     monkeypatch.setenv("CORS_ORIGINS", f'["{SITE}"]')
-    monkeypatch.setenv("CORS_ORIGIN_REGEX", r"^https://functional-agent-dev--[a-z0-9-]+\.web\.app$")
+    monkeypatch.setenv("CORS_ORIGIN_REGEX", r"^https://specsflow-ai--[a-z0-9-]+\.web\.app$")
     get_settings.cache_clear()
     with TestClient(create_app()) as c:
         yield c
@@ -42,10 +42,11 @@ def test_aceita_canal_de_preview_do_proprio_site(client: TestClient) -> None:
 @pytest.mark.parametrize(
     "origin",
     [
-        "https://functional-agent-prd--pr-1.web.app",
+        "https://pcb-inspect--pr-1.web.app",  # outro app do portfólio
+        "https://pcb-inspect.web.app",
         "https://evil.web.app",
-        "https://functional-agent-dev--pr-1.web.app.evil.com",
-        "http://functional-agent-dev--pr-1.web.app",
+        "https://specsflow-ai--pr-1.web.app.evil.com",
+        "http://specsflow-ai--pr-1.web.app",
     ],
 )
 def test_recusa_outras_origens(client: TestClient, origin: str) -> None:

@@ -98,12 +98,19 @@ flowchart LR
 
 Decididas em 2026-11-14, no Gate 0 da F02 (itens 1, 2, 4 e 5). O item 3 fica para a F05.
 
+**Revisão do mesmo dia:** o app (nome **SpecFlow AI**) passa a viver no projeto Firebase/GCP
+compartilhado do portfólio, `pcb-inspect`, em `https://specsflow-ai.web.app`, com **um ambiente só
+(produção) + previews por PR**, recursos com prefixo `specflow` e banco Firestore próprio
+`specflow`. O Terraform foi mantido, enxuto. Google Analytics aprovado, a especificar na F16.
+Detalhes em `infra/bootstrap/README.md`. Onde este plano fala em projetos `functional-agent-{env}`
+e em ambiente `dev`, vale esta revisão.
+
 | # | Decisão | Escolha |
 |---|---|---|
 | 1 | Domínio próprio | **Não** por enquanto: `*.web.app` e `*.run.app` (pode entrar depois em Terraform) |
 | 2 | Região | **`us-central1`** para Cloud Run, Artifact Registry, Firestore e KMS |
 | 3 | Provedor de LLM | Pendente (F05) |
-| 4 | Ambientes | **`dev` + `prd`**, sem `stg` |
+| 4 | Ambientes | **Só produção + previews por PR** (revisado; antes `dev` + `prd`) |
 | 5 | Instância mínima em prd | **`min-instances=0`** (cold start aceito, menor custo) |
 
 Opções originais, para referência:

@@ -84,17 +84,22 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
 
 ## Infrastructure and delivery (F02)
 
-- Terraform root module in `infra/terraform/` (one per env via `envs/<env>.tfvars` +
-  `envs/<env>.backend.hcl`, GCS state). Terraform owns Cloud Run *configuration*; the image and
-  traffic belong to the pipeline (`ignore_changes`), so don't set images in Terraform.
-- Envs: `dev` and `prd` only, region `us-central1`, no custom domain. One-time manual setup and the
-  GitHub Environments/variables the workflows need: `infra/bootstrap/README.md`.
-- WIF only issues credentials to jobs in GitHub Environments `<env>` (deployer SA) and
-  `infra-<env>` (terraform SA); a new workflow job that talks to GCP must declare one of them.
-- `deploy.yml`: build once → dev 100% → Playwright acceptance → `prd` approval → no-traffic
-  revision → 10% canary judged by `scripts/canary.py` → promote or auto-rollback.
-  `preview.yml` (label `preview`) and `infra.yml`. Shared steps in `.github/actions/`.
-  Deploy/infra jobs are gated by repo variables `DEPLOY_ENABLED` / `INFRA_ENABLED`.
+- The app ("SpecFlow AI", https://specsflow-ai.web.app) lives in the **shared portfolio GCP/Firebase
+  project `pcb-inspect`**, with a single environment (production) plus per-PR previews. Every resource
+  it owns is prefixed `specflow` (Cloud Run `specflow-api`, Firestore database `specflow`, AR repo,
+  KMS keyring, SAs, WIF pool). Never touch the `(default)` Firestore database, project-wide
+  Auth/Identity Platform config, budgets, or other apps' resources (F02-RT-09).
+- Terraform root module in `infra/terraform/` (`envs/prd.tfvars`, state in
+  `gs://pcb-inspect-tfstate` prefix `specflow/prd`). Terraform owns Cloud Run *configuration*; the
+  image and traffic belong to the pipeline (`ignore_changes`). The Hosting site was created in the
+  console and is adopted via an `import` block. One-time setup: `infra/bootstrap/README.md`.
+- WIF only issues credentials to jobs in GitHub Environments `prd`/`preview` (deployer SA) and
+  `infra-prd` (terraform SA); a new workflow job that talks to GCP must declare one of them.
+- `deploy.yml`: build → `prd` approval → no-traffic revision + smoke → 10% canary judged by
+  `scripts/canary.py` → promote or auto-rollback → frontend → Playwright acceptance in prod.
+  `preview.yml` (label `preview`) is the pre-prod validation; `infra.yml` applies on master after
+  `infra-prd` approval. Shared steps in `.github/actions/`. Deploy/infra jobs are gated by repo
+  variables `DEPLOY_ENABLED` / `INFRA_ENABLED`.
 - Rollback procedures: `docs/runbooks/rollback.md`.
 
 ## Conventions

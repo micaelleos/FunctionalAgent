@@ -1,105 +1,103 @@
-# Bootstrap da infraestrutura (F02, tarefa T001)
+# Bootstrap da infraestrutura do SpecFlow AI (F02, tarefa T001)
 
-Passos manuais **únicos** por ambiente. Tudo depois disto é feito pelo Terraform
-(`infra/terraform`, workflow `infra.yml`) e pelo pipeline (`deploy.yml`, `preview.yml`).
+Passos manuais **únicos**. Tudo depois disto é feito pelo Terraform (`infra/terraform`, workflow
+`infra.yml`) e pelo pipeline (`deploy.yml`, `preview.yml`).
 
-Decisões do dono do produto (2026-11-14): região `us-central1`, ambientes `dev` e `prd`
-(sem `stg`), sem domínio próprio (URLs `*.web.app` e `*.run.app`), `min-instances=0` também em prd.
+## Contexto (decisões do PO, 2026-11-14)
 
-Pré-requisitos: `gcloud` autenticado com uma conta que possa criar projetos e associar a conta de
-faturamento; Terraform 1.9.x; acesso de administrador ao repositório no GitHub.
+- O app vive no projeto **compartilhado do portfólio `pcb-inspect`**, junto com outros apps.
+- **Um ambiente só** (produção) + previews por PR. Sem `dev`, sem `stg`, sem domínio próprio.
+- URL: `https://specsflow-ai.web.app` (site já criado no console).
+- Região `us-central1`; Cloud Run com `min-instances=0`.
+- Isolamento: todo recurso do app tem o prefixo `specflow`. O Terraform **não** altera o banco
+  Firestore `(default)`, a configuração de Auth do projeto, o orçamento nem recursos de outros apps
+  (F02-RT-09).
 
-## 1. Projetos e faturamento
+| Recurso | Nome |
+|---|---|
+| Firestore (banco próprio) | `specflow` |
+| Cloud Run | `specflow-api` |
+| Artifact Registry | `specflow` |
+| KMS keyring / chave | `specflow` / `jira-tokens` |
+| Secret Manager | `specflow-llm-api-key` |
+| Service accounts | `specflow-api`, `specflow-deployer`, `specflow-terraform` |
+| WIF pool | `specflow-github` |
+| Firebase web app | `SpecFlow AI` |
+| Hosting | site `specsflow-ai` (importado) |
+| Estado do Terraform | `gs://pcb-inspect-tfstate`, prefixo `specflow/prd` |
+
+Pré-requisitos: `gcloud` autenticado (`gcloud auth login` e `gcloud auth application-default login`)
+com papel de Owner no `pcb-inspect`; Terraform 1.9.x; admin do repositório no GitHub.
+
+## 1. Bucket do estado do Terraform (F02-RT-08)
+
+Um bucket para o portfólio; cada app usa o próprio prefixo. Pule se ele já existir.
 
 ```bash
-BILLING=XXXXXX-XXXXXX-XXXXXX          # gcloud billing accounts list
-for ENV in dev prd; do
-  gcloud projects create "functional-agent-$ENV" --name "Agente Funcional ($ENV)"
-  gcloud billing projects link "functional-agent-$ENV" --billing-account "$BILLING"
-  # APIs mínimas para o Terraform conseguir habilitar as demais
-  gcloud services enable serviceusage.googleapis.com cloudresourcemanager.googleapis.com \
-    --project "functional-agent-$ENV"
-done
+PROJECT=pcb-inspect
+gcloud services enable serviceusage.googleapis.com cloudresourcemanager.googleapis.com --project "$PROJECT"
+gcloud storage buckets create "gs://$PROJECT-tfstate" --project "$PROJECT" --location us-central1 \
+  --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets update "gs://$PROJECT-tfstate" --versioning
 ```
 
-## 2. Bucket do estado do Terraform (F02-RT-08)
+## 2. Primeiro apply (local)
+
+Cria, entre outros recursos, o Workload Identity Federation e a SA `specflow-terraform` que o
+`infra.yml` usa dali em diante. Também **importa** o site `specsflow-ai` já existente.
 
 ```bash
-for ENV in dev prd; do
-  gcloud storage buckets create "gs://functional-agent-tfstate-$ENV" \
-    --project "functional-agent-$ENV" --location us-central1 \
-    --uniform-bucket-level-access --public-access-prevention
-  gcloud storage buckets update "gs://functional-agent-tfstate-$ENV" --versioning
-done
-```
-
-## 3. Primeiro apply (local)
-
-O primeiro apply cria, entre outros recursos, o Workload Identity Federation e a service account
-`terraform@` que o `infra.yml` usa dali em diante. Ele precisa ser feito por uma pessoa:
-
-```bash
-gcloud auth application-default login
 cd infra/terraform
-export TF_VAR_billing_account_id="$BILLING"
-ENV=dev   # depois repita com ENV=prd
-terraform init -backend-config="envs/$ENV.backend.hcl" -reconfigure
-terraform apply -var-file="envs/$ENV.tfvars"
-terraform output -json github_environment_variables
+terraform init -backend-config=envs/prd.backend.hcl -reconfigure
+terraform plan -var-file=envs/prd.tfvars     # confira: só recursos specflow-* e o site specsflow-ai
+terraform apply -var-file=envs/prd.tfvars
+terraform output -json github_variables
 ```
 
-O budget alert (F02-RT-07) é criado na conta de faturamento. A conta que roda o Terraform precisa
-do papel **Billing Account Costs Manager** nessa conta; conceda o mesmo papel à SA
-`terraform@functional-agent-$ENV.iam.gserviceaccount.com` para os applies seguintes pelo
-`infra.yml`:
+## 3. GitHub
 
-```bash
-gcloud billing accounts add-iam-policy-binding "$BILLING" \
-  --member "serviceAccount:terraform@functional-agent-$ENV.iam.gserviceaccount.com" \
-  --role roles/billing.costsManager
-```
+1. **Settings → Secrets and variables → Actions → Variables** (do repositório): cadastre os
+   valores de `terraform output -json github_variables` (`GCP_PROJECT_ID`, `GCP_REGION`,
+   `GCP_WIF_PROVIDER`, `GCP_DEPLOYER_SA`, `GCP_TERRAFORM_SA`, `GCP_ARTIFACT_REPO`,
+   `CLOUD_RUN_SERVICE`, `FIREBASE_SITE_ID`). Depois, `INFRA_ENABLED=true` e
+   `DEPLOY_ENABLED=true`. Enquanto essas duas não existirem, só as verificações estáticas rodam.
+2. **Settings → Environments**:
 
-## 4. GitHub
+   | Environment | Revisores obrigatórios | Usado por |
+   |---|---|---|
+   | `prd` | **sim** (dono do produto) — AT-F02-02 | `deploy.yml` |
+   | `preview` | — | `preview.yml` |
+   | `infra-prd` | **sim** | `infra.yml` |
 
-Em **Settings → Environments**, crie os ambientes abaixo. Os valores vêm de
-`terraform output -json github_environment_variables` do ambiente correspondente.
-
-| Environment | Revisores obrigatórios | Variables |
-|---|---|---|
-| `dev` | — | `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_DEPLOYER_SA`, `GCP_ARTIFACT_REPO`, `CLOUD_RUN_SERVICE`, `FIREBASE_SITE_ID` |
-| `prd` | **sim** (dono do produto) — AT-F02-02 | as mesmas, com os valores de prd |
-| `infra-dev` | — | `GCP_WIF_PROVIDER`, `GCP_TERRAFORM_SA`, `GCP_BILLING_ACCOUNT` (de dev) |
-| `infra-prd` | **sim** | `GCP_WIF_PROVIDER`, `GCP_TERRAFORM_SA`, `GCP_BILLING_ACCOUNT` (de prd) |
-
-O provider WIF só emite credenciais para jobs deste repositório que rodam nesses environments:
-`<env>` para a SA `deployer@` e `infra-<env>` para a SA `terraform@`.
-
-Depois:
-
-1. **Settings → Secrets and variables → Actions → Variables** (repositório):
-   `INFRA_ENABLED=true` e `DEPLOY_ENABLED=true`. Enquanto não existirem, `infra.yml` só roda
-   as verificações estáticas e `deploy.yml`/`preview.yml` não rodam.
-2. **Issues → Labels**: crie a label `preview` (F02-RF-04).
-3. **Settings → Branches**: proteja `master` (PR obrigatório, 1 review, checks de `ci` verdes,
+   O WIF só emite credenciais para jobs deste repositório nesses environments: `prd`/`preview`
+   para a SA `specflow-deployer` e `infra-prd` para a SA `specflow-terraform`.
+3. **Issues → Labels**: crie a label `preview` (F02-RF-04).
+4. **Settings → Branches**: proteja `master` (PR obrigatório, 1 review, checks de `ci` verdes,
    histórico linear). Isto também fecha a tarefa T005 da F01.
+
+## 4. Firebase Auth (antes da F03)
+
+O Auth é do projeto e compartilhado com os outros apps. Por isso não fica no Terraform. No console
+(Authentication → Settings → Authorized domains), confirme que `specsflow-ai.web.app` está na
+lista. Os provedores de login (e-mail/senha, Google) são configurados na F03.
 
 ## 5. Verificação (Gate 3 da F02)
 
 | Requisito | Comando | Esperado |
 |---|---|---|
-| F02-RT-01 | `terraform plan -detailed-exitcode -var-file=envs/$ENV.tfvars` | exit 0 (sem diferenças) |
-| F02-RT-02 | `for sa in api-runtime deployer terraform; do gcloud iam service-accounts keys list --iam-account $sa@functional-agent-$ENV.iam.gserviceaccount.com --managed-by user; done` | listas vazias |
-| F02-RT-03 | `gcloud projects get-iam-policy functional-agent-$ENV --flatten bindings --filter "bindings.members:api-runtime@" --format "value(bindings.role)"` | só `datastore.user`, `firebaseauth.viewer`, `cloudtrace.agent`, `logging.logWriter` |
-| F02-RT-04 | `gcloud firestore databases describe --project functional-agent-prd --format "value(pointInTimeRecoveryEnablement)"` | `POINT_IN_TIME_RECOVERY_ENABLED` (prd) |
-| F02-RT-05 | `gcloud run services describe api --region us-central1 --project functional-agent-$ENV --format yaml` | `timeoutSeconds: 300`, `containerConcurrency: 40`, imagem `@sha256:`, `startupProbe` em `/healthz` |
-| F02-RT-06 | `curl -sI https://functional-agent-$ENV.web.app` | CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy` |
-| F02-RT-07 | console de faturamento → Orçamentos | limites 50/90/100% |
-| F02-RT-08 | `gcloud storage buckets describe gs://functional-agent-tfstate-$ENV --format "value(versioning_enabled)"` | `True` |
+| F02-RT-01 | `terraform plan -detailed-exitcode -var-file=envs/prd.tfvars` | exit 0 (sem diferenças) |
+| F02-RT-02 | `for sa in specflow-api specflow-deployer specflow-terraform; do gcloud iam service-accounts keys list --iam-account $sa@pcb-inspect.iam.gserviceaccount.com --managed-by user; done` | listas vazias |
+| F02-RT-03 | `gcloud projects get-iam-policy pcb-inspect --flatten bindings --filter "bindings.members:specflow-api@" --format "table(bindings.role, bindings.condition.title)"` | `datastore.user` (condição `specflow-database-only`), `firebaseauth.viewer`, `cloudtrace.agent`, `logging.logWriter` |
+| F02-RT-04 | `gcloud firestore databases describe --database specflow --project pcb-inspect --format "value(pointInTimeRecoveryEnablement)"` | `POINT_IN_TIME_RECOVERY_ENABLED` |
+| F02-RT-05 | `gcloud run services describe specflow-api --region us-central1 --project pcb-inspect --format yaml` | `timeoutSeconds: 300`, `containerConcurrency: 40`, imagem `@sha256:`, `startupProbe` em `/healthz` |
+| F02-RT-06 | `curl -sI https://specsflow-ai.web.app` | CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy` |
+| F02-RT-08 | `gcloud storage buckets describe gs://pcb-inspect-tfstate --format "value(versioning_enabled)"` | `True` |
+| F02-RT-09 | revisar o `plan` do passo 2 | nenhum recurso fora de `specflow-*` / `specsflow-ai` |
 
 ## 6. Segredo do LLM (antes da F05)
 
-O Terraform cria só o contêiner `llm-api-key`; o valor nunca passa pelo estado:
+O Terraform cria só o contêiner do segredo; o valor nunca passa pelo estado:
 
 ```bash
-printf '%s' "$CHAVE" | gcloud secrets versions add llm-api-key --data-file=- --project functional-agent-$ENV
+printf '%s' "$CHAVE" | gcloud secrets versions add specflow-llm-api-key --data-file=- --project pcb-inspect
 ```

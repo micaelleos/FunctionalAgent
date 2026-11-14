@@ -1,6 +1,6 @@
-# Valores para as variáveis do GitHub Environment do ambiente (infra/bootstrap/README.md §4).
-output "github_environment_variables" {
-  description = "Cadastre estes valores como variables do GitHub Environment correspondente."
+# Valores para as variables do repositório no GitHub (infra/bootstrap/README.md §4).
+output "github_variables" {
+  description = "Cadastre como variables do repositório (Settings → Secrets and variables → Actions)."
   value = {
     GCP_PROJECT_ID      = var.project_id
     GCP_REGION          = var.region

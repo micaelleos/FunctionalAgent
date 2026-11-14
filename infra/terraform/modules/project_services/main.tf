@@ -1,9 +1,11 @@
 variable "project_id" { type = string }
 
+# Só habilita APIs (aditivo). disable_on_destroy = false: destruir este módulo nunca desliga uma
+# API que outros apps do projeto usam.
+
 locals {
   services = toset([
     "artifactregistry.googleapis.com",
-    "billingbudgets.googleapis.com",
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "firebase.googleapis.com",

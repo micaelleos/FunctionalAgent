@@ -25,6 +25,7 @@
 | F13 | Login Atlassian via OAuth 2.0 (3LO) | 4 | Rascunho · plano após GA | F04, F12 | 7 d | 4 / 4 | [spec](013-oauth-atlassian/spec.md) · [plano](013-oauth-atlassian/plan.md) |
 | F14 | Editor de artefatos antes da exportação | 4 | Rascunho · plano após GA | F06, F08 | 7 d | 5 / 3 | [spec](014-editor-artefatos/spec.md) · [plano](014-editor-artefatos/plan.md) |
 | F15 | Suíte contínua de avaliação do agente (evals) | 4 (baseline na 1) | Rascunho · plano após GA | F05 | 5 d | 3 / — | [spec](015-evals-agente/spec.md) · [plano](015-evals-agente/plan.md) |
+| F16 | Google Analytics (consentimento LGPD, CSP, eventos) | 4 | A especificar (aprovado pelo PO em 2026-11-14) | F02, F08 | — | — | — |
 
 **Totais:** 15 features · 84 requisitos funcionais · 85 técnicos · ~82 dias de estimativa.
 Status, dependências e estimativas vêm do cabeçalho de cada `spec.md` — atualize lá e reflita aqui.

@@ -1,11 +1,12 @@
 variable "project_id" { type = string }
 variable "accessor_email" { type = string }
+variable "secret_id" { type = string }
 
 # Só o contêiner do segredo. O valor é inserido fora do Terraform para nunca ir ao estado
-# (Constituição III): gcloud secrets versions add llm-api-key --data-file=-
+# (Constituição III): gcloud secrets versions add <secret_id> --data-file=-
 resource "google_secret_manager_secret" "llm_api_key" {
   project   = var.project_id
-  secret_id = "llm-api-key"
+  secret_id = var.secret_id
   replication {
     auto {}
   }

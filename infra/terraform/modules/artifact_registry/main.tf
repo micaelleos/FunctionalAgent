@@ -1,10 +1,11 @@
 variable "project_id" { type = string }
 variable "region" { type = string }
+variable "repository_id" { type = string }
 
 resource "google_artifact_registry_repository" "api" {
   project       = var.project_id
   location      = var.region
-  repository_id = "api"
+  repository_id = var.repository_id
   format        = "DOCKER"
   description   = "Imagens do backend (deploy sempre por digest)"
 

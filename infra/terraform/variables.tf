@@ -1,14 +1,9 @@
-variable "env" {
-  description = "Ambiente: dev ou prd."
-  type        = string
-  validation {
-    condition     = contains(["dev", "prd"], var.env)
-    error_message = "env deve ser dev ou prd."
-  }
-}
+# SpecFlow AI vive no projeto compartilhado do portfólio (decisão do PO, 2026-11-14): um único
+# ambiente (produção) + previews por PR. Todo recurso deste módulo tem o prefixo `app_prefix`
+# (ou é o site de Hosting do app) e nada compartilhado do projeto é alterado (F02-RT-09).
 
 variable "project_id" {
-  description = "Projeto GCP/Firebase do ambiente (ex.: functional-agent-dev)."
+  description = "Projeto GCP/Firebase compartilhado do portfólio."
   type        = string
 }
 
@@ -16,6 +11,17 @@ variable "region" {
   description = "Região de Cloud Run, Artifact Registry, Firestore e KMS."
   type        = string
   default     = "us-central1"
+}
+
+variable "app_prefix" {
+  description = "Prefixo dos recursos do app dentro do projeto compartilhado."
+  type        = string
+  default     = "specflow"
+}
+
+variable "hosting_site_id" {
+  description = "Site do Firebase Hosting do app (já existente; importado pelo Terraform)."
+  type        = string
 }
 
 variable "github_repository" {
@@ -31,27 +37,11 @@ variable "cloud_run_min_instances" {
 
 variable "cloud_run_max_instances" {
   type    = number
-  default = 3
-}
-
-variable "billing_account_id" {
-  description = "Conta de faturamento (XXXXXX-XXXXXX-XXXXXX) usada pelo budget alert."
-  type        = string
-}
-
-variable "monthly_budget_usd" {
-  description = "Orçamento mensal do projeto; alertas em 50/90/100% (F02-RT-07)."
-  type        = number
-}
-
-variable "enable_pitr_and_backups" {
-  description = "PITR (7 dias) + backup diário (14 dias) do Firestore (F02-RT-04: obrigatório em prd)."
-  type        = bool
-  default     = false
+  default = 10
 }
 
 variable "deletion_protection" {
-  description = "Protege Firestore e Cloud Run contra destroy acidental."
+  description = "Protege o banco Firestore e o Cloud Run contra destroy acidental."
   type        = bool
   default     = true
 }

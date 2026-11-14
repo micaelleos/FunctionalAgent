@@ -22,7 +22,7 @@ jobs:
       && contains(github.event.pull_request.labels.*.name, 'preview')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    environment: dev
+    environment: preview
     permissions:
       contents: read
       id-token: write
@@ -65,6 +65,7 @@ jobs:
         uses: ./.github/actions/deploy-web
         with:
           project: ${{ vars.GCP_PROJECT_ID }}
+          site: ${{ vars.FIREBASE_SITE_ID }}
           api-base-url: ${{ steps.api.outputs.tag-url }}
           channel: ${{ env.TAG }}
       - name: Comenta as URLs no PR
@@ -103,7 +104,7 @@ jobs:
       && contains(github.event.pull_request.labels.*.name, 'preview')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    environment: dev
+    environment: preview
     permissions:
       contents: read
       id-token: write

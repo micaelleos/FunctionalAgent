@@ -1,64 +1,44 @@
 variable "project_id" { type = string }
 variable "hosting_site_id" { type = string }
 
-resource "google_firebase_project" "this" {
-  provider = google-beta
-  project  = var.project_id
-}
+# O projeto já é um projeto Firebase compartilhado (portfólio): não é gerenciado aqui, nem a
+# configuração de Auth/Identity Platform, que vale para todos os apps (F02-RT-09).
 
-resource "google_firebase_web_app" "spa" {
+resource "google_firebase_web_app" "app" {
   provider        = google-beta
   project         = var.project_id
-  display_name    = "Agente Funcional (web)"
+  display_name    = "SpecFlow AI"
   deletion_policy = "DELETE"
-  depends_on      = [google_firebase_project.this]
 }
 
-data "google_firebase_web_app_config" "spa" {
+data "google_firebase_web_app_config" "app" {
   provider   = google-beta
   project    = var.project_id
-  web_app_id = google_firebase_web_app.spa.app_id
+  web_app_id = google_firebase_web_app.app.app_id
 }
 
-resource "google_firebase_hosting_site" "default" {
+# Site criado pelo PO no console; importado no módulo raiz (bloco import em main.tf).
+resource "google_firebase_hosting_site" "app" {
   provider = google-beta
   project  = var.project_id
   site_id  = var.hosting_site_id
-  app_id   = google_firebase_web_app.spa.app_id
-}
+  app_id   = google_firebase_web_app.app.app_id
 
-# Firebase Authentication (Identity Platform). E-mail/senha já habilitado; o provedor Google
-# exige um OAuth client e entra na F03.
-resource "google_identity_platform_config" "auth" {
-  provider = google-beta
-  project  = var.project_id
-
-  sign_in {
-    allow_duplicate_emails = false
-    email {
-      enabled           = true
-      password_required = true
-    }
+  lifecycle {
+    prevent_destroy = true
   }
-
-  authorized_domains = [
-    "localhost",
-    "${var.hosting_site_id}.web.app",
-    "${var.hosting_site_id}.firebaseapp.com",
-  ]
-
-  depends_on = [google_firebase_project.this]
 }
 
-output "hosting_site_id" { value = google_firebase_hosting_site.default.site_id }
+output "hosting_site_id" { value = google_firebase_hosting_site.app.site_id }
 
 # Configuração pública do Firebase (não é segredo): vira VITE_FIREBASE_* no build do SPA.
 output "web_app_config" {
   value = {
-    apiKey            = data.google_firebase_web_app_config.spa.api_key
-    authDomain        = data.google_firebase_web_app_config.spa.auth_domain
+    apiKey            = data.google_firebase_web_app_config.app.api_key
+    authDomain        = data.google_firebase_web_app_config.app.auth_domain
     projectId         = var.project_id
-    appId             = google_firebase_web_app.spa.app_id
-    messagingSenderId = data.google_firebase_web_app_config.spa.messaging_sender_id
+    appId             = google_firebase_web_app.app.app_id
+    messagingSenderId = data.google_firebase_web_app_config.app.messaging_sender_id
+    measurementId     = data.google_firebase_web_app_config.app.measurement_id
   }
 }

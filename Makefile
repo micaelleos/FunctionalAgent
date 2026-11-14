@@ -1,5 +1,5 @@
 # Comandos do monorepo. Requer: make, Docker, uv e Node 22 (no Windows, use WSL ou Git Bash).
-.PHONY: help install dev dev-down lint format test coverage build trace legacy infra-check test-rules e2e deploy deploy-api deploy-web
+.PHONY: help install dev dev-down lint format test coverage build trace legacy infra-check test-rules e2e e2e-local api-types deploy deploy-api deploy-web
 
 help:            ## Lista os comandos
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -42,6 +42,13 @@ test-rules:      ## Regras do Firestore no emulador via Docker (AT-F02-04)
 
 e2e:             ## Aceitação Playwright (E2E_BASE_URL; padrão http://localhost:5173)
 	cd frontend && npx playwright test
+
+e2e-local:       ## Aceitação com emuladores (rode `make dev` antes): AT-F03 e AT-F02
+	cd frontend && E2E_EMULATORS=1 npx playwright test
+
+api-types:       ## Exporta o OpenAPI do backend e gera os tipos do cliente TS (Constituição V)
+	cd backend && uv run python ../scripts/export_openapi.py
+	cd frontend && npm run gen:api
 
 deploy:          ## Deploy manual em produção: API e depois o frontend
 deploy: deploy-api deploy-web

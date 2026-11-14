@@ -41,9 +41,9 @@
 
 **Aceitação:** AT-F03-01, AT-F03-02, AT-F03-04
 
-- [ ] T004 [P] [F03-RF-04] SDK Firebase, `AuthProvider`, `react-router`, `<ProtectedRoute>`, cliente da API com token e retry em 401 — teste: Vitest + MSW — 1 d
-- [ ] T005 [F03-RF-01][F03-RF-02][F03-RF-03] Telas `/login`, `/cadastro` (aviso de verificação), `/recuperar-senha` — teste: Vitest + MSW, axe — 1 d
-- [ ] T006 [F03-RF-06][F03-RF-07][F03-RF-08] Página `/conta` (exportar, excluir com "EXCLUIR" e aviso do login compartilhado, sair) — teste: Vitest + MSW — 0,5 d
+- [x] T004 [P] [F03-RF-04] SDK Firebase, `AuthProvider`, `react-router`, `<ProtectedRoute>`, cliente da API com token e retry em 401 — teste: Vitest + MSW — 1 d
+- [x] T005 [F03-RF-01][F03-RF-02][F03-RF-03] Telas `/login`, `/cadastro` (aviso de verificação), `/recuperar-senha` — teste: Vitest + MSW, axe — 1 d
+- [x] T006 [F03-RF-06][F03-RF-07][F03-RF-08] Página `/conta` (exportar, excluir com "EXCLUIR" e aviso do login compartilhado, sair) — teste: Vitest + MSW — 0,5 d
 
 ---
 
@@ -53,4 +53,4 @@
 
 **Aceitação:** AT-F03-01..04
 
-- [ ] T007 `make deploy-web` injeta a config do Firebase; E2E AT-F03-01..04 nos emuladores + job no CI; `make deploy` e roteiro manual M-F03-01/02 — teste: Playwright — 1 d
+- [ ] T007 `make deploy-web` injeta a config do Firebase; E2E AT-F03-01..04 nos emuladores + job no CI; `make deploy` e roteiro manual M-F03-01/02 — teste: Playwright — 1 d (config injetada, E2E e job de CI prontos; falta `make deploy` e o roteiro manual)

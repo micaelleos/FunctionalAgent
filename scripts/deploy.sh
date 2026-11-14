@@ -104,8 +104,24 @@ deploy_web() {
   fi
   api_url=$(service_json | jq -r '.status.url')
 
-  log "Build do SPA (VITE_API_BASE_URL=$api_url)"
-  (cd "$ROOT/frontend" && VITE_API_BASE_URL="$api_url" npm run build)
+  # Config pública do web app (F03-RT-08): lida da API do Firebase, nunca commitada. O ID do web
+  # app vem do Terraform (fonte única).
+  local app_id config token
+  app_id=$(sed -n 's/^firebase_web_app_id *= *"\([^"]*\)".*/\1/p' "$ROOT/infra/terraform/envs/prd.tfvars")
+  token=$("$GCLOUD" auth print-access-token)
+  config=$(curl -sS --fail-with-body -H "Authorization: Bearer $token" -H "x-goog-user-project: $PROJECT" \
+    "https://firebase.googleapis.com/v1beta1/projects/$PROJECT/webApps/$app_id/config")
+
+  log "Build do SPA (VITE_API_BASE_URL=$api_url, Firebase $(jq -r '.projectId' <<<"$config"))"
+  (
+    cd "$ROOT/frontend"
+    VITE_API_BASE_URL="$api_url" \
+      VITE_FIREBASE_API_KEY=$(jq -r '.apiKey' <<<"$config") \
+      VITE_FIREBASE_AUTH_DOMAIN=$(jq -r '.authDomain' <<<"$config") \
+      VITE_FIREBASE_PROJECT_ID=$(jq -r '.projectId' <<<"$config") \
+      VITE_FIREBASE_APP_ID=$(jq -r '.appId' <<<"$config") \
+      npm run build
+  )
 
   log "Publicação no Firebase Hosting (site $SITE)"
   (cd "$ROOT" && npx --yes "$FIREBASE_TOOLS" deploy --only hosting --project "$PROJECT" --non-interactive)

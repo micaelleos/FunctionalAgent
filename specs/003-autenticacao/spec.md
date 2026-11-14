@@ -112,14 +112,14 @@ Antes do roteiro, o PO inclui `specsflow-ai.web.app` nos domínios autorizados d
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F03-RF-01 | Roteiro manual M-F03-01 | ⬜ |
-| F03-RF-02 | AT-F03-02, `tests/unit/test_authz.py` (e-mail não verificado → 403) | 🟡 back |
-| F03-RF-03 | Roteiro manual M-F03-02 | ⬜ |
-| F03-RF-04 | AT-F03-01 | ⬜ |
-| F03-RF-05 | AT-F03-02, `tests/integration/test_me.py::test_perfil_criado_no_primeiro_acesso` | 🟡 back |
-| F03-RF-06 | AT-F03-02 | ⬜ |
-| F03-RF-07 | AT-F03-04, `tests/integration/test_me.py::test_export_inclui_perfil_e_subcolecoes` | 🟡 back |
-| F03-RF-08 | AT-F03-04, `tests/integration/test_account_delete.py` | 🟡 back |
+| F03-RF-01 | Roteiro manual M-F03-01; `frontend/src/auth/auth.test.tsx` (botão Google) | 🟡 falta o manual |
+| F03-RF-02 | AT-F03-02 (`frontend/e2e/f03-auth.spec.ts`), `backend/tests/unit/test_authz.py` (e-mail não verificado → 403) | ✅ local |
+| F03-RF-03 | Roteiro manual M-F03-02; `frontend/src/auth/auth.test.tsx` | 🟡 falta o manual |
+| F03-RF-04 | AT-F03-01, `frontend/src/auth/auth.test.tsx` | ✅ local |
+| F03-RF-05 | AT-F03-02, `backend/tests/integration/test_me.py::test_perfil_criado_no_primeiro_acesso` | ✅ local |
+| F03-RF-06 | AT-F03-02, `frontend/src/auth/auth.test.tsx` | ✅ local |
+| F03-RF-07 | AT-F03-04, `backend/tests/integration/test_me.py::test_export_inclui_perfil_e_subcolecoes` | ✅ local |
+| F03-RF-08 | AT-F03-04, `backend/tests/integration/test_account_delete.py` | ✅ local |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |

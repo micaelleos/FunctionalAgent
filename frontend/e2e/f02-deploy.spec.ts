@@ -9,7 +9,7 @@ test.describe('F02 infraestrutura e deploy', () => {
   test('AT-F02-01 F02-RF-01 F02-RF-03 frontend publicado exibe o status e a versão do backend', async ({
     page,
   }) => {
-    await page.goto('/')
+    await page.goto('/sobre')
 
     const status = page.getByText('API: ok')
     await expect(status).toBeVisible({ timeout: 20_000 })

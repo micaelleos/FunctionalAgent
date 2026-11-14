@@ -3,3 +3,5 @@ coverage
 node_modules
 test-results
 playwright-report
+openapi.json
+src/lib/api-schema.d.ts

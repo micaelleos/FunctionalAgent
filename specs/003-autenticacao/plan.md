@@ -29,7 +29,8 @@
   - `api/v1/me.py`: `GET /api/v1/me`, `GET /api/v1/me/export`, `DELETE /api/v1/me`.
   - Dependências novas: `google-cloud-firestore`, `google-auth[requests]` e `cryptography`.
 - **Front:**
-  - SDK `firebase` (só `auth`) e `react-router` para as rotas;
+  - `@firebase/app` + `@firebase/auth` (não o pacote `firebase`, que traz o Firestore com um
+    `@grpc/grpc-js` vulnerável) e `react-router` para as rotas; TanStack Query para `/me`;
   - `AuthProvider` (`onAuthStateChanged`) e `<ProtectedRoute>`;
   - páginas `/login`, `/cadastro`, `/recuperar-senha` e `/conta`;
   - o cliente da API injeta `Authorization` e, em 401, renova o token (`getIdToken(true)`) e tenta uma vez.
@@ -38,6 +39,9 @@
   - **Produção:** o `make deploy-web` lê a config do web app na API do Firebase
     (`webApps/{id}/config`) e passa ao build. O `apiKey` não fica no git, porque o `gitleaks` o
     marcaria, embora seja público.
+- **Contrato (Art. V):** `scripts/export_openapi.py` gera `frontend/openapi.json`, e
+  `npm run gen:api` gera `src/lib/api-schema.d.ts`. O CI falha se algum dos dois estiver
+  desatualizado (`make api-types` regenera).
 - **Dados:** `users/{uid}` `{displayName, email, createdAt, locale}` no banco `specflow`.
 - **Infra:** nenhuma mudança no Terraform. Provedores e domínios do Auth são do projeto compartilhado
   (F02-RT-09). O domínio `specsflow-ai.web.app` é incluído pelo PO no console.

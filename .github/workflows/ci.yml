@@ -116,6 +116,10 @@ jobs:
         run: uv run mypy
       - name: Regras de camadas (import-linter)
         run: uv run lint-imports
+      - name: Contrato OpenAPI em dia (Constituição V)
+        run: |
+          uv run python ../scripts/export_openapi.py
+          git diff --exit-code ../frontend/openapi.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -162,6 +166,10 @@ jobs:
         run: |
           npm run lint
           npm run format:check
+      - name: Tipos do cliente gerados do OpenAPI em dia
+        run: |
+          npm run gen:api
+          git diff --exit-code src/lib/api-schema.d.ts
       - name: Tipos
         run: npm run typecheck
       - name: Testes com cobertura (mínimo 70%)
@@ -170,3 +178,40 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Build
         run: npm run build
+
+  e2e:
+    # AT-F03-01..04 contra a stack local completa (`make dev`: emuladores + API + Vite).
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Sobe a stack local
+        run: |
+          docker compose up -d --build
+          for i in $(seq 1 120); do
+            curl -fs localhost:8000/health >/dev/null && curl -fs localhost:5173 >/dev/null && exit 0
+            sleep 2
+          done
+          docker compose logs; exit 1
+      - name: Playwright
+        working-directory: frontend
+        env:
+          E2E_EMULATORS: "1"
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - if: failure()
+        run: docker compose logs
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7

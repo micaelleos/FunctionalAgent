@@ -1,0 +1,214 @@
+# Publicação contínua (F02-RF-01..03; 06-cicd-deploy.md §2–4).
+# merge em master → build → dev (100%) → aceitação em dev → aprovação (environment prd)
+# → revisão sem tráfego → canário 10% por 15 min → promoção ou rollback automático.
+# Só roda quando a variável de repositório DEPLOY_ENABLED = "true" (após o bootstrap da F02).
+name: deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem (versão = SHA do commit)
+        run: |
+          docker build --build-arg APP_VERSION=${{ github.sha }} -t api:ci backend
+          docker save api:ci | gzip > api.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-image
+          path: api.tar.gz
+          retention-days: 1
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+      url: ${{ steps.web.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      web-url: ${{ steps.web.outputs.url }}
+    env:
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: image
+        uses: ./.github/actions/push-image
+        with:
+          repository: ${{ vars.GCP_ARTIFACT_REPO }}
+          tag: ${{ github.sha }}
+      - id: api
+        uses: ./.github/actions/deploy-api
+        with:
+          project: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION }}
+          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          image: ${{ steps.image.outputs.image }}
+          tag: rc-${{ github.sha }}
+          expected-version: ${{ github.sha }}
+      - name: Dev recebe 100% do tráfego
+        run: |
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
+            --to-revisions "${{ steps.api.outputs.revision }}=100"
+      - id: web
+        uses: ./.github/actions/deploy-web
+        with:
+          project: ${{ vars.GCP_PROJECT_ID }}
+          api-base-url: ${{ steps.api.outputs.service-url }}
+      - name: Remove tags rc- antigas
+        run: |
+          old=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json \
+            | jq -r --arg keep "rc-${{ github.sha }}" '[.status.traffic[] | select(.tag != null and (.tag | startswith("rc-")) and .tag != $keep) | .tag] | join(",")')
+          if [ -n "$old" ]; then
+            gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --remove-tags "$old"
+          fi
+
+  acceptance-dev:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: AT-F02-01 + cabeçalhos (F02-RT-06) em dev
+        env:
+          E2E_BASE_URL: ${{ needs.deploy-dev.outputs.web-url }}
+          E2E_EXPECTED_VERSION: ${{ github.sha }}
+        run: npm run e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-dev
+          path: frontend/playwright-report
+          retention-days: 7
+
+  deploy-prd:
+    needs: acceptance-dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Revisores obrigatórios configurados no GitHub Environment "prd" (AT-F02-02).
+    environment:
+      name: prd
+      url: ${{ steps.web.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      web-url: ${{ steps.web.outputs.url }}
+    env:
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+      CANARY_PERCENT: "10"
+      CANARY_SECONDS: "900"
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+          token_format: access_token
+          access_token_lifetime: 3600s
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: image
+        uses: ./.github/actions/push-image
+        with:
+          repository: ${{ vars.GCP_ARTIFACT_REPO }}
+          tag: ${{ github.sha }}
+      - id: api
+        uses: ./.github/actions/deploy-api
+        with:
+          project: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION }}
+          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          image: ${{ steps.image.outputs.image }}
+          tag: rc-${{ github.sha }}
+          expected-version: ${{ github.sha }}
+      - id: shift
+        name: Canário recebe ${{ env.CANARY_PERCENT }}% do tráfego
+        run: |
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
+            --to-tags "rc-${{ github.sha }}=$CANARY_PERCENT"
+      - name: Observa o canário (5xx, p95, /healthz)
+        env:
+          GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          python3 scripts/canary.py --project "$PROJECT" --service "$SERVICE" \
+            --revision "${{ steps.api.outputs.revision }}" --url "${{ steps.api.outputs.tag-url }}" \
+            --duration "$CANARY_SECONDS"
+      - id: promote
+        name: Promove para 100%
+        run: |
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
+            --to-revisions "${{ steps.api.outputs.revision }}=100"
+      - name: Rollback automático
+        if: failure() && steps.shift.outcome == 'success' && steps.promote.outcome != 'success'
+        run: |
+          previous="${{ steps.api.outputs.previous-revision }}"
+          echo "::error::Canário reprovado; tráfego volta 100% para $previous"
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
+            --to-revisions "$previous=100"
+      - id: web
+        uses: ./.github/actions/deploy-web
+        with:
+          project: ${{ vars.GCP_PROJECT_ID }}
+          api-base-url: ${{ steps.api.outputs.service-url }}
+      - name: Remove tags rc- antigas
+        run: |
+          old=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json \
+            | jq -r --arg keep "rc-${{ github.sha }}" '[.status.traffic[] | select(.tag != null and (.tag | startswith("rc-")) and .tag != $keep) | .tag] | join(",")')
+          if [ -n "$old" ]; then
+            gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --remove-tags "$old"
+          fi
+
+  acceptance-prd:
+    needs: deploy-prd
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Smoke de produção (AT-F02-01 + cabeçalhos)
+        env:
+          E2E_BASE_URL: ${{ needs.deploy-prd.outputs.web-url }}
+          E2E_EXPECTED_VERSION: ${{ github.sha }}
+        run: npm run e2e

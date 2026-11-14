@@ -7,7 +7,7 @@
 | `local` | — (emuladores) | Desenvolvimento | `uvicorn --reload` | Emulador Firestore/Auth |
 | `dev` | `functional-agent-dev` | Integração contínua, previews, E2E | `min=0`, `max=3` | Firestore dev, Jira sandbox |
 | `stg` *(opcional)* | `functional-agent-stg` | Ensaio de release | `min=0`, `max=3` | Cópia sintética |
-| `prd` | `functional-agent-prd` | Usuários reais | `min=1` (opcional), `max=20` | Firestore prd, PITR ativo |
+| `prd` | `functional-agent-prd` | Usuários reais | `min=0` (decisão do PO), `max=20` | Firestore prd, PITR ativo |
 
 Um **projeto GCP por ambiente** (isolamento de IAM, cotas e faturamento). Cada projeto GCP é também um projeto Firebase.
 
@@ -20,9 +20,9 @@ flowchart TB
         H[Firebase Hosting<br/>site: functional-agent-env]
         A[Firebase Auth<br/>Google + e-mail]
         AC[App Check<br/>reCAPTCHA Enterprise]
-        CR[Cloud Run: api<br/>região southamerica-east1]
+        CR[Cloud Run: api<br/>região us-central1]
         AR[Artifact Registry<br/>docker: api]
-        F[(Firestore nativo<br/>southamerica-east1<br/>PITR + backups diários)]
+        F[(Firestore nativo<br/>us-central1<br/>PITR + backups diários)]
         S[Secret Manager<br/>llm-api-key]
         K[KMS keyring: app<br/>key: jira-tokens<br/>rotação 90 dias]
         L[Logging / Monitoring<br/>alertas + dashboard]
@@ -68,11 +68,11 @@ Estado remoto: bucket `gs://functional-agent-tfstate-{env}` com versionamento e 
 
 | Parâmetro | Valor | Motivo |
 |---|---|---|
-| Região | `southamerica-east1` | Perto dos usuários e dos dados |
+| Região | `us-central1` | Decisão do PO (2026-11-14) |
 | CPU / memória | 1 vCPU / 1 GiB | Agente é I/O-bound; LangGraph + SDKs cabem folgado |
 | Concorrência | 40 | FastAPI async; ajustar após teste de carga |
 | Timeout | 300 s | Turnos longos do agente com streaming |
-| Min / max instâncias | 1 / 20 | Sem cold start; teto de custo |
+| Min / max instâncias | 0 / 20 | Decisão do PO (2026-11-14): cold start aceito; teto de custo |
 | CPU boost na inicialização | ligado | Reduz cold start |
 | Ingress | `all` (público, auth na aplicação) | SPA chama direto; App Check + ID token protegem |
 | Env | `ENV`, `GCP_PROJECT`, `KMS_KEY_NAME`, `LLM_PROVIDER`, `LLM_MODEL`, `CORS_ORIGINS`, `DAILY_TOKEN_QUOTA` | — |
@@ -97,7 +97,7 @@ Estado remoto: bucket `gs://functional-agent-tfstate-{env}` com versionamento e 
 
 | Item | Estimativa (USD) | Observação |
 |---|---|---|
-| Cloud Run (`min=1`) | 10–20 | ~0 com `min=0` |
+| Cloud Run (`min=0`) | ~0–5 | 10–20 se passar a `min=1` |
 | Firestore | 0–5 | Nível gratuito cobre boa parte |
 | Firebase Hosting / Auth | 0 | Dentro do nível gratuito |
 | App Check (reCAPTCHA Enterprise) | 0 | Até 10 mil avaliações/mês grátis |

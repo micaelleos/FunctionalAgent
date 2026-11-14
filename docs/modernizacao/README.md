@@ -94,9 +94,19 @@ flowchart LR
 
 ---
 
-## 4. Decisões que precisam do dono do produto
+## 4. Decisões do dono do produto
 
-Estas escolhas têm um padrão recomendado no plano, mas mudam escopo ou custo — confirme antes do Gate 0 da F02:
+Decididas em 2026-11-14, no Gate 0 da F02 (itens 1, 2, 4 e 5). O item 3 fica para a F05.
+
+| # | Decisão | Escolha |
+|---|---|---|
+| 1 | Domínio próprio | **Não** por enquanto: `*.web.app` e `*.run.app` (pode entrar depois em Terraform) |
+| 2 | Região | **`us-central1`** para Cloud Run, Artifact Registry, Firestore e KMS |
+| 3 | Provedor de LLM | Pendente (F05) |
+| 4 | Ambientes | **`dev` + `prd`**, sem `stg` |
+| 5 | Instância mínima em prd | **`min-instances=0`** (cold start aceito, menor custo) |
+
+Opções originais, para referência:
 
 1. **Domínio próprio** (ex.: `app.seudominio.com` e `api.seudominio.com`)? Recomendado; sem domínio o app usa
    `*.web.app` e a URL `*.run.app` do Cloud Run.

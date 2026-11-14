@@ -2,11 +2,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em implementação |
 | **Fase** | 0 — Fundação |
 | **Dependências** | F01 |
 | **ADRs** | ADR-001, ADR-002 |
 | **Estimativa** | 7 dias |
+| **Gates** | Gate 0 e Gate 1 aprovados pelo dono do produto em 2026-11-14 |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
@@ -22,7 +23,10 @@
 ### 2. Escopo
 - **Inclui:** módulos Terraform de `05-infraestrutura.md §2`, WIF, `deploy.yml`, `infra.yml`, `firebase.json`
   (headers de segurança), Firestore com regras "nega tudo" e índices, budget alerts, runbook de rollback.
-- **Fora de escopo:** domínio próprio (opcional, fim da Fase 3), App Check (F11), dashboards detalhados (F11).
+- **Fora de escopo:** domínio próprio (opcional, fim da Fase 3), App Check (F11), dashboards detalhados (F11),
+  ambiente `stg`, provedor Google no Auth (F03), montagem do segredo do LLM no Cloud Run (F05).
+- **Decisões do PO (2026-11-14):** região `us-central1`; ambientes `dev` + `prd`; sem domínio próprio;
+  `min-instances=0` também em prd (cold start aceito).
 
 ### 3. Requisitos funcionais
 | ID | Requisito | Prio. |
@@ -84,12 +88,13 @@ Funcionalidade: Infraestrutura e deploy
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F02-RF-01 | AT-F02-01 | ⬜ |
-| F02-RF-02 | AT-F02-02, AT-F02-03 | ⬜ |
-| F02-RF-03 | AT-F02-01 | ⬜ |
-| F02-RF-04 | PR de prova com label `preview` | ⬜ |
-| F02-RT-04 | AT-F02-04, `firestore-rules.test.ts` | ⬜ |
+| F02-RF-01 | AT-F02-01 (`frontend/e2e/f02-deploy.spec.ts`) | ⬜ |
+| F02-RF-02 | AT-F02-02, AT-F02-03, `scripts/test_canary.py` | ⬜ |
+| F02-RF-03 | AT-F02-01 (`frontend/e2e/f02-deploy.spec.ts`) | ⬜ |
+| F02-RF-04 | PR de prova com label `preview`, `backend/tests/unit/test_cors.py` | ⬜ |
+| F02-RT-04 | AT-F02-04 (`infra/firestore-rules/firestore-rules.test.ts`, emulador) | ⬜ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-14 | (este PR) | local | `terraform validate`/`tflint`, `actionlint`, pytest (`scripts/`, backend), Playwright local, emulador de regras | Terraform válido; workflows válidos; canário 10 testes; CORS de preview; AT-F02-01 passa contra stack local; AT-F02-04 passa no emulador (e falha com regras abertas). Nada aplicado no GCP ainda | — |

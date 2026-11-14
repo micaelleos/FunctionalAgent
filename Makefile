@@ -1,5 +1,5 @@
 # Comandos do monorepo. Requer: make, Docker, uv e Node 22 (no Windows, use WSL ou Git Bash).
-.PHONY: help install dev dev-down lint format test coverage build trace legacy
+.PHONY: help install dev dev-down lint format test coverage build trace legacy infra-check test-rules e2e
 
 help:            ## Lista os comandos
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -7,6 +7,7 @@ help:            ## Lista os comandos
 install:         ## Instala dependências de backend e frontend
 	cd backend && uv sync
 	cd frontend && npm ci
+	cd infra/firestore-rules && npm ci
 
 dev:             ## Sobe emuladores + backend + frontend (http://localhost:5173)
 	docker compose up --build
@@ -29,6 +30,16 @@ test:            ## Testes com cobertura mínima (back 80%, front 70%)
 build:           ## Build da imagem do backend e do SPA
 	docker build -t functional-agent-api:local backend
 	cd frontend && npm run build
+
+infra-check:     ## Terraform fmt/validate/tflint, sem credenciais (F02)
+	cd infra/terraform && terraform fmt -check -recursive && terraform init -backend=false -input=false >/dev/null && terraform validate && tflint --init >/dev/null && tflint --recursive --config "$$PWD/.tflint.hcl"
+
+test-rules:      ## Regras do Firestore no emulador via Docker (AT-F02-04)
+	docker compose build emulators
+	docker run --rm --user "$$(id -u):$$(id -g)" -e HOME=/tmp -v "$$PWD":/workspace -w /workspace/infra/firestore-rules functionalagent-emulators npm run test:emulator
+
+e2e:             ## Aceitação Playwright (E2E_BASE_URL; padrão http://localhost:5173)
+	cd frontend && npx playwright test
 
 trace:           ## Verifica que todo requisito tem teste (rastreabilidade)
 	python3 scripts/trace_requirements.py

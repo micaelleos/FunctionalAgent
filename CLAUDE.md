@@ -23,6 +23,9 @@ make format
 make test      # backend pytest --cov (fail_under 80) + frontend vitest coverage (70)
 make trace     # every functional requirement in specs/ must be referenced by a test
 make legacy    # old Streamlit app
+make infra-check  # terraform fmt/validate + tflint (no GCP credentials needed)
+make test-rules   # Firestore rules tests in the emulator container (Docker)
+make e2e          # Playwright acceptance tests; E2E_BASE_URL (+ E2E_EXPECTED_VERSION) target a deployed env
 ```
 
 Without Docker:
@@ -78,6 +81,21 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   and each task names its test and an estimate ≤ 1 day; keep the `- [ ] Tnnn` checklist format,
   which `/speckit-implement` and `/speckit-converge` parse. Scope changes during implementation must update the spec in
   the same PR.
+
+## Infrastructure and delivery (F02)
+
+- Terraform root module in `infra/terraform/` (one per env via `envs/<env>.tfvars` +
+  `envs/<env>.backend.hcl`, GCS state). Terraform owns Cloud Run *configuration*; the image and
+  traffic belong to the pipeline (`ignore_changes`), so don't set images in Terraform.
+- Envs: `dev` and `prd` only, region `us-central1`, no custom domain. One-time manual setup and the
+  GitHub Environments/variables the workflows need: `infra/bootstrap/README.md`.
+- WIF only issues credentials to jobs in GitHub Environments `<env>` (deployer SA) and
+  `infra-<env>` (terraform SA); a new workflow job that talks to GCP must declare one of them.
+- `deploy.yml`: build once → dev 100% → Playwright acceptance → `prd` approval → no-traffic
+  revision → 10% canary judged by `scripts/canary.py` → promote or auto-rollback.
+  `preview.yml` (label `preview`) and `infra.yml`. Shared steps in `.github/actions/`.
+  Deploy/infra jobs are gated by repo variables `DEPLOY_ENABLED` / `INFRA_ENABLED`.
+- Rollback procedures: `docs/runbooks/rollback.md`.
 
 ## Conventions
 

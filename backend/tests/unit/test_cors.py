@@ -1,0 +1,52 @@
+"""CORS para o SPA hospedado e seus canais de preview (ADR-002, F02-RF-04)."""
+
+from collections.abc import Iterator
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.core.config import get_settings
+from app.main import create_app
+
+SITE = "https://functional-agent-dev.web.app"
+PREVIEW = "https://functional-agent-dev--pr-12-a1b2c3d4.web.app"
+
+
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    # Mesmos valores que o Terraform injeta no Cloud Run de dev (infra/terraform/main.tf).
+    monkeypatch.setenv("ENV", "dev")
+    monkeypatch.setenv("CORS_ORIGINS", f'["{SITE}"]')
+    monkeypatch.setenv("CORS_ORIGIN_REGEX", r"^https://functional-agent-dev--[a-z0-9-]+\.web\.app$")
+    get_settings.cache_clear()
+    with TestClient(create_app()) as c:
+        yield c
+    get_settings.cache_clear()
+
+
+def _allowed_origin(client: TestClient, origin: str) -> str | None:
+    headers = client.get("/healthz", headers={"Origin": origin}).headers
+    value: str | None = headers.get("access-control-allow-origin")
+    return value
+
+
+def test_aceita_o_site_principal(client: TestClient) -> None:
+    assert _allowed_origin(client, SITE) == SITE
+
+
+@pytest.mark.req("F02-RF-04")
+def test_aceita_canal_de_preview_do_proprio_site(client: TestClient) -> None:
+    assert _allowed_origin(client, PREVIEW) == PREVIEW
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://functional-agent-prd--pr-1.web.app",
+        "https://evil.web.app",
+        "https://functional-agent-dev--pr-1.web.app.evil.com",
+        "http://functional-agent-dev--pr-1.web.app",
+    ],
+)
+def test_recusa_outras_origens(client: TestClient, origin: str) -> None:
+    assert _allowed_origin(client, origin) is None

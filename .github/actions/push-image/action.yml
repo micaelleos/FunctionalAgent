@@ -1,0 +1,33 @@
+name: push-image
+description: Carrega a imagem do backend construída no job build, envia ao Artifact Registry e devolve a referência por digest.
+inputs:
+  repository:
+    description: Base da imagem no Artifact Registry (<região>-docker.pkg.dev/<projeto>/api/api)
+    required: true
+  tag:
+    description: Tag legível (o deploy usa sempre o digest)
+    required: true
+outputs:
+  image:
+    description: Imagem por digest (<repositório>@sha256:...)
+    value: ${{ steps.push.outputs.image }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: api-image
+        path: ${{ runner.temp }}/api-image
+    - id: push
+      shell: bash
+      env:
+        REPOSITORY: ${{ inputs.repository }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        docker load --input "$RUNNER_TEMP/api-image/api.tar.gz"
+        gcloud auth configure-docker "${REPOSITORY%%/*}" --quiet
+        docker tag api:ci "$REPOSITORY:$TAG"
+        docker push "$REPOSITORY:$TAG"
+        digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$REPOSITORY:$TAG")
+        echo "image=$digest" >> "$GITHUB_OUTPUT"
+        echo "Imagem publicada: $digest"

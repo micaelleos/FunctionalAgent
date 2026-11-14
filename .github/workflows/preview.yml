@@ -1,0 +1,124 @@
+# Preview por PR (F02-RF-04): PR com a label "preview" ganha uma revisão do Cloud Run com a tag
+# pr-<n> (sem tráfego) e um canal do Hosting apontando para ela; as URLs são comentadas no PR.
+# Ao fechar o PR, tag e canal são removidos. Só PRs do próprio repositório (forks não têm OIDC).
+name: preview
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true'
+      && github.event.action != 'closed'
+      && contains(github.event.pull_request.labels.*.name, 'preview')
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    env:
+      TAG: pr-${{ github.event.pull_request.number }}
+      SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem
+        run: |
+          docker build --build-arg APP_VERSION="$SHA" -t api:ci backend
+          docker save api:ci | gzip > api.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-image
+          path: api.tar.gz
+          retention-days: 1
+          overwrite: true
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: image
+        uses: ./.github/actions/push-image
+        with:
+          repository: ${{ vars.GCP_ARTIFACT_REPO }}
+          tag: ${{ env.TAG }}-${{ env.SHA }}
+      - id: api
+        uses: ./.github/actions/deploy-api
+        with:
+          project: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION }}
+          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          image: ${{ steps.image.outputs.image }}
+          tag: ${{ env.TAG }}
+          expected-version: ${{ env.SHA }}
+      - id: web
+        uses: ./.github/actions/deploy-web
+        with:
+          project: ${{ vars.GCP_PROJECT_ID }}
+          api-base-url: ${{ steps.api.outputs.tag-url }}
+          channel: ${{ env.TAG }}
+      - name: Comenta as URLs no PR
+        uses: actions/github-script@v7
+        env:
+          WEB_URL: ${{ steps.web.outputs.url }}
+          API_URL: ${{ steps.api.outputs.tag-url }}
+        with:
+          script: |
+            const marker = '<!-- preview-urls -->'
+            const body = [
+              marker,
+              '### Preview',
+              '',
+              `| | URL |`,
+              `|---|---|`,
+              `| Frontend | ${process.env.WEB_URL} |`,
+              `| API | ${process.env.API_URL} |`,
+              '',
+              `Commit \`${process.env.SHA.slice(0, 7)}\` · o canal expira em 7 dias.`,
+            ].join('\n')
+            const { owner, repo } = context.repo
+            const issue_number = context.issue.number
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number })
+            const existing = comments.find((c) => c.body?.includes(marker))
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body })
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body })
+            }
+
+  cleanup:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true'
+      && github.event.action == 'closed'
+      && contains(github.event.pull_request.labels.*.name, 'preview')
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: pr-${{ github.event.pull_request.number }}
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Remove a tag do Cloud Run e o canal do Hosting
+        run: |
+          gcloud run services update-traffic "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
+            --remove-tags "$TAG" || true
+          npx --yes firebase-tools@13.35.1 hosting:channel:delete "$TAG" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --force --non-interactive || true

@@ -28,7 +28,7 @@ histórico de issues exportados e consumo diário (cotas). Padrões de acesso:
 
 ## Decisão
 
-Usar **Firestore em modo nativo**, região `southamerica-east1`, com:
+Usar **Firestore em modo nativo**, região `us-central1` (decisão do PO em 2026-11-14; o plano original previa `southamerica-east1`), com:
 - Hierarquia `users/{uid}/...` para isolamento por caminho.
 - Acesso **somente pelo backend** (Admin SDK + IAM); regras do cliente negam tudo.
 - Mensagens em subcoleção; TTL em `pending_actions`; PITR e backup diário em prd.

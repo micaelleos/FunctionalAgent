@@ -65,7 +65,7 @@ O provider WIF aceita apenas tokens com `repository == micaelleos/FunctionalAgen
 ## 3. Deploy do backend
 
 1. `docker build` multi-stage (`python:3.12-slim`, `uv sync --frozen --no-dev`, usuário não-root).
-2. Push para `southamerica-east1-docker.pkg.dev/<proj>/api/api@sha256:...` — deploy **sempre por digest**.
+2. Push para `us-central1-docker.pkg.dev/<proj>/api/api@sha256:...` — deploy **sempre por digest**.
 3. `gcloud run deploy api --image <digest> --no-traffic --tag rc-<sha>`.
 4. Smoke test na URL da tag (`/healthz`, `/api/v1/me` com usuário de teste).
 5. `gcloud run services update-traffic api --to-tags rc-<sha>=10` → observa 15 min:

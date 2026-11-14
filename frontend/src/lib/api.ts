@@ -7,7 +7,7 @@ export interface Health {
 }
 
 export async function fetchHealth(signal?: AbortSignal): Promise<Health> {
-  const response = await fetch(`${API_BASE_URL}/healthz`, { signal })
+  const response = await fetch(`${API_BASE_URL}/health`, { signal })
   if (!response.ok) {
     throw new Error(`API respondeu ${response.status}`)
   }

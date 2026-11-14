@@ -4,10 +4,11 @@ Meta: voltar ao estado anterior em **menos de 5 minutos** (Constituição VIII.3
 Variáveis usadas abaixo: `PROJECT=pcb-inspect`, `REGION=us-central1`, `SERVICE=specflow-api`,
 `SITE=specsflow-ai`.
 
-## Backend (Cloud Run)
+O deploy é feito com `make deploy` (ADR-006). Se o smoke em `/health` falhar, o `make deploy-api` não
+move tráfego: a revisão nova fica sem tráfego e a anterior continua servindo. O comando termina com a
+linha `API: … (rollback: revisão <anterior>)`, que é o alvo do rollback abaixo.
 
-O pipeline faz rollback automático quando o canário reprova (`deploy.yml`, passo
-"Rollback automático"). Para fazer à mão:
+## Backend (Cloud Run)
 
 ```bash
 # Revisões e tráfego atuais
@@ -28,35 +29,30 @@ npx firebase-tools@13.35.1 hosting:rollback --project "$PROJECT" --site "$SITE"
 
 `index.html` é servido com `Cache-Control: no-cache`, então o rollback vale no próximo carregamento.
 
-## Ensaio do canário (AT-F02-03)
+## Ensaios (AT-F02-02 e AT-F02-03)
 
-Ensaio controlado em produção (único ambiente), fora do horário de uso e sem mudar código da
-aplicação; a revisão de ensaio recebe só 10% do tráfego por poucos minutos. Faça a cada mudança no `deploy.yml`
-ou no `scripts/canary.py` e registre o tempo em `specs/002-infraestrutura-base/spec.md` §11.
+Faça a cada mudança no `scripts/deploy.sh` e registre o resultado em
+`specs/002-infraestrutura-base/spec.md` §11.
 
-1. Anote a revisão que serve 100% (`<estavel>`).
-2. Crie uma revisão candidata com a imagem atual e uma tag de ensaio, e mande 10% do tráfego:
+1. **Smoke falho não move tráfego (AT-F02-02).** Anote a revisão que serve 100% e rode o deploy
+   exigindo uma versão que a imagem não tem:
    ```bash
-   IMAGE=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" \
-     --format 'value(spec.template.spec.containers[0].image)')
-   gcloud run deploy "$SERVICE" --project "$PROJECT" --region "$REGION" --image "$IMAGE" \
-     --no-traffic --tag ensaio --quiet
-   gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-tags ensaio=10
+   EXPECTED_VERSION=ensaio-invalido make deploy-api   # esperado: "Smoke falhou", exit 1
+   gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" \
+     --format 'value(status.traffic[0].revisionName, status.traffic[0].percent)'
    ```
-3. Rode o canário apontando para uma URL que responde 404 (simula `/healthz` quebrado) e
-   cronometre:
+   Esperado: 100% continua na revisão anotada.
+2. **Rollback em menos de 5 min (AT-F02-03).** Depois de um `make deploy-api` bem-sucedido,
+   cronometre a volta para a revisão anterior:
    ```bash
    START=$(date +%s)
-   GCP_ACCESS_TOKEN=$(gcloud auth print-access-token) python3 scripts/canary.py \
-     --project "$PROJECT" --service "$SERVICE" --revision <revisao-ensaio> \
-     --url "https://ensaio---specflow-api-<hash>-uc.a.run.app/nao-existe" --interval 60
    gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
-     --to-revisions <estavel>=100
-   echo "rollback em $(( $(date +%s) - START )) s"
+     --to-revisions <revisao-anterior>=100
+   curl -fsS "$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" \
+     --format 'value(status.url)')/health"
+   echo "rollback em $(( $(date +%s) - START )) s"   # esperado: < 300 s
    ```
-   Esperado: o canário sai com código 1 após duas falhas seguidas (~1–2 min) e o total fica
-   abaixo de 300 s.
-4. Limpe a tag: `gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --remove-tags ensaio`.
+   Volte para a revisão nova com `--to-latest` ao terminar.
 
 ## Outros cenários
 

@@ -1,4 +1,4 @@
-"""CORS para o SPA hospedado e seus canais de preview (ADR-002, F02-RF-04)."""
+"""CORS para o SPA hospedado (ADR-002)."""
 
 from collections.abc import Iterator
 
@@ -9,7 +9,6 @@ from app.core.config import get_settings
 from app.main import create_app
 
 SITE = "https://specsflow-ai.web.app"
-PREVIEW = "https://specsflow-ai--pr-12-a1b2c3d4.web.app"
 
 
 @pytest.fixture
@@ -17,7 +16,6 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     # Mesmos valores que o Terraform injeta no Cloud Run (infra/terraform/main.tf).
     monkeypatch.setenv("ENV", "prd")
     monkeypatch.setenv("CORS_ORIGINS", f'["{SITE}"]')
-    monkeypatch.setenv("CORS_ORIGIN_REGEX", r"^https://specsflow-ai--[a-z0-9-]+\.web\.app$")
     get_settings.cache_clear()
     with TestClient(create_app()) as c:
         yield c
@@ -34,14 +32,10 @@ def test_aceita_o_site_principal(client: TestClient) -> None:
     assert _allowed_origin(client, SITE) == SITE
 
 
-@pytest.mark.req("F02-RF-04")
-def test_aceita_canal_de_preview_do_proprio_site(client: TestClient) -> None:
-    assert _allowed_origin(client, PREVIEW) == PREVIEW
-
-
 @pytest.mark.parametrize(
     "origin",
     [
+        "https://specsflow-ai--pr-12-a1b2c3d4.web.app",  # canal de preview (não usamos)
         "https://pcb-inspect--pr-1.web.app",  # outro app do portfólio
         "https://pcb-inspect.web.app",
         "https://evil.web.app",

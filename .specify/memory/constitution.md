@@ -85,8 +85,9 @@ agente.
 
 1. Todo recurso de GCP/Firebase é declarado em Terraform (`infra/`). Nada é criado manualmente em
    `prd`.
-2. Deploys acontecem apenas pelo pipeline, autenticado via Workload Identity Federation (sem chaves
-   JSON).
+2. Deploys acontecem apenas por um comando versionado no repositório (`make deploy`), que faz smoke
+   test da revisão nova antes de ela receber tráfego; nenhuma chave JSON de service account existe
+   (ADR-006).
 3. Todo deploy MUST ser reversível em menos de 5 minutos (troca de tráfego entre revisões).
 
 ### IX. Observabilidade
@@ -118,7 +119,7 @@ agente.
 - **Frontend:** React 19 + TypeScript strict, Vite, TanStack Query, Tailwind + shadcn/ui, cliente
   gerado com openapi-typescript. Testes: Vitest + Testing Library + MSW; Playwright + axe para E2E.
 - **Plataforma:** Firebase Hosting, Firebase Auth + App Check, Cloud Run, Firestore (modo nativo),
-  Secret Manager, Cloud KMS, Cloud Logging/Trace; Terraform com estado em GCS; GitHub Actions + WIF.
+  Secret Manager, Cloud KMS, Cloud Logging/Trace; Terraform com estado em GCS; GitHub Actions para CI; deploy por `make deploy`.
 - **Monorepo** (ADR-005): `backend/`, `frontend/`, `infra/`, `scripts/`, `specs/` (features no formato
   Spec Kit, `Fxx` = pasta `0xx-slug`), `docs/modernizacao/` (plano, arquitetura, ADRs);
   `legacy/` (Streamlit) permanece só até o go-live (F12) e não recebe features novas.
@@ -127,7 +128,7 @@ agente.
 ## Fluxo de Desenvolvimento e Gates
 
 - **Ciclo:** Rascunho → Gate 0 (spec aprovada) → Gate 1 (plano aprovado) → Implementação →
-  Gate 2 (merge) → Gate 3 (aceite em dev) → Gate 4 (verificação pós-deploy em ≤ 24 h).
+  Gate 2 (merge) → Gate 3 (aceite em produção) → Gate 4 (verificação pós-deploy em ≤ 24 h).
 - **Gate 0:** todo RF verificável e coberto por cenário de aceitação; fora de escopo explícito;
   seção "Conformidade com a Constituição" preenchida sem violações não justificadas.
 - **Gate 1:** contrato de API definido antes do código; riscos e rollback descritos; tarefas ≤ 1 dia,
@@ -135,8 +136,8 @@ agente.
 - **Gate 2:** CI verde (lint, tipos, testes, cobertura, contrato, segurança, evals se aplicável),
   review aprovado, spec atualizada se o escopo mudou. Branch `feat/Fxx-slug`, PRs pequenos
   (≤ 400 linhas idealmente), template de PR com checklist da Constituição.
-- **Gate 3:** todos os cenários de aceitação passaram em dev; matriz RF → teste completa; PO aceitou.
-- **Gate 4:** canário cumpriu SLOs; indicador do Artigo IX reportado; smoke de produção passou.
+- **Gate 3:** todos os cenários de aceitação passaram no ambiente publicado (produção, único ambiente); matriz RF → teste completa; PO aceitou.
+- **Gate 4:** smoke de produção passou; SLOs cumpridos; indicador do Artigo IX reportado.
 - Assistentes de IA podem redigir specs, planos e testes, mas **os gates continuam humanos**.
 
 ## Governança
@@ -155,4 +156,4 @@ agente.
 - **Guia de execução:** `CONTRIBUTING.md`, `specs/ROADMAP.md` e
   `docs/modernizacao/08-processo-de-desenvolvimento.md`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-13 | **Last Amended**: 2026-11-14
+**Version**: 2.0.0 | **Ratified**: 2026-11-13 | **Last Amended**: 2026-11-14

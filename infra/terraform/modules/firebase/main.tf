@@ -8,7 +8,11 @@ resource "google_firebase_web_app" "app" {
   provider        = google-beta
   project         = var.project_id
   display_name    = "SpecFlow AI"
-  deletion_policy = "DELETE"
+  deletion_policy = "ABANDON" # nunca apaga o app do console, nem num destroy
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 data "google_firebase_web_app_config" "app" {

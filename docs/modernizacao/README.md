@@ -23,7 +23,7 @@ A proposta é reconstruir o produto em uma arquitetura serverless na GCP:
 | Identidade | Nenhuma | **Firebase Authentication** (Google + e-mail/senha) |
 | Dados do usuário | `st.session_state` (perdido no refresh) | **Firestore** (conversas, mensagens, issues, conexões Jira) |
 | Segredos | `.env` / campo de texto | **Secret Manager** (chaves do app) + **Cloud KMS** (tokens Jira por usuário) |
-| Entrega | Manual (`make run`) | **GitHub Actions** + **Terraform** + Workload Identity Federation |
+| Entrega | Manual (`make run`) | **Terraform** + `make deploy`; GitHub Actions só para CI (ADR-006) |
 
 **Firestore é necessário?** Sim. Assim que existirem usuários autenticados, o app precisa guardar por
 usuário: conexões com o Jira, histórico de conversas, issues exportados e ações pendentes de confirmação.
@@ -105,12 +105,17 @@ compartilhado do portfólio, `pcb-inspect`, em `https://specsflow-ai.web.app`, c
 Detalhes em `infra/bootstrap/README.md`. Onde este plano fala em projetos `functional-agent-{env}`
 e em ambiente `dev`, vale esta revisão.
 
+**Revisão seguinte (mesmo dia, ADR-006):** por ser projeto de portfólio, **não há CI/CD de deploy**.
+O GitHub Actions roda só o CI; o deploy é `make deploy`, feito pelo dono do produto. Saíram os
+pipelines de deploy/infra, o canário, os previews por PR e o WIF. Onde este plano ou o
+`06-cicd-deploy.md` falam nisso, vale o ADR-006.
+
 | # | Decisão | Escolha |
 |---|---|---|
 | 1 | Domínio próprio | **Não** por enquanto: `*.web.app` e `*.run.app` (pode entrar depois em Terraform) |
 | 2 | Região | **`us-central1`** para Cloud Run, Artifact Registry, Firestore e KMS |
 | 3 | Provedor de LLM | Pendente (F05) |
-| 4 | Ambientes | **Só produção + previews por PR** (revisado; antes `dev` + `prd`) |
+| 4 | Ambientes | **Só produção** (revisado; antes `dev` + `prd`, depois produção + previews) |
 | 5 | Instância mínima em prd | **`min-instances=0`** (cold start aceito, menor custo) |
 
 Opções originais, para referência:

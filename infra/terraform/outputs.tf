@@ -1,16 +1,14 @@
-# Valores para as variables do repositório no GitHub (infra/bootstrap/README.md §4).
-output "github_variables" {
-  description = "Cadastre como variables do repositório (Settings → Secrets and variables → Actions)."
-  value = {
-    GCP_PROJECT_ID      = var.project_id
-    GCP_REGION          = var.region
-    GCP_WIF_PROVIDER    = module.wif.provider_name
-    GCP_DEPLOYER_SA     = module.wif.deployer_email
-    GCP_TERRAFORM_SA    = module.wif.terraform_email
-    GCP_ARTIFACT_REPO   = module.artifact_registry.image_base
-    CLOUD_RUN_SERVICE   = module.cloud_run.service_name
-    FIREBASE_SITE_ID    = module.firebase.hosting_site_id
-    API_BASE_URL        = module.cloud_run.url
-    FIREBASE_WEB_CONFIG = jsonencode(module.firebase.web_app_config)
-  }
+output "api_url" {
+  description = "URL do Cloud Run (o make deploy aponta o SPA para ela)."
+  value       = module.cloud_run.url
+}
+
+output "image_base" {
+  description = "Repositório da imagem no Artifact Registry."
+  value       = module.artifact_registry.image_base
+}
+
+output "firebase_web_config" {
+  description = "Configuração do web app do Firebase (pública; vai para o SPA na F03)."
+  value       = module.firebase.web_app_config
 }

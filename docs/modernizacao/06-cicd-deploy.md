@@ -1,5 +1,10 @@
 # 06 — CI/CD e deploy
 
+> **Revisão 2026-11-14 (ADR-006):** por ser projeto de portfólio, a parte de **CD deste documento não
+> vale**: não há `deploy.yml`, `preview.yml`, `infra.yml`, canário, previews por PR nem WIF. O deploy
+> é `make deploy` (`scripts/deploy.sh`) e o rollback segue `docs/runbooks/rollback.md`. O CI do §2
+> (`ci.yml`) continua valendo. O texto abaixo fica como registro do plano original.
+
 ## 1. Estratégia de branches
 
 - **Trunk-based**: `master` (renomear para `main` é opcional) é sempre implantável e protegido

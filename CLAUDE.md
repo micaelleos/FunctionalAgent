@@ -26,6 +26,7 @@ make legacy    # old Streamlit app
 make infra-check  # terraform fmt/validate + tflint (no GCP credentials needed)
 make test-rules   # Firestore rules tests in the emulator container (Docker)
 make e2e          # Playwright acceptance tests; E2E_BASE_URL (+ E2E_EXPECTED_VERSION) target a deployed env
+make deploy       # prod deploy from this machine (deploy-api, then deploy-web); needs gcloud login + ADC
 ```
 
 Without Docker:
@@ -85,22 +86,26 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
 ## Infrastructure and delivery (F02)
 
 - The app ("SpecFlow AI", https://specsflow-ai.web.app) lives in the **shared portfolio GCP/Firebase
-  project `pcb-inspect`**, with a single environment (production) plus per-PR previews. Every resource
-  it owns is prefixed `specflow` (Cloud Run `specflow-api`, Firestore database `specflow`, AR repo,
-  KMS keyring, SAs, WIF pool). Never touch the `(default)` Firestore database, project-wide
-  Auth/Identity Platform config, budgets, or other apps' resources (F02-RT-09).
+  project `pcb-inspect`**, with a single environment (production). Every resource it owns is prefixed
+  `specflow` (Cloud Run `specflow-api`, Firestore database `specflow`, AR repo, KMS keyring, runtime
+  SA). Never touch the `(default)` Firestore database, project-wide Auth/Identity Platform config,
+  budgets, or other apps' resources (F02-RT-09).
+- **No CD pipeline** (portfolio project, ADR-006, constitution v2.0.0): GitHub Actions runs only CI
+  (`ci.yml`, including Terraform fmt/validate/tflint). Deploys are `make deploy` from the PO's machine
+  (`scripts/deploy.sh`, user gcloud login + ADC): image → no-traffic revision → smoke on `/health`
+  with the commit version → 100% traffic to "latest" → SPA to Hosting. A failed smoke moves no
+  traffic. The API deploy uses the Cloud Run v2 REST API, not `gcloud run deploy`, because gcloud
+  pins `template.revision` and later Terraform template changes then fail with 409. Do not
+  reintroduce WIF, deploy workflows, canary or PR previews without amending the constitution.
 - Terraform root module in `infra/terraform/` (`envs/prd.tfvars`, state in
-  `gs://pcb-inspect-tfstate` prefix `specflow/prd`). Terraform owns Cloud Run *configuration*; the
-  image and traffic belong to the pipeline (`ignore_changes`). The Hosting site was created in the
-  console and is adopted via an `import` block. One-time setup: `infra/bootstrap/README.md`.
-- WIF only issues credentials to jobs in GitHub Environments `prd`/`preview` (deployer SA) and
-  `infra-prd` (terraform SA); a new workflow job that talks to GCP must declare one of them.
-- `deploy.yml`: build → `prd` approval → no-traffic revision + smoke → 10% canary judged by
-  `scripts/canary.py` → promote or auto-rollback → frontend → Playwright acceptance in prod.
-  `preview.yml` (label `preview`) is the pre-prod validation; `infra.yml` applies on master after
-  `infra-prd` approval. Shared steps in `.github/actions/`. Deploy/infra jobs are gated by repo
-  variables `DEPLOY_ENABLED` / `INFRA_ENABLED`.
-- Rollback procedures: `docs/runbooks/rollback.md`.
+  `gs://pcb-inspect-tfstate` prefix `specflow/prd`), applied locally. Terraform owns Cloud Run
+  *configuration*; image and traffic belong to `make deploy` (`ignore_changes`). The Hosting site and
+  web app were created in the console and are adopted via `import` blocks. One-time setup:
+  `infra/bootstrap/README.md`. Without ADC, run Terraform with
+  `GOOGLE_OAUTH_ACCESS_TOKEN=$(gcloud auth print-access-token)`.
+- External health checks use `/health`: Google's front end returns 404 for `/healthz` on `*.run.app`
+  URLs, so `/healthz` serves only the container probes.
+- Rollback and rehearsals: `docs/runbooks/rollback.md`.
 
 ## Conventions
 

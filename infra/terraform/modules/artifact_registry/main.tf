@@ -9,19 +9,21 @@ resource "google_artifact_registry_repository" "api" {
   format        = "DOCKER"
   description   = "Imagens do backend (deploy sempre por digest)"
 
+  # O Cloud Run baixa a imagem a cada cold start (min-instances=0), então a imagem da revisão no ar
+  # precisa existir; a anterior fica para rollback. O resto é apagado (a limpeza roda ~1x por dia).
   cleanup_policy_dry_run = false
   cleanup_policies {
-    id     = "manter-20-ultimas"
+    id     = "manter-3-ultimas"
     action = "KEEP"
     most_recent_versions {
-      keep_count = 20
+      keep_count = 3
     }
   }
   cleanup_policies {
-    id     = "apagar-antigas"
+    id     = "apagar-o-resto"
     action = "DELETE"
     condition {
-      older_than = "2592000s" # 30 dias; as 20 mais recentes são mantidas pela regra KEEP
+      older_than = "86400s" # 1 dia; as 3 mais recentes são mantidas pela regra KEEP
     }
   }
 }

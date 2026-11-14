@@ -24,6 +24,12 @@ def test_healthz_retorna_ok_e_versao(client: TestClient) -> None:
 
 
 @pytest.mark.req("F01-RF-02")
+def test_health_publico_responde_igual_ao_healthz(client: TestClient) -> None:
+    # Na URL *.run.app o Google devolve 404 para caminhos terminados em "z"; clientes usam /health.
+    assert client.get("/health").json() == client.get("/healthz").json()
+
+
+@pytest.mark.req("F01-RF-02")
 def test_cors_permite_origem_do_frontend_local(client: TestClient) -> None:
     response = client.get("/healthz", headers={"Origin": "http://localhost:5173"})
 

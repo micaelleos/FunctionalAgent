@@ -6,12 +6,11 @@ variable "service_account_email" { type = string }
 variable "min_instances" { type = number }
 variable "max_instances" { type = number }
 variable "cors_origins" { type = list(string) }
-variable "cors_origin_regex" { type = string }
 variable "kms_key_name" { type = string }
 variable "deletion_protection" { type = bool }
 
 # O Terraform cria o serviço e a configuração (F02-RT-05); a imagem e o tráfego pertencem ao
-# pipeline (deploy.yml), que publica sempre por digest. Por isso image/traffic são ignorados.
+# `make deploy` (scripts/deploy.sh), que publica sempre por digest. Por isso image/traffic são ignorados.
 resource "google_cloud_run_v2_service" "api" {
   project             = var.project_id
   name                = var.service_name
@@ -63,10 +62,6 @@ resource "google_cloud_run_v2_service" "api" {
         value = jsonencode(var.cors_origins)
       }
       env {
-        name  = "CORS_ORIGIN_REGEX"
-        value = var.cors_origin_regex
-      }
-      env {
         name  = "KMS_KEY_NAME"
         value = var.kms_key_name
       }
@@ -95,15 +90,17 @@ resource "google_cloud_run_v2_service" "api" {
     }
   }
 
+  # template.revision NÃO é ignorado: fica vazio para o Cloud Run gerar nomes. O `make deploy` usa a
+  # API v2 sem nomear revisões; com um nome fixado, mudar a configuração aqui daria 409.
   lifecycle {
     ignore_changes = [
       template[0].containers[0].image,
-      template[0].revision,
       template[0].labels,
       template[0].annotations,
       client,
       client_version,
       traffic,
+      scaling, # escala no nível do serviço não é usada; a API devolve um bloco vazio (diff perpétuo)
     ]
   }
 }

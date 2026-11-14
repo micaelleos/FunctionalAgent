@@ -33,7 +33,7 @@ agente (turnos de 10–120 s com várias ferramentas). Opções de hospedagem do
 
 - ✅ Sem limite de 60 s; streaming SSE nativo.
 - ✅ Rollback por revisão em segundos.
-- ⚠️ CORS precisa listar as origens de cada ambiente, incluindo canais de preview (`*--pr-N-*.web.app`) — validar
-  origem por regex restrita ao site do projeto.
+- ⚠️ CORS precisa listar as origens de cada ambiente. Sem previews (ADR-006), basta a lista fixa do site
+  (`specsflow-ai.web.app` e `.firebaseapp.com`).
 - ⚠️ Proteção contra abuso fica na aplicação (App Check + cotas) em vez de WAF — revisar se houver ataques.
 - 🔧 Verificar, no momento da F02, se os limites do rewrite do Hosting mudaram; a decisão pode ser simplificada se sim.

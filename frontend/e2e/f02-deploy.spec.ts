@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-// AT-F02-01 (F02-RF-01, F02-RF-03) e F02-RT-06. Rodam no deploy.yml contra o Hosting recém-publicado.
-// E2E_EXPECTED_VERSION é o SHA publicado; sem ela, só confere que há uma versão.
+// AT-F02-01 (F02-RF-01, F02-RF-03) e F02-RT-06. Rodam depois do `make deploy`, com
+// E2E_BASE_URL=https://specsflow-ai.web.app. E2E_EXPECTED_VERSION é a versão publicada; sem ela, só
+// confere que há uma versão.
 const expectedVersion = process.env.E2E_EXPECTED_VERSION
 
 test.describe('F02 infraestrutura e deploy', () => {
@@ -26,7 +27,11 @@ test.describe('F02 infraestrutura e deploy', () => {
 
     expect(headers['content-security-policy']).toContain("default-src 'self'")
     expect(headers['content-security-policy']).toContain("frame-ancestors 'none'")
-    expect(headers['strict-transport-security']).toContain('max-age=31536000')
+    // O Firebase Hosting impõe o próprio HSTS (max-age=31556926); exigimos ao menos 1 ano.
+    const maxAge = Number(
+      /max-age=(\d+)/.exec(headers['strict-transport-security'] ?? '')?.[1] ?? 0,
+    )
+    expect(maxAge).toBeGreaterThanOrEqual(31536000)
     expect(headers['x-content-type-options']).toBe('nosniff')
     expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin')
   })

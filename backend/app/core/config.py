@@ -13,10 +13,6 @@ class Settings(BaseSettings):
     env: Literal["local", "test", "dev", "stg", "prd"] = "local"
     app_version: str = Field(default="dev", description="SHA do commit, injetado no build")
     cors_origins: list[str] = ["http://localhost:5173"]
-    cors_origin_regex: str | None = Field(
-        default=None,
-        description="Origens extras aceitas por regex, ex.: canais de preview do Hosting (ADR-002)",
-    )
 
 
 @lru_cache

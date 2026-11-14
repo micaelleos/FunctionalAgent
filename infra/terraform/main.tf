@@ -1,11 +1,10 @@
-# Infraestrutura do SpecFlow AI (F02). Aplicada por infra.yml; o deploy das aplicações (imagem do
-# Cloud Run, conteúdo do Hosting) é feito por deploy.yml/preview.yml.
+# Infraestrutura do SpecFlow AI (F02). Aplicada localmente com `terraform apply`; o deploy das
+# aplicações (imagem do Cloud Run, conteúdo do Hosting) é feito por `make deploy` (ADR-006).
 
 locals {
   p = var.app_prefix
-  # Origens do SPA aceitas pelo CORS da API: site do app e seus canais de preview (ADR-002).
-  cors_origins      = ["https://${var.hosting_site_id}.web.app", "https://${var.hosting_site_id}.firebaseapp.com"]
-  cors_origin_regex = "^https://${var.hosting_site_id}--[a-z0-9-]+\\.web\\.app$"
+  # Origens do SPA aceitas pelo CORS da API (ADR-002).
+  cors_origins = ["https://${var.hosting_site_id}.web.app", "https://${var.hosting_site_id}.firebaseapp.com"]
 }
 
 module "project_services" {
@@ -89,7 +88,6 @@ module "cloud_run" {
   max_instances         = var.cloud_run_max_instances
   firestore_database    = local.p
   cors_origins          = local.cors_origins
-  cors_origin_regex     = local.cors_origin_regex
   kms_key_name          = module.kms.jira_tokens_key_id
   deletion_protection   = var.deletion_protection
   depends_on            = [module.project_services, google_project_iam_member.api_runtime]
@@ -102,20 +100,12 @@ module "firebase" {
   depends_on      = [module.project_services]
 }
 
-module "wif" {
-  source                = "./modules/wif"
-  project_id            = var.project_id
-  prefix                = local.p
-  github_repository     = var.github_repository
-  deployer_environments = ["prd", "preview"]
-  terraform_environment = "infra-prd"
-  runtime_sa_name       = google_service_account.api_runtime.name
-  artifact_registry_id  = module.artifact_registry.repository_id
-  artifact_registry_loc = var.region
-  depends_on            = [module.project_services]
+# Web app e site de Hosting já existiam (criados no console); passam a ser gerenciados aqui.
+import {
+  to = module.firebase.google_firebase_web_app.app
+  id = "projects/${var.project_id}/webApps/${var.firebase_web_app_id}"
 }
 
-# O site de Hosting já existia (criado no console); passa a ser gerenciado pelo Terraform.
 import {
   to = module.firebase.google_firebase_hosting_site.app
   id = "projects/${var.project_id}/sites/${var.hosting_site_id}"

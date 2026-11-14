@@ -4,6 +4,9 @@
 > ambiente só (produção) + previews, recursos com prefixo `specflow` e banco Firestore `specflow`.
 > As tabelas abaixo descrevem o plano original por ambiente; a configuração vigente está em
 > `infra/terraform/envs/prd.tfvars` e em `infra/bootstrap/README.md`.
+>
+> **Revisão seguinte (ADR-006):** sem previews, sem WIF e sem as SAs `deployer`/`terraform`. O deploy
+> é `make deploy` e o Terraform é aplicado localmente, ambos com o login do dono do produto.
 
 ## 1. Ambientes
 

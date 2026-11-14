@@ -20,6 +20,9 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+  # APIs como firebaserules exigem projeto de cota com credenciais de usuário (primeiro apply local).
+  user_project_override = true
+  billing_project       = var.project_id
 }
 
 provider "google-beta" {

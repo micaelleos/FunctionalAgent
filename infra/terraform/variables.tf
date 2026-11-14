@@ -24,10 +24,9 @@ variable "hosting_site_id" {
   type        = string
 }
 
-variable "github_repository" {
-  description = "Repositório autorizado a autenticar via WIF (owner/nome)."
+variable "firebase_web_app_id" {
+  description = "Web app do Firebase do app (já existente, criado no console; importado)."
   type        = string
-  default     = "micaelleos/FunctionalAgent"
 }
 
 variable "cloud_run_min_instances" {

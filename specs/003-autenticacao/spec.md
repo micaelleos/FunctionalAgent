@@ -2,12 +2,12 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em implementação |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F02 |
 | **ADRs** | ADR-001 |
 | **Estimativa** | 6,5 dias |
-| **Gates** | Gate 0 pendente; decisões do PO de 2026-11-14 incorporadas |
+| **Gates** | Gate 0 e Gate 1 aprovados pelo dono do produto em 2026-11-14 |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 

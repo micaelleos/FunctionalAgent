@@ -12,7 +12,7 @@
 |---|---|---|---|---|---|---|---|
 | F01 | Monorepo, tooling e CI base | 0 | Em implementação | — | 5 d | 5 / 7 | [spec](001-monorepo-e-ci/spec.md) · [plano](001-monorepo-e-ci/plan.md) · [tarefas](001-monorepo-e-ci/tasks.md) |
 | F02 | Infraestrutura base GCP/Firebase (Terraform) e deploy por `make deploy` | 0 | Em implementação | F01 | 5 d | 4 / 8 | [spec](002-infraestrutura-base/spec.md) · [plano](002-infraestrutura-base/plan.md) · [tarefas](002-infraestrutura-base/tasks.md) |
-| F03 | Autenticação e conta do usuário | 1 | Rascunho | F02 | 6,5 d | 8 / 6 | [spec](003-autenticacao/spec.md) · [plano](003-autenticacao/plan.md) · [tarefas](003-autenticacao/tasks.md) |
+| F03 | Autenticação e conta do usuário | 1 | Em implementação | F02 | 6,5 d | 8 / 6 | [spec](003-autenticacao/spec.md) · [plano](003-autenticacao/plan.md) · [tarefas](003-autenticacao/tasks.md) |
 | F04 | Conexão Jira por usuário | 1 | Rascunho | F03 | 5 d | 7 / 6 | [spec](004-conexao-jira/spec.md) · [plano](004-conexao-jira/plan.md) · [tarefas](004-conexao-jira/tasks.md) |
 | F05 | API de chat com agente (LangGraph + streaming) | 1 | Rascunho | F04 | 10 d | 8 / 12 | [spec](005-agente-chat-api/spec.md) · [plano](005-agente-chat-api/plan.md) · [tarefas](005-agente-chat-api/tasks.md) |
 | F06 | Confirmação humana antes de escrever no Jira | 1 | Rascunho | F05 | 5 d | 7 / 6 | [spec](006-confirmacao-humana/spec.md) · [plano](006-confirmacao-humana/plan.md) · [tarefas](006-confirmacao-humana/tasks.md) |

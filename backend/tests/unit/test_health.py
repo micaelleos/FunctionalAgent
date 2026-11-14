@@ -39,8 +39,17 @@ def test_cors_permite_origem_do_frontend_local(client: TestClient) -> None:
 def test_docs_desabilitado_fora_de_local_e_dev(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
     monkeypatch.setenv("ENV", "prd")
+    monkeypatch.delenv("FIREBASE_AUTH_EMULATOR_HOST", raising=False)
     try:
         with TestClient(create_app()) as c:
             assert c.get("/docs").status_code == 404
     finally:
         get_settings.cache_clear()
+
+
+def test_emulador_de_auth_e_proibido_em_producao(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FIREBASE_AUTH_EMULATOR_HOST", "localhost:9099")
+
+    with pytest.raises(ValueError, match="produção"):
+        Settings(env="prd")
+    assert Settings(env="local").auth_emulator_host == "localhost:9099"

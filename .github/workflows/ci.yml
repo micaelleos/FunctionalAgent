@@ -116,8 +116,20 @@ jobs:
         run: uv run mypy
       - name: Regras de camadas (import-linter)
         run: uv run lint-imports
-      - name: Testes com cobertura (mínimo 80%)
-        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml
+      - name: Contrato OpenAPI em dia (Constituição V)
+        run: |
+          uv run python ../scripts/export_openapi.py
+          git diff --exit-code ../frontend/openapi.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: npm install -g firebase-tools@13.35.1
+      - name: Testes com cobertura (mínimo 80%), com emuladores de Auth e Firestore
+        working-directory: .
+        run: >
+          firebase emulators:exec --only auth,firestore --project demo-functional-agent
+          "cd backend && uv run pytest --cov --cov-report=term-missing --cov-report=xml"
       - name: Auditoria de dependências
         run: uvx pip-audit==2.7.3 --strict --progress-spinner off -r <(uv export --frozen --no-dev --no-hashes --no-emit-project)
         shell: bash
@@ -154,6 +166,10 @@ jobs:
         run: |
           npm run lint
           npm run format:check
+      - name: Tipos do cliente gerados do OpenAPI em dia
+        run: |
+          npm run gen:api
+          git diff --exit-code src/lib/api-schema.d.ts
       - name: Tipos
         run: npm run typecheck
       - name: Testes com cobertura (mínimo 70%)
@@ -162,3 +178,43 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Build
         run: npm run build
+
+  e2e:
+    # AT-F03-01..04 contra a stack local completa (`make dev`: emuladores + API + Vite).
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # Antes do compose: o container do frontend monta ./frontend e criaria node_modules como root.
+      - name: Dependências do Playwright
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Sobe a stack local
+        run: |
+          docker compose up -d --build
+          for i in $(seq 1 120); do
+            curl -fs localhost:8000/health >/dev/null && curl -fs localhost:5173 >/dev/null && exit 0
+            sleep 2
+          done
+          docker compose logs; exit 1
+      - name: Playwright
+        working-directory: frontend
+        env:
+          E2E_EMULATORS: "1"
+        run: npx playwright test
+      - if: failure()
+        run: docker compose logs
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7

@@ -1,33 +1,23 @@
 import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { describe, expect, it } from 'vitest'
 
 import App from './App'
+import { fakeAuth } from './test/fakeAuth'
+import { api, server } from './test/server'
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
-
-describe('F01-RF-03 página de status', () => {
+describe('F01-RF-03 página de status ("Sobre")', () => {
   it('exibe "API: ok" e a versão quando /health responde', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ status: 'ok', version: 'abc123', env: 'local' }), {
-          status: 200,
-        }),
-      ),
-    )
-
-    render(<App />)
+    render(<App authClient={fakeAuth().client} initialPath="/sobre" />)
 
     expect(await screen.findByText('API: ok')).toBeInTheDocument()
     expect(screen.getByText(/versão abc123/)).toBeInTheDocument()
   })
 
   it('exibe erro quando a API falha', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 503 })))
+    server.use(http.get(api('/health'), () => new HttpResponse(null, { status: 503 })))
 
-    render(<App />)
+    render(<App authClient={fakeAuth().client} initialPath="/sobre" />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('API respondeu 503')
   })

@@ -1,49 +1,32 @@
-import { useEffect, useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useState } from 'react'
+import { createBrowserRouter, createMemoryRouter, RouterProvider } from 'react-router'
 
-import { fetchHealth, type Health } from './lib/api'
+import { AuthProvider } from './auth/AuthProvider'
+import type { AuthClient } from './auth/client'
+import { routes } from './routes'
 
-type ApiState =
-  | { kind: 'loading' }
-  | { kind: 'ok'; health: Health }
-  | { kind: 'error'; message: string }
-
-export default function App() {
-  const [api, setApi] = useState<ApiState>({ kind: 'loading' })
-
-  useEffect(() => {
-    const controller = new AbortController()
-    fetchHealth(controller.signal)
-      .then((health) => setApi({ kind: 'ok', health }))
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return
-        setApi({ kind: 'error', message: error instanceof Error ? error.message : String(error) })
-      })
-    return () => controller.abort()
-  }, [])
-
+export default function App({
+  authClient,
+  initialPath,
+}: {
+  authClient: AuthClient
+  /** Só nos testes: usa um roteador em memória começando neste caminho. */
+  initialPath?: string
+}) {
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  )
+  const [router] = useState(() =>
+    initialPath
+      ? createMemoryRouter(routes, { initialEntries: [initialPath] })
+      : createBrowserRouter(routes),
+  )
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-6 px-4 text-center">
-      <img src="/logo.png" alt="" className="h-20 w-auto" />
-      <h1 className="sr-only">Agente Funcional</h1>
-      <p className="text-slate-600">
-        Nova versão em construção. Acompanhe o plano em <code>docs/modernizacao</code>.
-      </p>
-      <section aria-live="polite" className="rounded-lg border px-4 py-3">
-        {api.kind === 'loading' && <p>Verificando a API…</p>}
-        {api.kind === 'ok' && (
-          <p>
-            <strong>API: ok</strong>{' '}
-            <span className="text-slate-500">
-              (versão {api.health.version}, ambiente {api.health.env})
-            </span>
-          </p>
-        )}
-        {api.kind === 'error' && (
-          <p role="alert" className="text-red-700">
-            <strong>API indisponível</strong> — {api.message}
-          </p>
-        )}
-      </section>
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider client={authClient}>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }

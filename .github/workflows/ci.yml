@@ -191,6 +191,12 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      # Antes do compose: o container do frontend monta ./frontend e criaria node_modules como root.
+      - name: Dependências do Playwright
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
       - name: Sobe a stack local
         run: |
           docker compose up -d --build
@@ -203,10 +209,7 @@ jobs:
         working-directory: frontend
         env:
           E2E_EMULATORS: "1"
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
-          npx playwright test
+        run: npx playwright test
       - if: failure()
         run: docker compose logs
       - if: failure()

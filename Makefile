@@ -23,8 +23,10 @@ format:          ## Formata o código
 	cd backend && uv run ruff format . && uv run ruff check --fix .
 	cd frontend && npm run format
 
-test:            ## Testes com cobertura mínima (back 80%, front 70%)
-	cd backend && uv run pytest --cov --cov-report=term-missing
+test:            ## Testes com cobertura mínima (back 80%, front 70%); sobe os emuladores do Firebase
+	docker compose up -d emulators
+	@until curl -fs localhost:8081 >/dev/null && curl -fs localhost:9099 >/dev/null; do sleep 1; done
+	cd backend && FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIRESTORE_EMULATOR_HOST=localhost:8081 uv run pytest --cov --cov-report=term-missing
 	cd frontend && npm run coverage
 
 build:           ## Build da imagem do backend e do SPA

@@ -6,9 +6,18 @@
 
 ### 7. Desenho
 - **Back** (camadas `api → services → repositories → core`):
-  - `core/auth.py`: verificação do ID token com `firebase_admin.auth.verify_id_token` (chaves públicas em
-    cache pelo SDK; `check_revoked=True` só em `DELETE /me`). Devolve `Identity(uid, email, email_verified,
-    name, sign_in_provider)`.
+  - `core/auth.py`: verificação do ID token com `google-auth`, seguindo as regras do Admin SDK:
+    - RS256 com os certificados do `securetoken`, em cache pelo `max-age`;
+    - `aud` e `iss` do projeto, `exp`/`iat` e `sub`;
+    - revogação pelo `validSince` da conta (Identity Toolkit `accounts:lookup`), só em `DELETE /me`.
+
+    Devolve `Identity(uid, email, email_verified, name, sign_in_provider)`. Com
+    `FIREBASE_AUTH_EMULATOR_HOST` (proibido em `prd`), aceita os tokens sem assinatura do emulador,
+    mas ainda confere as claims.
+
+    **Por que não o `firebase-admin`:** ele traz o `googleapiclient` (+110 MB), e a imagem passava de
+    442 MB (limite de 300 MB, F01-RT-05). Sem ele, a imagem ficou com 291 MB, depois de trocar também o
+    `uvicorn[standard]` por `uvicorn` + `uvloop` + `httptools`.
   - `core/errors.py`: Problem Details (`application/problem+json`), com `type` estável
     (`unauthenticated`, `email-not-verified`, …).
   - `api/deps.py`: dependência `current_user()`; lê só o header `Authorization: Bearer`. Conta
@@ -18,7 +27,7 @@
   - `services/account.py`: perfil, exportação e exclusão. Não chama `auth.delete_user` nem
     `revoke_refresh_tokens`, porque o Auth é compartilhado (F03-RT-04).
   - `api/v1/me.py`: `GET /api/v1/me`, `GET /api/v1/me/export`, `DELETE /api/v1/me`.
-  - Dependência nova: `firebase-admin`.
+  - Dependências novas: `google-cloud-firestore`, `google-auth[requests]` e `cryptography`.
 - **Front:**
   - SDK `firebase` (só `auth`) e `react-router` para as rotas;
   - `AuthProvider` (`onAuthStateChanged`) e `<ProtectedRoute>`;

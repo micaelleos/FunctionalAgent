@@ -113,13 +113,13 @@ Antes do roteiro, o PO inclui `specsflow-ai.web.app` nos domínios autorizados d
 | Requisito | Teste(s) | Status |
 |---|---|---|
 | F03-RF-01 | Roteiro manual M-F03-01 | ⬜ |
-| F03-RF-02 | AT-F03-02, `test_authz.py` (e-mail não verificado) | ⬜ |
+| F03-RF-02 | AT-F03-02, `tests/unit/test_authz.py` (e-mail não verificado → 403) | 🟡 back |
 | F03-RF-03 | Roteiro manual M-F03-02 | ⬜ |
 | F03-RF-04 | AT-F03-01 | ⬜ |
-| F03-RF-05 | AT-F03-02, `test_me.py::test_perfil_criado_no_primeiro_acesso` | ⬜ |
+| F03-RF-05 | AT-F03-02, `tests/integration/test_me.py::test_perfil_criado_no_primeiro_acesso` | 🟡 back |
 | F03-RF-06 | AT-F03-02 | ⬜ |
-| F03-RF-07 | AT-F03-04, `test_me.py` (export) | ⬜ |
-| F03-RF-08 | AT-F03-04, `test_account_delete.py` | ⬜ |
+| F03-RF-07 | AT-F03-04, `tests/integration/test_me.py::test_export_inclui_perfil_e_subcolecoes` | 🟡 back |
+| F03-RF-08 | AT-F03-04, `tests/integration/test_account_delete.py` | 🟡 back |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |

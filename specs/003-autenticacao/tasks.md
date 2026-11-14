@@ -20,7 +20,7 @@
 
 **Aceitação:** AT-F03-03
 
-- [ ] T001 [F03-RF-02] `core/auth.py`, `core/errors.py` (Problem Details), `api/deps.py::current_user` (403 sem e-mail verificado) — teste: `test_authz.py` (matriz rota × token) — 1 d
+- [x] T001 [F03-RF-02] `core/auth.py`, `core/errors.py` (Problem Details), `api/deps.py::current_user` (403 sem e-mail verificado) — teste: `test_authz.py` (matriz rota × token) — 1 d
 
 ---
 
@@ -30,8 +30,8 @@
 
 **Aceitação:** AT-F03-02, AT-F03-04
 
-- [ ] T002 [F03-RF-05] `repositories/users.py`, `services/account.py`, `GET /api/v1/me` (cria perfil) — teste: `test_me.py` no emulador — 1 d
-- [ ] T003 [F03-RF-07][F03-RF-08] `GET /api/v1/me/export` e `DELETE /api/v1/me` (só dados do banco `specflow`, idempotente) — teste: `test_me.py`, `test_account_delete.py` (10 mil docs < 30 s) — 1 d
+- [x] T002 [F03-RF-05] `repositories/users.py`, `services/account.py`, `GET /api/v1/me` (cria perfil) — teste: `test_me.py` no emulador — 1 d
+- [x] T003 [F03-RF-07][F03-RF-08] `GET /api/v1/me/export` e `DELETE /api/v1/me` (só dados do banco `specflow`, idempotente) — teste: `test_me.py`, `test_account_delete.py` (10 mil docs < 30 s) — 1 d
 
 ---
 

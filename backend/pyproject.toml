@@ -6,9 +6,14 @@ readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "fastapi>=0.115,<1",
-    "uvicorn[standard]>=0.32,<1",
     "pydantic>=2.9,<3",
     "pydantic-settings>=2.6,<3",
+    "google-cloud-firestore>=2.19,<3",
+    "google-auth[requests]>=2.35,<3",
+    "cryptography>=43",
+    "uvicorn>=0.32,<1",
+    "uvloop>=0.21 ; sys_platform != 'win32'",
+    "httptools>=0.6",
 ]
 
 [dependency-groups]
@@ -45,6 +50,7 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 files = ["app", "tests"]
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

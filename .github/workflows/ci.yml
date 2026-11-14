@@ -116,8 +116,16 @@ jobs:
         run: uv run mypy
       - name: Regras de camadas (import-linter)
         run: uv run lint-imports
-      - name: Testes com cobertura (mínimo 80%)
-        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: npm install -g firebase-tools@13.35.1
+      - name: Testes com cobertura (mínimo 80%), com emuladores de Auth e Firestore
+        working-directory: .
+        run: >
+          firebase emulators:exec --only auth,firestore --project demo-functional-agent
+          "cd backend && uv run pytest --cov --cov-report=term-missing --cov-report=xml"
       - name: Auditoria de dependências
         run: uvx pip-audit==2.7.3 --strict --progress-spinner off -r <(uv export --frozen --no-dev --no-hashes --no-emit-project)
         shell: bash

@@ -53,4 +53,4 @@
 
 **Aceitação:** AT-F03-01..04
 
-- [ ] T007 `make deploy-web` injeta a config do Firebase; E2E AT-F03-01..04 nos emuladores + job no CI; `make deploy` e roteiro manual M-F03-01/02 — teste: Playwright — 1 d (config injetada, E2E e job de CI prontos; falta `make deploy` e o roteiro manual)
+- [x] T007 `make deploy-web` injeta a config do Firebase; E2E AT-F03-01..04 nos emuladores + job no CI; `make deploy` e roteiro manual M-F03-01/02 — teste: Playwright — 1 d (deploy `3e1d9cd` e roteiro manual aceitos pelo PO em 2026-11-14)

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Em produção |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F02 |
 | **ADRs** | ADR-001 |
@@ -112,15 +112,17 @@ Antes do roteiro, o PO inclui `specsflow-ai.web.app` nos domínios autorizados d
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F03-RF-01 | Roteiro manual M-F03-01; `frontend/src/auth/auth.test.tsx` (botão Google) | 🟡 falta o manual |
-| F03-RF-02 | AT-F03-02 (`frontend/e2e/f03-auth.spec.ts`), `backend/tests/unit/test_authz.py` (e-mail não verificado → 403) | ✅ local |
-| F03-RF-03 | Roteiro manual M-F03-02; `frontend/src/auth/auth.test.tsx` | 🟡 falta o manual |
-| F03-RF-04 | AT-F03-01, `frontend/src/auth/auth.test.tsx` | ✅ local |
-| F03-RF-05 | AT-F03-02, `backend/tests/integration/test_me.py::test_perfil_criado_no_primeiro_acesso` | ✅ local |
-| F03-RF-06 | AT-F03-02, `frontend/src/auth/auth.test.tsx` | ✅ local |
-| F03-RF-07 | AT-F03-04, `backend/tests/integration/test_me.py::test_export_inclui_perfil_e_subcolecoes` | ✅ local |
-| F03-RF-08 | AT-F03-04, `backend/tests/integration/test_account_delete.py` | ✅ local |
+| F03-RF-01 | Roteiro manual M-F03-01 (prd, PO); `frontend/src/auth/auth.test.tsx` (botão Google) | ✅ |
+| F03-RF-02 | AT-F03-02 (`frontend/e2e/f03-auth.spec.ts`), `backend/tests/unit/test_authz.py` (e-mail não verificado → 403) | ✅ |
+| F03-RF-03 | Roteiro manual M-F03-02 (prd, PO); `frontend/src/auth/auth.test.tsx` | ✅ |
+| F03-RF-04 | AT-F03-01, `frontend/src/auth/auth.test.tsx` | ✅ |
+| F03-RF-05 | AT-F03-02, `backend/tests/integration/test_me.py::test_perfil_criado_no_primeiro_acesso` | ✅ |
+| F03-RF-06 | AT-F03-02, `frontend/src/auth/auth.test.tsx` | ✅ |
+| F03-RF-07 | AT-F03-04, `backend/tests/integration/test_me.py::test_export_inclui_perfil_e_subcolecoes` | ✅ |
+| F03-RF-08 | AT-F03-04, `backend/tests/integration/test_account_delete.py` | ✅ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-14 | `3e1d9cd` | local + CI | `make test` (emuladores), `make e2e-local`, PR #4 (jobs backend, frontend e e2e) | 76 testes no backend (95% de cobertura), 31 de componente; AT-F03-01..04 e axe nas telas de login passam contra os emuladores | — |
+| 2026-11-14 | `3e1d9cd` | prd | `make deploy` + Playwright contra https://specsflow-ai.web.app + login inválido headless | API na revisão `specflow-api-00006-2pv`, smoke ok; AT-F02-01 e F02-RT-06 passam; `/api/v1/me` sem token → 401 Problem Details; CORS ok; `/chat` → `/login`; login inválido mostra "E-mail ou senha incorretos." pelo Identity Toolkit de produção, sem erro de CSP. Roteiro manual M-F03-01 (Google) e M-F03-02 (redefinir senha) feito pelo PO: ok | PO, 2026-11-14 |

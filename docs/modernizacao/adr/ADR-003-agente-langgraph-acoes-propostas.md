@@ -1,6 +1,6 @@
 # ADR-003 — Agente com LangGraph, sem estado no processo, e padrão "ação proposta"
 
-- **Status:** Proposto · **Data:** 2026-11-13
+- **Status:** Proposto · **Data:** 2026-11-13 · **Revisado:** 2026-11-16 (payload estruturado, ADR-007)
 
 ## Contexto
 
@@ -40,3 +40,12 @@ Precisamos de: streaming real, isolamento por usuário, testabilidade e garantia
 - ⚠️ Reconstruir o histórico a cada turno custa leituras e tokens → janela de mensagens + sumarização
   (`conversation.summary`) quando passar do orçamento.
 - ⚠️ Comportamento do agente pode mudar na migração → baseline de evals com o prompt atual **antes** de migrar (F05/F15).
+
+## Revisão de 2026-11-16 (ADR-007)
+
+- O payload das ferramentas de escrita passa a ser um `AgentReadySpec` (esquema Pydantic com as seções da spec
+  pronta para agente), e não mais `summary`/`description` em texto livre. A descrição enviada ao Jira (ADF) é
+  renderizada desse objeto; o `payloadHash` é calculado sobre o objeto canônico.
+- `propor_atualizacao_issue` aceita seções do esquema, `priority` e `labels`; o cartão mostra antes/depois por seção.
+- A verificação de prontidão roda na proposta, sem LLM, e acompanha o payload no cartão de confirmação.
+

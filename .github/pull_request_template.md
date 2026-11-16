@@ -19,6 +19,7 @@
 - [ ] **IX** — Logs/métricas para o comportamento novo
 - [ ] **X** — Textos em pt-BR, acessibilidade verificada (se houver UI)
 - [ ] **XI** — Evals rodadas (se mudou prompt, modelo ou ferramentas)
+- [ ] **XII** — Specs geradas seguem o `AgentReadySpec` e a verificação de prontidão (se mudou o formato das issues)
 
 ## Evidências de teste
 

@@ -10,7 +10,7 @@
 - **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
   acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
 
-**Total:** 7 tarefas · 10 d.
+**Total:** 9 tarefas · 12 d. Revisão 2026-11-16: T008 e T009 (specs para agentes de código, ADR-007).
 **Dividir antes de implementar** (> 1 d, Art. I/VI): T001 (1,5 d), T003 (2 d), T004 (1,5 d), T005 (1,5 d), T007 (1,5 d).
 
 ## 8. Tarefas
@@ -28,6 +28,8 @@
 **Objetivo:** Conversão de descrições para o formato do Jira v3.
 
 - [ ] T002 Conversor Markdown→ADF — teste: unit com fixtures — 1 d
+- [ ] T008 [F05-RF-06] `AgentReadySpec` + renderizador ADF/Markdown com seções fixas (F05-RT-13) — teste: `test_agent_ready_spec.py` com fixtures — 1 d
+- [ ] T009 [P] [F05-RF-06][F05-RF-11] Verificação de prontidão P-01..P-10 e labels (F05-RT-14, F05-RT-15) — teste: `test_readiness.py` — 1 d
 
 ---
 
@@ -47,7 +49,7 @@
 
 **Aceitação:** AT-F05-01, AT-F05-02, AT-F05-06
 
-- [ ] T004 [F05-RF-02][F05-RF-06][F05-RF-08] Grafo LangGraph + prompt v1 + config de modelo — teste: integração com LLM scripted — 1,5 d
+- [ ] T004 [F05-RF-02][F05-RF-06][F05-RF-08][F05-RF-09][F05-RF-10][F05-RF-11][F05-RF-12] Grafo LangGraph + prompt v1 (perguntar antes de inventar, dividir, `human-only`, avaliar issue existente) + config de modelo — teste: integração com LLM scripted — 1,5 d
 - [ ] T005 [F05-RF-02] Serviço de chat: histórico, janela/sumarização, persistência, uso — teste: integração com emulador — 1,5 d
 - [ ] T006 [F05-RF-01][F05-RF-07] Endpoint SSE + esquema de eventos + contrato — teste: contrato — 1 d
 
@@ -57,6 +59,6 @@
 
 **Objetivo:** Aceitação em dev e evals não piores que o baseline.
 
-**Aceitação:** AT-F05-01..06
+**Aceitação:** AT-F05-01..09
 
-- [ ] T007 Testes de aceitação AT-F05-01..06 + evals comparadas ao baseline — teste: acceptance + evals — 1,5 d
+- [ ] T007 Testes de aceitação AT-F05-01..09 + evals comparadas ao baseline — teste: acceptance + evals — 1,5 d

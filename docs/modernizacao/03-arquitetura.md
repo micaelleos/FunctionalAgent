@@ -100,8 +100,9 @@ api  →  services  →  agent, integrations, repositories  →  core
 | `consultar_issue(key)` | leitura | automática | campos selecionados |
 | `buscar_issues_jql(jql, limite≤50)` | leitura | automática | máx. 50 resultados, campos resumidos |
 | `listar_issues_do_epico(key)` | leitura | automática | máx. 50 |
-| `propor_criacao_issue(...)` | **escrita** | **gera ação proposta** | — |
-| `propor_atualizacao_issue(key, campos)` | **escrita** | **gera ação proposta** | só `summary`, `description`, `priority`, `labels` |
+| `propor_criacao_issue(spec: AgentReadySpec)` | **escrita** | **gera ação proposta** | spec validada pelo esquema; prontidão calculada (ADR-007) |
+| `propor_atualizacao_issue(key, secoes, priority?, labels?)` | **escrita** | **gera ação proposta** | só seções do `AgentReadySpec`, `priority`, `labels` |
+| `avaliar_prontidao(key)` | leitura | automática | devolve as regras P-01 a P-10 que faltam numa issue existente |
 
 Conteúdo devolvido pelo Jira é marcado como **dado não confiável** no prompt (mitigação de prompt injection);
 como nenhuma escrita acontece sem confirmação humana, uma injeção não consegue alterar o Jira sozinha.
@@ -140,7 +141,29 @@ sequenceDiagram
 - Ações expiram em 24 h (TTL do Firestore). "Recusar" grava `status=rejected` e informa o agente no próximo turno.
 - Idempotência: transição de estado em transação Firestore; um duplo clique não cria dois issues.
 
-### 3.4 Streaming
+### 3.4 Specs prontas para agentes de código
+
+O leitor principal das issues é um agente de IA de código ([doc 10](10-specs-para-agentes.md),
+[ADR-007](adr/ADR-007-spec-pronta-para-agente.md)). Por isso:
+
+```mermaid
+flowchart LR
+    LLM[Agente SpecFlow] -->|"propor_criacao_issue(AgentReadySpec)"| V[Validação Pydantic]
+    V --> R[Prontidão P-01..P-10<br/>função pura, sem LLM]
+    R --> PA[(pending_actions<br/>spec + prontidão + labels)]
+    PA -->|action_proposed| UI[Cartão por seção]
+    UI -->|Confirmar| EX[Execução determinística]
+    EX --> REN[Renderizador ADF<br/>seções fixas]
+    REN --> J[Jira API v3]
+    J -. MCP oficial da Atlassian .-> CA[Agente de código<br/>Claude Code, Copilot, Cursor…]
+```
+
+- `agent/spec/schema.py` (esquema), `agent/spec/render.py` (ADF e Markdown) e `agent/spec/readiness.py` (regras)
+  são código de domínio puro, testados sem LLM.
+- O SpecFlow não integra com cada agente de código: eles leem o Jira pelo MCP oficial da Atlassian. A F10 oferece
+  "Copiar para agente de código"; a F18 exporta para o repositório.
+
+### 3.5 Streaming
 
 `POST /api/v1/conversations/{id}/messages` responde `text/event-stream` com eventos:
 
@@ -215,7 +238,9 @@ erDiagram
     PENDING_ACTION {
         string id PK
         string kind "create_issue | update_issue"
-        map payload
+        map payload "AgentReadySpec canônico"
+        map readiness "regras P-01..P-10"
+        array labels "specflow, agent-ready, human-only"
         string payloadHash
         string status "pending | executing | done | rejected | failed | expired"
         timestamp expiresAt

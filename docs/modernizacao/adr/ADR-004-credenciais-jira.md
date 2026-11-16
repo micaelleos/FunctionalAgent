@@ -1,6 +1,6 @@
 # ADR-004 — Credenciais do Jira: API token cifrado com KMS agora, OAuth 2.0 (3LO) depois
 
-- **Status:** Proposto · **Data:** 2026-11-13
+- **Status:** Aceito (implementado na F04) · **Data:** 2026-11-13 · **Revisado:** 2026-11-16
 
 ## Contexto
 
@@ -28,3 +28,12 @@ Hoje o usuário digita URL, e-mail e API token do Jira num formulário; os valor
 - ✅ O modelo `jira_connections` já prevê `authType` para coexistir com OAuth.
 - ⚠️ API token tem os mesmos poderes do usuário no Jira — por isso a confirmação humana (ADR-003) é obrigatória.
 - ⚠️ Rotação da chave KMS a cada 90 dias: versões antigas continuam decifrando; job opcional re-cifra.
+
+## Revisão de 2026-11-16 (plano da F04)
+
+- **Cifra direta com `kms.encrypt`**, sem envelope: o token tem bem menos de 64 KiB e o custo do KMS é desprezível.
+  O Firestore guarda `tokenCiphertext` e `kmsKeyVersion` (a versão da chave usada). Decisão do PO.
+- O backend chama a API REST do KMS via `google-auth`, sem a biblioteca gRPC `google-cloud-kms`, que levava a
+  imagem acima do limite de 300 MiB do CI.
+- Em `local`/`test` a cifra é `LocalFernetCipher`; fora disso, sem `KMS_KEY_NAME`, a API não sobe (F04-RT-06).
+

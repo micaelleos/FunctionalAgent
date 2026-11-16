@@ -24,6 +24,9 @@ async function serious(page: Page) {
 
 test.describe('F08 telas principais', () => {
   test('F08-RF-11 F08-RT-04 página inicial pública sem violações', async ({ page }) => {
+    // O axe mede o contraste do estado final: no meio do fade-in a opacidade < 1 dá falso
+    // "color-contrast" (falhou intermitente no CI). Com movimento reduzido a página já nasce pronta.
+    await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
     await expect(
       page.getByRole('heading', { level: 1, name: /coding agent can actually ship/ }),

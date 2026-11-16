@@ -12,10 +12,11 @@ from app.core.auth import FirebaseTokenVerifier, Identity, InvalidTokenError, To
 from app.core.config import Settings, get_settings
 from app.core.crypto import Cipher, build_cipher
 from app.core.errors import EmailNotVerifiedError, UnauthenticatedError
-from app.repositories.conversations import ConversationRepository
+from app.repositories.actions import ActionRepository
 from app.repositories.jira_connections import JiraConnectionRepository
 from app.repositories.users import UserRepository
 from app.services.account import AccountService
+from app.services.actions import ActionService
 from app.services.chat import ChatService
 from app.services.jira_connections import JiraConnectionService
 
@@ -73,7 +74,16 @@ def get_chat_service(
     jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
 ) -> ChatService:
     db = _firestore(settings.gcp_project, settings.firestore_database)
-    return ChatService(ConversationRepository(db), jira, _chat_model(settings), settings)
+    return ChatService(ActionRepository(db), jira, _chat_model(settings), settings)
+
+
+def get_action_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
+) -> ActionService:
+    """Sem modelo de linguagem: a execução não passa pelo LLM (F06-RT-03)."""
+    db = _firestore(settings.gcp_project, settings.firestore_database)
+    return ActionService(ActionRepository(db), jira, settings)
 
 
 def _bearer(authorization: str | None) -> str:
@@ -116,3 +126,4 @@ CurrentUserChecked = Annotated[Identity, Depends(current_user_checked)]
 Account = Annotated[AccountService, Depends(get_account_service)]
 JiraConnections = Annotated[JiraConnectionService, Depends(get_jira_service)]
 Chat = Annotated[ChatService, Depends(get_chat_service)]
+Actions = Annotated[ActionService, Depends(get_action_service)]

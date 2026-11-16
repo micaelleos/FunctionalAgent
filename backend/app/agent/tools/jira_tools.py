@@ -21,8 +21,8 @@ from app.agent.spec.readiness import (
     labels_for,
     sensitive_terms_in,
 )
-from app.agent.spec.render import to_markdown
-from app.agent.spec.schema import EpicSpec, IssueKey, WorkItemSpec
+from app.agent.spec.render import section_markdown, to_markdown
+from app.agent.spec.schema import EpicSpec, IssueKey, Title, WorkItemSpec
 from app.agent.tools.context import (
     Issue,
     IssueNotFoundError,
@@ -219,17 +219,26 @@ async def avaliar_prontidao(key: IssueKey, config: RunnableConfig) -> str:
 
 
 # Uma ferramenta por tipo de spec: o Gemini recebe esquemas sem `oneOf` (ver `schemas.py`).
+Priority = Annotated[str, StringConstraints(min_length=1, max_length=30)]
+
+
 class CreateIssueArgs(BaseModel):
     project_key: ProjectKey = Field(description="Chave do projeto no Jira (ex.: ABC)")
     spec: WorkItemSpec = Field(description="A história ou tarefa completa, pronta para agente")
     parent_key: IssueKey | None = Field(
         default=None, description="Épico pai, só quando o usuário indicar ou ele já existir"
     )
+    priority: Priority | None = Field(
+        default=None, description="Só quando o usuário pedir; sem ela vale o padrão do projeto"
+    )
 
 
 class CreateEpicArgs(BaseModel):
     project_key: ProjectKey = Field(description="Chave do projeto no Jira (ex.: ABC)")
     spec: EpicSpec = Field(description="O épico completo, com a decomposição em histórias")
+    priority: Priority | None = Field(
+        default=None, description="Só quando o usuário pedir; sem ela vale o padrão do projeto"
+    )
 
 
 class UpdateIssueArgs(BaseModel):
@@ -241,10 +250,27 @@ class UpdateIssueArgs(BaseModel):
     epic_spec: EpicSpec | None = Field(
         default=None, description="Para atualizar um épico: o épico inteiro reescrito"
     )
-    priority: str | None = Field(default=None, max_length=30, description="Ex.: High, Medium")
+    summary: Title | None = Field(
+        default=None,
+        description="Só o título novo, sem mexer na descrição; não use junto com spec/epic_spec",
+    )
+    priority: Priority | None = Field(default=None, description="Ex.: High, Medium")
     labels: list[Annotated[str, StringConstraints(pattern=r"^\S{1,50}$")]] | None = Field(
         default=None, max_length=20
     )
+
+
+def _before(current: Issue, payload: dict[str, Any]) -> dict[str, Any]:
+    before: dict[str, Any] = {}
+    if "spec" in payload:
+        before |= {"summary": current.summary, "markdown": current.description_markdown}
+    if "summary" in payload:
+        before["summary"] = current.summary
+    if "priority" in payload:
+        before["priority"] = current.priority
+    if "labels" in payload:
+        before["labels"] = sorted(current.labels)
+    return before
 
 
 def _preview(
@@ -256,6 +282,7 @@ def _preview(
             "issue_type": ISSUE_TYPES[spec.type],
             "summary": spec.title,
             "markdown": to_markdown(spec),
+            "sections": section_markdown(spec),
             "readiness": _readiness_dict(readiness),
         }
     return preview
@@ -326,7 +353,11 @@ def _review_once(ctx: ToolContext, spec: WorkItemSpec | EpicSpec | None) -> str 
 
 
 async def _propose_create(
-    ctx: ToolContext, project_key: str, spec: WorkItemSpec | EpicSpec, parent_key: str | None
+    ctx: ToolContext,
+    project_key: str,
+    spec: WorkItemSpec | EpicSpec,
+    parent_key: str | None,
+    priority: str | None,
 ) -> str:
     if problem := (
         _gherkin_problem(spec) or _sensitive_check(ctx, spec) or _review_once(ctx, spec)
@@ -338,10 +369,15 @@ async def _propose_create(
         return problem
     readiness = evaluate(spec)
     labels = sorted(labels_for(spec, readiness))
-    payload = create_payload(spec, project_key, labels, parent_key)
-    preview = _preview(spec, readiness, labels) | {"project_key": project_key}
+    payload = create_payload(spec, project_key, labels, parent_key, priority)
+    preview = _preview(spec, readiness, labels) | {
+        "project_key": project_key,
+        "project_name": next((p.name for p in await _projects(ctx) if p.key == project_key), ""),
+    }
     if parent_key:
         preview["parent_key"] = parent_key
+    if priority:
+        preview["priority"] = priority
     action = await ctx.actions.propose(
         "create_issue", payload, _readiness_dict(readiness), labels, preview
     )
@@ -359,17 +395,20 @@ async def propor_criacao_issue(
     spec: WorkItemSpec,
     config: RunnableConfig,
     parent_key: str | None = None,
+    priority: str | None = None,
 ) -> str:
     """Propõe criar uma história (story) ou tarefa (task) no Jira. NÃO cria: o usuário vê um
     cartão com a prévia e confirma. Use só com o projeto definido e a spec completa."""
-    return await _propose_create(tool_context(config), project_key, spec, parent_key)
+    return await _propose_create(tool_context(config), project_key, spec, parent_key, priority)
 
 
 @tool(args_schema=CreateEpicArgs)
-async def propor_criacao_epico(project_key: str, spec: EpicSpec, config: RunnableConfig) -> str:
+async def propor_criacao_epico(
+    project_key: str, spec: EpicSpec, config: RunnableConfig, priority: str | None = None
+) -> str:
     """Propõe criar um épico no Jira, com a decomposição em histórias. NÃO cria: o usuário
     confirma no cartão. Proponha depois cada história com `propor_criacao_issue`."""
-    return await _propose_create(tool_context(config), project_key, spec, None)
+    return await _propose_create(tool_context(config), project_key, spec, None, priority)
 
 
 @tool(args_schema=UpdateIssueArgs)
@@ -378,17 +417,20 @@ async def propor_atualizacao_issue(
     config: RunnableConfig,
     spec: WorkItemSpec | None = None,
     epic_spec: EpicSpec | None = None,
+    summary: str | None = None,
     priority: str | None = None,
     labels: list[str] | None = None,
 ) -> str:
-    """Propõe atualizar uma issue existente: a spec (título e descrição), a prioridade e/ou as
-    labels. NÃO atualiza: o usuário confirma no cartão."""
+    """Propõe atualizar uma issue existente: a spec inteira (título e descrição), só o título
+    (`summary`), a prioridade e/ou as labels. NÃO atualiza: o usuário confirma no cartão."""
     ctx = tool_context(config)
     new_spec: WorkItemSpec | EpicSpec | None = spec or epic_spec
     if ctx.jira is None:
         return NO_JIRA
-    if new_spec is None and priority is None and labels is None:
-        return "Nada a atualizar: informe a spec, a prioridade ou as labels."
+    if new_spec is None and summary is None and priority is None and labels is None:
+        return "Nada a atualizar: informe a spec, o título, a prioridade ou as labels."
+    if new_spec is not None and summary is not None:
+        return "Informe a spec (que já traz o título) ou só o título, não os dois."
     if problem := (
         _gherkin_problem(new_spec) or _sensitive_check(ctx, new_spec) or _review_once(ctx, new_spec)
     ):
@@ -405,10 +447,17 @@ async def propor_atualizacao_issue(
         own = {LABEL_SPECFLOW, "agent-ready", "human-only"}
         base = labels if labels is not None else [x for x in current.labels if x not in own]
         labels = sorted({*base, *labels_for(new_spec, readiness)})
-    payload = update_payload(key, new_spec, priority, labels)
-    preview = _preview(new_spec, readiness, labels or []) | {"issue_key": key, "url": current.url}
+    payload = update_payload(key, new_spec, priority, labels, summary)
+    preview = _preview(new_spec, readiness, labels or []) | {
+        "issue_key": key,
+        "url": current.url,
+        # Antes/depois no cartão (F06-RF-06): os valores lidos agora, só dos campos que mudam.
+        "before": _before(current, payload),
+    }
     if priority:
         preview["priority"] = priority
+    if summary:
+        preview["summary"] = summary
     action = await ctx.actions.propose(
         "update_issue",
         payload,

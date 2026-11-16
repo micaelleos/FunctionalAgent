@@ -325,6 +325,7 @@ users/{uid}/usage/{yyyy-mm-dd}
 | POST | `/api/v1/conversations/{id}/messages` | Envia mensagem (SSE) | F05 |
 | POST | `/api/v1/actions/{id}/confirm` | Executa ação proposta | F06 |
 | POST | `/api/v1/actions/{id}/reject` | Recusa ação proposta | F06 |
+| GET | `/api/v1/conversations/{id}/actions` | Ações da conversa (reidrata os cartões) | F06 |
 | GET | `/api/v1/jira/issues` | Histórico de issues criados | F10 |
 
 Erros seguem **RFC 9457 (Problem Details)**: `{type, title, status, detail, code}`.

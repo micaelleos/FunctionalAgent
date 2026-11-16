@@ -63,6 +63,13 @@ class ConversationRepository:
         doc.create(data)
         return str(doc.id)
 
+    def list_actions(self, uid: str, conversation_id: str) -> list[dict[str, Any]]:
+        """Ações da conversa, da mais antiga para a mais nova (igualdade simples: sem índice)."""
+        ref = cast(firestore.CollectionReference, self._user(uid).collection("pending_actions"))
+        query = ref.where(filter=firestore.FieldFilter("conversationId", "==", conversation_id))
+        docs = [{"id": d.id, **(d.to_dict() or {})} for d in query.stream()]
+        return sorted(docs, key=lambda d: d["createdAt"])
+
     def add_usage(self, uid: str, day: str, input_tokens: int, output_tokens: int) -> None:
         ref = self._user(uid).collection("usage").document(day)
         ref.set(

@@ -200,3 +200,52 @@ async def test_spec_ja_human_only_ou_sem_termos_nao_recebe_o_aviso() -> None:
 
     assert "aguardando confirmação" in out_marked
     assert "aguardando confirmação" in out_plain
+
+
+@pytest.mark.req("F06-RF-01")
+async def test_previa_traz_secoes_projeto_e_prioridade() -> None:
+    _, sink = await _create(pix_story_data(), priority="High")
+    [action] = sink.actions
+    preview = action["preview"]
+
+    assert [s["title"] for s in preview["sections"]][:3] == [
+        "Objetivo",
+        "Contexto",
+        "Critérios de aceite",
+    ]
+    assert preview["sections"][0]["markdown"].startswith("Como cliente")
+    assert (preview["project_key"], preview["project_name"]) == ("ABC", "Loja")
+    assert preview["priority"] == "High"
+    assert action["payload"]["priority"] == "High"
+
+
+@pytest.mark.req("F06-RF-06")
+async def test_atualizacao_guarda_o_antes_dos_campos_que_mudam() -> None:
+    current = issue("ABC-1", labels=("time-a",))
+    sink = MemorySink()
+    await propor_atualizacao_issue.ainvoke(
+        {"key": "ABC-1", "priority": "High"},
+        tool_config(FakeJiraReader(issues=[current]), sink),
+    )
+    [action] = sink.actions
+
+    assert action["preview"]["before"] == {"priority": current.priority}
+    assert action["preview"]["priority"] == "High"
+
+
+@pytest.mark.req("F06-RF-06")
+async def test_troca_so_do_titulo_mantem_a_descricao() -> None:
+    current = issue("ABC-1", summary="Login")
+    sink = MemorySink()
+    config = tool_config(FakeJiraReader(issues=[current]), sink)
+
+    await propor_atualizacao_issue.ainvoke({"key": "ABC-1", "summary": "Login com e-mail"}, config)
+    both = await propor_atualizacao_issue.ainvoke(
+        {"key": "ABC-1", "summary": "Outro", "spec": pix_story_data()}, config
+    )
+    [action] = sink.actions
+
+    assert jira_update_fields(action["payload"]) == {"summary": "Login com e-mail"}
+    assert action["preview"]["before"] == {"summary": "Login"}
+    assert action["preview"]["summary"] == "Login com e-mail"
+    assert both.startswith("Informe a spec")

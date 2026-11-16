@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     llm_price_input_per_mtok: float = 0.30
     llm_price_output_per_mtok: float = 2.50
     prompt_version: str = "v1"
+    # F06: desligar mantém as propostas guardadas, sem executar nenhuma (rollback do plano).
+    actions_enabled: bool = True
     agent_max_iterations: int = Field(default=8, description="Iterações de ferramenta por turno")
     agent_turn_timeout_s: float = 240.0
     history_token_budget: int = Field(

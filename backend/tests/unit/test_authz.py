@@ -9,11 +9,18 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.agent.fake_llm import EchoChatModel
-from app.api.deps import get_account_service, get_chat_service, get_jira_service, get_verifier
+from app.api.deps import (
+    get_account_service,
+    get_action_service,
+    get_chat_service,
+    get_jira_service,
+    get_verifier,
+)
 from app.core.config import Settings, get_settings
 from app.core.crypto import LocalFernetCipher
 from app.main import create_app
 from app.services.account import AccountService
+from app.services.actions import ActionService
 from app.services.chat import ChatService
 from app.services.jira_connections import JiraConnectionService
 from tests.chat_fakes import MemoryChatStore
@@ -44,8 +51,11 @@ def client(verifier: FakeVerifier) -> Iterator[TestClient]:
     app.dependency_overrides[get_account_service] = lambda: AccountService(store)
     jira = JiraConnectionService(MemoryJiraStore(), LocalFernetCipher())
     app.dependency_overrides[get_jira_service] = lambda: jira
-    chat = ChatService(MemoryChatStore(), jira, EchoChatModel(), Settings(env="test"))
+    chat_store = MemoryChatStore()
+    chat = ChatService(chat_store, jira, EchoChatModel(), Settings(env="test"))
     app.dependency_overrides[get_chat_service] = lambda: chat
+    actions = ActionService(chat_store, jira, Settings(env="test"))
+    app.dependency_overrides[get_action_service] = lambda: actions
     with TestClient(app) as c:
         yield c
 

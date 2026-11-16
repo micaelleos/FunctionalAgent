@@ -154,6 +154,15 @@ def _markdown_block(block: Block) -> str:
     return "\n".join([f"**{block.heading}**", *block.lines])
 
 
+def section_markdown(spec: WorkItemSpec | EpicSpec) -> list[dict[str, str]]:
+    """Seções na ordem fixa, cada uma com o corpo em Markdown: o cartão de confirmação mostra a
+    spec por seção (F06-RF-01)."""
+    return [
+        {"title": s.title, "markdown": "\n\n".join(_markdown_block(b) for b in s.blocks)}
+        for s in sections(spec)
+    ]
+
+
 def to_markdown(spec: WorkItemSpec | EpicSpec) -> str:
     """Markdown da descrição (sem o título, que vai no campo Summary do Jira)."""
     parts = []

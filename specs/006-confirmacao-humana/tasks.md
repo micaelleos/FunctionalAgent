@@ -21,7 +21,7 @@
 
 **Aceitação:** AT-F06-04
 
-- [ ] T001 Máquina de estados + transação + hash do payload — teste: unit + concorrência — 1,5 d
+- [x] T001 Máquina de estados + transação + hash do payload — teste: unit + concorrência — 1,5 d
 
 ---
 
@@ -31,8 +31,8 @@
 
 **Aceitação:** AT-F06-01, AT-F06-02, AT-F06-06
 
-- [ ] T002 [F06-RF-02][F06-RF-03][F06-RF-05][F06-RF-07] Endpoints confirm/reject/list + tradução de erros — teste: integração — 1 d
-- [ ] T003 [F06-RF-02][F06-RF-03] Mensagem de sistema + registro em `jira_issues` — teste: integração — 0,5 d
+- [x] T002 [F06-RF-02][F06-RF-03][F06-RF-05][F06-RF-07] Endpoints confirm/reject/list + tradução de erros — teste: integração — 1 d
+- [x] T003 [F06-RF-02][F06-RF-03] Mensagem de sistema + registro em `jira_issues` — teste: integração — 0,5 d
 
 ---
 
@@ -42,8 +42,8 @@
 
 **Aceitação:** AT-F06-01, AT-F06-05
 
-- [ ] T004 [P] [F06-RF-01][F06-RF-06][F06-RF-08] `<ActionCard>` por seção + prontidão + diff antes/depois — teste: Vitest — 1 d
-- [ ] T006 [F06-RF-09] Labels e ADF renderizado do `AgentReadySpec` na execução (F06-RT-07) — teste: unit + AT-F06-07 — 0,5 d
+- [x] T004 [P] [F06-RF-01][F06-RF-06][F06-RF-08] `<ActionCard>` por seção + prontidão + diff antes/depois — teste: Vitest — 1 d
+- [x] T006 [F06-RF-09] Labels e ADF renderizado do `AgentReadySpec` na execução (F06-RT-07) — teste: unit + AT-F06-07 — 0,5 d
 
 ---
 

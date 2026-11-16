@@ -1,6 +1,135 @@
 {
   "components": {
     "schemas": {
+      "ActionError": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ActionError",
+        "type": "object"
+      },
+      "ActionOut": {
+        "description": "O cartão inteiro: o que vai ao Jira (`preview`), a prontidão e o estado (F06-RF-01).",
+        "properties": {
+          "conversation_id": {
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActionError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "create_issue",
+              "update_issue"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "preview": {
+            "additionalProperties": true,
+            "title": "Preview",
+            "type": "object"
+          },
+          "readiness": {
+            "additionalProperties": true,
+            "title": "Readiness",
+            "type": "object"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActionResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "executing",
+              "done",
+              "failed",
+              "rejected",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "conversation_id",
+          "preview",
+          "readiness",
+          "labels",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ActionOut",
+        "type": "object"
+      },
+      "ActionResult": {
+        "properties": {
+          "issue_key": {
+            "title": "Issue Key",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_key",
+          "url"
+        ],
+        "title": "ActionResult",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -232,6 +361,198 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/actions/{action_id}/confirm": {
+      "post": {
+        "operationId": "confirm_api_v1_actions__action_id__confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Ação inexistente ou de outro usuário"
+          },
+          "409": {
+            "description": "Já concluída, recusada ou em execução; `action` traz o estado"
+          },
+          "410": {
+            "description": "Expirada (24 h)"
+          },
+          "422": {
+            "description": "O Jira não executou; `detail` traz o erro traduzido"
+          },
+          "503": {
+            "description": "Escritas no Jira desligadas"
+          }
+        },
+        "summary": "Confirma e executa a ação exatamente como exibida",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/actions/{action_id}/reject": {
+      "post": {
+        "operationId": "reject_api_v1_actions__action_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Ação inexistente ou de outro usuário"
+          },
+          "409": {
+            "description": "Já concluída, recusada ou em execução; `action` traz o estado"
+          },
+          "410": {
+            "description": "Expirada (24 h)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recusa a ação; nada é escrito no Jira",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/actions": {
+      "get": {
+        "operationId": "list_actions_api_v1_conversations__conversation_id__actions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActionOut"
+                  },
+                  "title": "Response List Actions Api V1 Conversations  Conversation Id  Actions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ações propostas na conversa, para reidratar os cartões",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
     "/api/v1/conversations/{conversation_id}/messages": {
       "post": {
         "description": "`conversation_id = new` cria a conversa. Eventos: token, tool_start, tool_end, action_proposed, message_saved, error, done (esquema em docs/api/sse-events.v1.json).",

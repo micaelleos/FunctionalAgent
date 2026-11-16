@@ -38,7 +38,25 @@ class JiraNotFoundError(JiraError):
 
 
 class JiraBadRequestError(JiraError):
-    """O Jira recusou a requisição (400), por exemplo uma JQL inválida; a mensagem é a do Jira."""
+    """O Jira recusou a requisição (400), por exemplo uma JQL inválida; a mensagem é a do Jira.
+
+    `errors` traz os erros por campo (`{"priority": "..."}`), usados para traduzir a falha."""
+
+    def __init__(self, message: str, errors: dict[str, str] | None = None) -> None:
+        super().__init__(message)
+        self.errors = errors or {}
+
+
+class JiraForbiddenError(JiraError):
+    """Numa escrita, 403: a conta não tem permissão para criar/editar ali (a credencial vale)."""
+
+
+class JiraRateLimitedError(JiraError):
+    """O Jira continuou respondendo 429 depois das tentativas; nada foi gravado."""
+
+
+class JiraUncertainError(JiraError):
+    """A escrita foi enviada, mas a resposta não veio (timeout, 5xx): o Jira pode ter gravado."""
 
 
 @dataclass(frozen=True)
@@ -53,6 +71,12 @@ class JiraProject:
     key: str
     name: str
     type: str
+
+
+@dataclass(frozen=True)
+class JiraCreated:
+    key: str
+    url: str
 
 
 @dataclass(frozen=True)
@@ -72,14 +96,24 @@ ISSUE_FIELDS = ["summary", "description", "issuetype", "status", "priority", "la
 MAX_SEARCH = 50
 
 
-def _error_messages(response: httpx.Response) -> str:
+def _error_detail(response: httpx.Response) -> tuple[list[str], dict[str, str]]:
     try:
         data = response.json()
     except ValueError:
-        return "o Jira respondeu 400"
-    messages = [str(m) for m in data.get("errorMessages", [])]
-    messages += [f"{k}: {v}" for k, v in (data.get("errors") or {}).items()]
-    return "; ".join(messages)[:500] or "o Jira respondeu 400"
+        return [], {}
+    if not isinstance(data, dict):
+        return [], {}
+    errors = data.get("errors") or {}
+    return (
+        [str(m)[:300] for m in data.get("errorMessages", [])][:10],
+        {str(k)[:50]: str(v)[:300] for k, v in errors.items()} if isinstance(errors, dict) else {},
+    )
+
+
+def _error_messages(response: httpx.Response) -> str:
+    messages, errors = _error_detail(response)
+    joined = [*messages, *(f"{k}: {v}" for k, v in errors.items())]
+    return "; ".join(joined)[:500] or f"o Jira respondeu {response.status_code}"
 
 
 def _name(value: Any) -> str | None:
@@ -165,6 +199,47 @@ class JiraClient:
         if status >= 400:
             raise JiraError(f"o Jira respondeu {status}")
         return response
+
+    async def _write(self, method: str, path: str, body: dict[str, Any]) -> httpx.Response:
+        """Escrita (F06): nunca repete depois de enviada, porque o Jira pode ter gravado e uma
+        segunda criação duplicaria a issue. Só 429 (não processado) é repetido."""
+        for attempt in range(MAX_ATTEMPTS):
+            try:
+                response = await self._http.request(method, path, json=body)
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                raise JiraUnreachableError(f"sem resposta de {self.site_url}") from None
+            except httpx.TransportError:
+                raise JiraUncertainError("o Jira não respondeu a tempo") from None
+            status = response.status_code
+            if status == 429:
+                if attempt + 1 < MAX_ATTEMPTS:
+                    await self._sleep(_retry_after(response, attempt))
+                    continue
+                raise JiraRateLimitedError("o Jira está limitando as requisições")
+            if status == 401:
+                raise JiraAuthError("o Jira respondeu 401")
+            if status == 403:
+                raise JiraForbiddenError(_error_messages(response))
+            if status == 404:
+                raise JiraNotFoundError("não encontrado no Jira")
+            if status == 400:
+                raise JiraBadRequestError(_error_messages(response), _error_detail(response)[1])
+            if status >= 500:
+                raise JiraUncertainError(f"o Jira respondeu {status}")
+            if status >= 300:
+                raise JiraError(f"o Jira respondeu {status}")
+            return response
+        raise AssertionError("inalcançável")  # pragma: no cover
+
+    async def create_issue(self, fields: dict[str, Any]) -> JiraCreated:
+        """`POST /rest/api/3/issue` com os campos já derivados da ação confirmada (F06-RF-02)."""
+        response = await self._write("POST", "/rest/api/3/issue", {"fields": fields})
+        key = str(response.json()["key"])
+        return JiraCreated(key, f"{self.site_url}/browse/{key}")
+
+    async def update_issue(self, key: str, fields: dict[str, Any]) -> None:
+        """`PUT /rest/api/3/issue/{key}` só com os campos permitidos (F06-RF-06, D06)."""
+        await self._write("PUT", f"/rest/api/3/issue/{key}", {"fields": fields})
 
     async def myself(self) -> JiraAccount:
         """`GET /rest/api/3/myself`: valida a credencial e devolve a conta (F04-RF-02)."""

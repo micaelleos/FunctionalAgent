@@ -205,7 +205,7 @@ describe('F08-RF-04 cartão de ação no chat', () => {
     renderApp('/chat/c1')
     const user = userEvent.setup()
 
-    const card = await screen.findByRole('region', { name: 'Proposed action · Create in Jira' })
+    const card = await screen.findByRole('region', { name: 'Create Story in PAG' })
     expect(within(card).getByText('Pay for the order with Pix')).toBeInTheDocument()
     await user.click(within(card).getByRole('button', { name: 'Confirm and create' }))
 
@@ -217,7 +217,7 @@ describe('F08-RF-04 cartão de ação no chat', () => {
     renderApp('/chat/c1')
     const user = userEvent.setup()
 
-    const card = await screen.findByRole('region', { name: 'Proposed action · Create in Jira' })
+    const card = await screen.findByRole('region', { name: 'Create Story in PAG' })
     await user.click(within(card).getByRole('button', { name: 'Reject' }))
 
     expect(await within(card).findByRole('status')).toHaveTextContent('Nothing was sent to Jira')

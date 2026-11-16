@@ -49,16 +49,41 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
 
   const action: ProposedAction = {
     id: 'a1',
+    kind: 'create_issue',
     projectKey: 'PAG',
     projectName: 'Pagamentos',
+    issueKey: null,
     issueType: 'Story',
     title: 'Pay for the order with Pix',
     priority: 'High',
     parentKey: 'PAG-120',
+    labels: ['agent-ready', 'specflow'],
+    sections: [
+      {
+        title: 'Objetivo',
+        markdown:
+          'Como cliente, quero pagar meu pedido com Pix, para concluir a compra sem cartão.',
+      },
+      {
+        title: 'Critérios de aceite',
+        markdown:
+          '**CA-01 (principal) Gerar cobrança Pix**\nDado estou no checkout com um pedido de R$ 120,00\nQuando escolho "Pix"\nEntão vejo o QR Code e o texto "Pague em até 30 minutos"',
+      },
+      { title: 'Fora de escopo', markdown: '- Estorno de Pix.\n- Pix parcelado.' },
+      { title: 'Como verificar', markdown: '- Testes de unidade da cobrança.\n- E2E do CA-01.' },
+    ],
+    readiness: {
+      ready: true,
+      rules: [
+        { id: 'P-01', label: 'Título de ação', severity: 'obrigatória', passed: true, detail: '' },
+      ],
+    },
+    changes: [],
     expiresAt: new Date(now() + 24 * HOUR).toISOString(),
     status: 'pending',
     resultKey: null,
     resultUrl: null,
+    error: null,
   }
 
   const messages: Record<string, ChatMessage[]> = {
@@ -216,11 +241,11 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
       const a = findAction(id)
       if (a.status === 'pending') {
         Object.assign(a, {
-          status: 'confirmed',
+          status: 'done',
           resultKey: 'PAG-142',
           resultUrl: `${JIRA}/browse/PAG-142`,
         })
-        issues.push(issue('PAG-142', a.issueType, a.title, 0, 'c1', 'Pix checkout'))
+        issues.push(issue('PAG-142', a.issueType ?? 'Story', a.title, 0, 'c1', 'Pix checkout'))
       }
       return { ...a }
     },

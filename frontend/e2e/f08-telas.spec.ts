@@ -23,6 +23,14 @@ async function serious(page: Page) {
 }
 
 test.describe('F08 telas principais', () => {
+  test('F08-RF-11 F08-RT-04 página inicial pública sem violações', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1, name: /backlog no Jira/ })).toBeVisible()
+    expect(await serious(page)).toEqual([])
+    await page.getByRole('link', { name: 'Começar agora' }).click()
+    await expect(page).toHaveURL(/\/cadastro$/)
+  })
+
   test('F08-RF-10 F08-RT-04 F08-RT-08 menu leva a cada tela, sem dados inventados e sem violações', async ({
     page,
     request,

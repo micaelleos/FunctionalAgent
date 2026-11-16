@@ -74,6 +74,9 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   stores the token encrypted with `kms.encrypt` (`KMS_KEY_NAME`); `LocalFernetCipher` only with `ENV`
   local/test. The token is never returned or logged; `JiraConnectionService.client_for(uid, id)` decrypts
   per request and is the entry point for F05/F09/F10. Only `https://<site>.atlassian.net` URLs (SSRF).
+- **Agent LLM (ADR-008)**: Gemini on Vertex AI through the `google-genai` SDK, authenticated by the Cloud Run
+  service account (no LLM key); default model `gemini-3.5-flash-lite` via `LLM_MODEL`. The agent loop is our own
+  (`app/agent/loop.py`, `ModelClient` interface, scripted model in tests); no LangGraph/LangChain.
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 

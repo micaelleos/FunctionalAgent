@@ -19,7 +19,7 @@ A proposta é reconstruir o produto em uma arquitetura serverless na GCP:
 | Camada | Hoje | Alvo |
 |---|---|---|
 | Interface | Streamlit (Python) | **React + TypeScript + Vite**, servido pelo **Firebase Hosting** |
-| API / Agente | Dentro do Streamlit | **FastAPI (Python 3.12)** em **Cloud Run**, agente com **LangGraph** |
+| API / Agente | Dentro do Streamlit | **FastAPI (Python 3.12)** em **Cloud Run**, agente com loop próprio sobre **Gemini no Vertex AI** (ADR-008) |
 | Identidade | Nenhuma | **Firebase Authentication** (Google + e-mail/senha) |
 | Dados do usuário | `st.session_state` (perdido no refresh) | **Firestore** (conversas, mensagens, issues, conexões Jira) |
 | Segredos | `.env` / campo de texto | **Secret Manager** (chaves do app) + **Cloud KMS** (tokens Jira por usuário) |
@@ -86,7 +86,7 @@ flowchart LR
 | F02 | Infraestrutura base GCP/Firebase (Terraform) | 0 — Fundação | [F02](../../specs/002-infraestrutura-base/spec.md) |
 | F03 | Autenticação e conta do usuário | 1 — Núcleo | [F03](../../specs/003-autenticacao/spec.md) |
 | F04 | Conexão Jira por usuário | 1 — Núcleo | [F04](../../specs/004-conexao-jira/spec.md) |
-| F05 | API de chat com agente (LangGraph + streaming) | 1 — Núcleo | [F05](../../specs/005-agente-chat-api/spec.md) |
+| F05 | API de chat com agente (Gemini + streaming) | 1 — Núcleo | [F05](../../specs/005-agente-chat-api/spec.md) |
 | F06 | Confirmação humana antes de escrever no Jira | 1 — Núcleo | [F06](../../specs/006-confirmacao-humana/spec.md) |
 | F07 | Conversas persistentes | 2 — Produto | [F07](../../specs/007-conversas-persistentes/spec.md) |
 | F08 | Interface de chat em React | 2 — Produto | [F08](../../specs/008-interface-chat/spec.md) |
@@ -131,7 +131,7 @@ Opções originais, para referência:
 1. **Domínio próprio** (ex.: `app.seudominio.com` e `api.seudominio.com`)? Recomendado; sem domínio o app usa
    `*.web.app` e a URL `*.run.app` do Cloud Run.
 2. **Região**: recomendado `southamerica-east1` (São Paulo) para Cloud Run, Firestore e KMS.
-3. **Provedor de LLM**: o plano mantém OpenAI (já usado), atrás de uma interface que permite trocar de
-   provedor por configuração.
+3. **Provedor de LLM**: decidido em 2026-11-16 — Gemini no Vertex AI, modelo padrão `gemini-3.5-flash-lite`
+   ([ADR-008](adr/ADR-008-llm-gemini-vertex.md)).
 4. **Ambiente de staging**: o plano prevê `dev` + `prd`; `stg` é opcional (custo baixo, mais segurança no release).
 5. **Instância mínima em produção** (`min-instances=1`): elimina cold start ao custo de alguns dólares/mês.

@@ -37,7 +37,8 @@ a única fronteira confiável.
 
 ### III. Segredos nunca em código nem no cliente
 
-1. Segredos do sistema (chave do LLM etc.) ficam no **Secret Manager**, injetados no Cloud Run.
+1. Segredos do sistema (chaves de terceiros etc.) ficam no **Secret Manager**, injetados no Cloud Run;
+   serviços do Google Cloud, como o Vertex AI, são acessados pela conta de serviço, sem chave.
 2. Credenciais de terceiros por usuário (tokens do Jira) são cifradas com **Cloud KMS** (cifra
    direta ou envelope, conforme o ADR-004) antes de gravar no Firestore e MUST NOT retornar ao
    frontend após salvas.
@@ -130,14 +131,15 @@ errado, e o custo recai sobre o time que revisa.
 
 ## Restrições de Stack e Plataforma
 
-- **Backend:** Python 3.12, uv (`uv.lock`), FastAPI + Pydantic v2, LangGraph para o agente, httpx
+- **Backend:** Python 3.12, uv (`uv.lock`), FastAPI + Pydantic v2, agente com loop próprio sobre o SDK
+  `google-genai` (Gemini no Vertex AI, ADR-008), httpx
   para o Jira (API v3 com ADF). Qualidade: Ruff, mypy strict, import-linter.
 - **Camadas do backend:** `api → services → agent | integrations | repositories → core`, verificadas
   pelo `import-linter`; importações no sentido inverso MUST falhar o lint.
 - **Frontend:** React 19 + TypeScript strict, Vite, TanStack Query, Tailwind + shadcn/ui, cliente
   gerado com openapi-typescript. Testes: Vitest + Testing Library + MSW; Playwright + axe para E2E.
 - **Plataforma:** Firebase Hosting, Firebase Auth + App Check, Cloud Run, Firestore (modo nativo),
-  Secret Manager, Cloud KMS, Cloud Logging/Trace; Terraform com estado em GCS; GitHub Actions para CI; deploy por `make deploy`.
+  Vertex AI, Secret Manager, Cloud KMS, Cloud Logging/Trace; Terraform com estado em GCS; GitHub Actions para CI; deploy por `make deploy`.
 - **Monorepo** (ADR-005): `backend/`, `frontend/`, `infra/`, `scripts/`, `specs/` (features no formato
   Spec Kit, `Fxx` = pasta `0xx-slug`), `docs/modernizacao/` (plano, arquitetura, ADRs);
   `legacy/` (Streamlit) permanece só até o go-live (F12) e não recebe features novas.
@@ -174,4 +176,4 @@ errado, e o custo recai sobre o time que revisa.
 - **Guia de execução:** `CONTRIBUTING.md`, `specs/ROADMAP.md` e
   `docs/modernizacao/08-processo-de-desenvolvimento.md`.
 
-**Version**: 2.1.0 | **Ratified**: 2026-11-13 | **Last Amended**: 2026-11-16
+**Version**: 2.2.0 | **Ratified**: 2026-11-13 | **Last Amended**: 2026-11-16

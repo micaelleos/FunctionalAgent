@@ -6,18 +6,18 @@ import App from './App'
 import { fakeAuth } from './test/fakeAuth'
 import { api, server } from './test/server'
 
-describe('F01-RF-03 página de status ("Sobre")', () => {
+describe('F01-RF-03 página de status ("About")', () => {
   it('exibe "API: ok" e a versão quando /health responde', async () => {
-    render(<App authClient={fakeAuth().client} initialPath="/sobre" />)
+    render(<App authClient={fakeAuth().client} initialPath="/about" />)
 
     expect(await screen.findByText('API: ok')).toBeInTheDocument()
-    expect(screen.getByText(/versão abc123/)).toBeInTheDocument()
+    expect(screen.getByText(/version abc123/)).toBeInTheDocument()
   })
 
   it('exibe erro quando a API falha', async () => {
     server.use(http.get(api('/health'), () => new HttpResponse(null, { status: 503 })))
 
-    render(<App authClient={fakeAuth().client} initialPath="/sobre" />)
+    render(<App authClient={fakeAuth().client} initialPath="/about" />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('API respondeu 503')
   })

@@ -4,7 +4,7 @@ import { Link, NavLink, useNavigate, useParams, useSearchParams } from 'react-ro
 
 import { ActionCard } from '../components/ActionCard'
 import { Alert, Button } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 import { useProduct } from '../product/context'
 import type { ChatMessage, MessagePart } from '../product/types'
 
@@ -111,7 +111,7 @@ export function ChatPage() {
             <section className="flex flex-col gap-4 py-8">
               <h2 className="text-2xl font-semibold">{t.chat.emptyTitle}</h2>
               <p className="text-zinc-700">{t.chat.emptyBody}</p>
-              <ul className="flex flex-wrap gap-2" aria-label="Sugestões">
+              <ul className="flex flex-wrap gap-2" aria-label={t.chat.suggestionsLabel}>
                 {t.chat.suggestions.map((s) => (
                   <li key={s}>
                     <button

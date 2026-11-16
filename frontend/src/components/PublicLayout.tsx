@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
-import { t } from '../i18n/pt-BR'
+import { t } from '../i18n/en'
 
 /** Layout das páginas públicas (login, cadastro, "Sobre"): cabeçalho simples. */
 export function PublicLayout() {
@@ -31,12 +31,12 @@ export function PublicLayout() {
               {t.nav.chat}
             </NavLink>
           )}
-          <NavLink to="/sobre" className={link}>
+          <NavLink to="/about" className={link}>
             {t.nav.about}
           </NavLink>
           {status === 'signed-in' && user && (
             <div className="ml-auto flex items-center gap-3" aria-label={t.nav.userMenu}>
-              <NavLink to="/conta" className={link}>
+              <NavLink to="/account" className={link}>
                 {user.displayName ?? user.email}
               </NavLink>
               <button

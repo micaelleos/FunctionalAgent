@@ -3,20 +3,20 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { Alert, Button, PageHeader } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 import { useProduct } from '../product/context'
 import type { IssueType } from '../product/types'
 
-const TYPES: IssueType[] = ['Épico', 'História', 'Tarefa']
+const TYPES: IssueType[] = ['Epic', 'Story', 'Task']
 
 const STATUS_STYLE: Record<string, string> = {
-  'A fazer': 'bg-zinc-100 text-zinc-700',
-  'Em andamento': 'bg-blue-100 text-blue-900',
-  Concluído: 'bg-green-100 text-green-900',
+  'To Do': 'bg-zinc-100 text-zinc-700',
+  'In Progress': 'bg-blue-100 text-blue-900',
+  Done: 'bg-green-100 text-green-900',
 }
 
 const dateTime = (iso: string) =>
-  new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  new Date(iso).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })
 
 /** Issues criadas pelo SpecFlow (tela de F10): filtros, links para o Jira e para a conversa. */
 export function IssuesPage() {

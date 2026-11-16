@@ -14,21 +14,21 @@ test.skip(!SITE || !EMAIL || !TOKEN, 'precisa de JIRA_SANDBOX_URL, _EMAIL e _API
 async function signIn(page: Page, request: Parameters<typeof createAccount>[0]) {
   const account = await createAccount(request, { verified: true, name: 'Pessoa Jira' })
   await page.goto('/login')
-  await page.getByLabel('E-mail').fill(account.email)
-  await page.getByLabel('Senha').fill(account.password)
-  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await page.getByLabel('Email').fill(account.email)
+  await page.getByLabel('Password').fill(account.password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Chat' })).toBeVisible()
   await page
-    .getByRole('navigation', { name: 'Principal' })
-    .getByRole('link', { name: 'Configurações' })
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Settings' })
     .click()
 }
 
 async function fill(page: Page, site: string, token: string) {
-  await page.getByLabel('URL do site').fill(site)
-  await page.getByLabel('E-mail da conta Atlassian').fill(EMAIL)
-  await page.getByLabel('Token de API').fill(token)
-  await page.getByRole('button', { name: 'Validar e salvar' }).click()
+  await page.getByLabel('Site URL').fill(site)
+  await page.getByLabel('Atlassian account email').fill(EMAIL)
+  await page.getByLabel('API token').fill(token)
+  await page.getByRole('button', { name: 'Validate and save' }).click()
 }
 
 test.describe('F04 conexão com o Jira sandbox', () => {
@@ -40,15 +40,15 @@ test.describe('F04 conexão com o Jira sandbox', () => {
 
     await fill(page, SITE, 'token-invalido-de-proposito')
     await expect(page.getByRole('alert')).toHaveText(
-      'O Jira recusou a credencial. Verifique e-mail e token.',
+      'Jira rejected the credential. Check the email and token.',
     )
 
     await fill(page, 'http://169.254.169.254', TOKEN)
     // type="url" aceita http; quem recusa é a API (F04-RT-03).
     await expect(page.getByRole('alert')).toHaveText(
-      'Informe uma URL https://<seu-site>.atlassian.net',
+      'Enter a URL like https://<your-site>.atlassian.net',
     )
-    await expect(page.getByText('Jira não conectado')).toBeVisible()
+    await expect(page.getByText('Jira not connected')).toBeVisible()
   })
 
   test('F04-RF-01 F04-RF-02 F04-RF-04 F04-RF-05 AT-F04-01 AT-F04-05 conecta, mascara e remove', async ({
@@ -64,21 +64,21 @@ test.describe('F04 conexão com o Jira sandbox', () => {
         r.status() === 200,
     )
     await fill(page, SITE, TOKEN)
-    await expect(page.getByText(/^Conectado como .+/)).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/^Connected as .+/)).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(`••••••••${TOKEN.slice(-4)}`)).toBeVisible()
     expect(await (await listed).text()).not.toContain(TOKEN)
     expect(await page.content()).not.toContain(TOKEN)
 
-    await page.getByRole('button', { name: 'Testar conexão' }).click()
-    await expect(page.getByText('Conexão testada: o Jira aceitou a credencial.')).toBeVisible()
+    await page.getByRole('button', { name: 'Test connection' }).click()
+    await expect(page.getByText('Connection tested: Jira accepted the credential.')).toBeVisible()
 
     page.once('dialog', (dialog) => void dialog.accept())
-    await page.getByRole('button', { name: 'Remover conexão' }).click()
-    await expect(page.getByRole('heading', { name: 'Conectar o Jira' })).toBeVisible()
+    await page.getByRole('button', { name: 'Remove connection' }).click()
+    await expect(page.getByRole('heading', { name: 'Connect Jira' })).toBeVisible()
     await page
-      .getByRole('navigation', { name: 'Principal' })
-      .getByRole('link', { name: 'Projetos Jira' })
+      .getByRole('navigation', { name: 'Main' })
+      .getByRole('link', { name: 'Jira projects' })
       .click()
-    await expect(page.getByText('Conecte sua conta do Jira')).toBeVisible()
+    await expect(page.getByText('Connect your Jira account')).toBeVisible()
   })
 })

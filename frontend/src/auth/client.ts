@@ -78,13 +78,13 @@ export function firebaseOptionsFromEnv(env: ImportMetaEnv): {
 export function createFirebaseAuthClient(env: ImportMetaEnv = import.meta.env): AuthClient {
   const { options, emulatorHost } = firebaseOptionsFromEnv(env)
   const auth: Auth = getAuth(initializeApp(options))
-  auth.languageCode = 'pt-BR'
+  auth.languageCode = 'en'
   if (emulatorHost) {
     connectAuthEmulator(auth, `http://${emulatorHost}`, { disableWarnings: true })
   }
 
   const current = (): User => {
-    if (!auth.currentUser) throw Object.assign(new Error('sem sessão'), { code: 'unauthenticated' })
+    if (!auth.currentUser) throw Object.assign(new Error('no session'), { code: 'unauthenticated' })
     return auth.currentUser
   }
 

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router'
 import { useAuth } from '../auth/context'
 import { UsagePanel } from '../components/UsagePanel'
 import { Alert, Button } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 
 function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -56,7 +56,7 @@ export function AccountPage() {
             <dt className="text-slate-500">{t.account.email}</dt>
             <dd>{me.data.email ?? '—'}</dd>
             <dt className="text-slate-500">{t.account.since}</dt>
-            <dd>{new Date(me.data.created_at).toLocaleDateString('pt-BR')}</dd>
+            <dd>{new Date(me.data.created_at).toLocaleDateString('en-US')}</dd>
           </dl>
         )}
       </section>

@@ -33,7 +33,7 @@ function backend() {
     const body = (await request.json()) as { site_url: string; email: string; api_token: string }
     requests.push({ method: request.method, path: new URL(request.url).pathname, body })
     if (!body.site_url.startsWith('https://') || !body.site_url.includes('.atlassian.net')) {
-      return problem(422, 'jira-invalid-url', 'Informe uma URL https://<seu-site>.atlassian.net')
+      return problem(422, 'jira-invalid-url', 'Enter a URL like https://<your-site>.atlassian.net')
     }
     if (body.api_token !== TOKEN && body.api_token !== 'ATATT-novo-5555') {
       return problem(422, 'jira-invalid-credentials', 'recusado')
@@ -77,21 +77,21 @@ const renderAt = (path: string) =>
 
 async function fillAndSave(site: string, token: string) {
   const user = userEvent.setup()
-  await user.clear(await screen.findByLabelText('URL do site'))
-  await user.type(screen.getByLabelText('URL do site'), site)
-  await user.clear(screen.getByLabelText('E-mail da conta Atlassian'))
-  await user.type(screen.getByLabelText('E-mail da conta Atlassian'), 'po@teste.dev')
-  await user.type(screen.getByLabelText('Token de API'), token)
-  await user.click(screen.getByRole('button', { name: 'Validar e salvar' }))
+  await user.clear(await screen.findByLabelText('Site URL'))
+  await user.type(screen.getByLabelText('Site URL'), site)
+  await user.clear(screen.getByLabelText('Atlassian account email'))
+  await user.type(screen.getByLabelText('Atlassian account email'), 'po@teste.dev')
+  await user.type(screen.getByLabelText('API token'), token)
+  await user.click(screen.getByRole('button', { name: 'Validate and save' }))
   return user
 }
 
 describe('F04-RF-01 F04-RF-02 F04-RF-04 conectar o Jira (AT-F04-01)', () => {
   it('valida, mostra a conta e o token só mascarado', async () => {
-    renderAt('/configuracoes')
+    renderAt('/settings')
     await fillAndSave('https://sandbox.atlassian.net', TOKEN)
 
-    expect(await screen.findByText('Conectado como PO Teste')).toBeInTheDocument()
+    expect(await screen.findByText('Connected as PO Teste')).toBeInTheDocument()
     expect(screen.getByText('••••••••9876')).toBeInTheDocument()
     expect(screen.queryByDisplayValue(TOKEN)).not.toBeInTheDocument()
     expect(document.body.textContent).not.toContain(TOKEN)
@@ -106,27 +106,27 @@ describe('F04-RF-01 F04-RF-02 F04-RF-04 conectar o Jira (AT-F04-01)', () => {
         },
       },
     ])
-    expect(screen.getByText('Jira conectado · sandbox.atlassian.net')).toBeInTheDocument()
+    expect(screen.getByText('Jira connected · sandbox.atlassian.net')).toBeInTheDocument()
   })
 })
 
 describe('F04-RF-03 erros ao conectar (AT-F04-02, AT-F04-03)', () => {
   it('credencial recusada não é salva', async () => {
-    renderAt('/configuracoes')
+    renderAt('/settings')
     await fillAndSave('https://sandbox.atlassian.net', 'token-errado-123')
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'O Jira recusou a credencial. Verifique e-mail e token.',
+      'Jira rejected the credential. Check the email and token.',
     )
     expect(stored).toBeNull()
   })
 
   it('URL fora do padrão', async () => {
-    renderAt('/configuracoes')
+    renderAt('/settings')
     await fillAndSave('https://169.254.169.254', TOKEN)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Informe uma URL https://<seu-site>.atlassian.net',
+      'Enter a URL like https://<your-site>.atlassian.net',
     )
   })
 })
@@ -143,31 +143,31 @@ describe('F04-RF-05 trocar e remover (AT-F04-05)', () => {
       status: 'ok',
       last_validated_at: '2026-11-16T12:00:00Z',
     }
-    renderAt('/configuracoes')
+    renderAt('/settings')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Trocar token' }))
-    expect(screen.getByLabelText('URL do site')).toHaveValue('https://sandbox.atlassian.net')
-    await user.type(screen.getByLabelText('Token de API'), 'ATATT-novo-5555')
-    await user.click(screen.getByRole('button', { name: 'Validar e salvar' }))
+    await user.click(await screen.findByRole('button', { name: 'Replace token' }))
+    expect(screen.getByLabelText('Site URL')).toHaveValue('https://sandbox.atlassian.net')
+    await user.type(screen.getByLabelText('API token'), 'ATATT-novo-5555')
+    await user.click(screen.getByRole('button', { name: 'Validate and save' }))
     expect(await screen.findByText('••••••••5555')).toBeInTheDocument()
     expect(requests[requests.length - 1]).toMatchObject({ method: 'PUT', path: `${BASE}/conn-1` })
 
-    await user.click(screen.getByRole('button', { name: 'Remover conexão' }))
-    expect(await screen.findByRole('heading', { name: 'Conectar o Jira' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Remove connection' }))
+    expect(await screen.findByRole('heading', { name: 'Connect Jira' })).toBeInTheDocument()
     expect(requests[requests.length - 1]).toMatchObject({
       method: 'DELETE',
       path: `${BASE}/conn-1`,
     })
 
-    const nav = screen.getByRole('navigation', { name: 'Principal' })
-    await user.click(within(nav).getByRole('link', { name: 'Projetos Jira' }))
-    expect(await screen.findByText('Conecte sua conta do Jira')).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Main' })
+    await user.click(within(nav).getByRole('link', { name: 'Jira projects' }))
+    expect(await screen.findByText('Connect your Jira account')).toBeInTheDocument()
   })
 })
 
 describe('F04-RF-06 token revogado pede reconexão (AT-F04-04)', () => {
-  it('"Testar conexão" marca expirada e o aviso aparece nas outras telas', async () => {
+  it('"Test connection" marca expirada e o aviso aparece nas outras telas', async () => {
     stored = {
       id: 'conn-1',
       site_url: 'https://sandbox.atlassian.net',
@@ -177,40 +177,38 @@ describe('F04-RF-06 token revogado pede reconexão (AT-F04-04)', () => {
       status: 'ok',
       last_validated_at: '2026-11-16T12:00:00Z',
     }
-    renderAt('/configuracoes')
+    renderAt('/settings')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Testar conexão' }))
+    await user.click(await screen.findByRole('button', { name: 'Test connection' }))
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('Sua conexão com o Jira expirou')
-    expect(screen.getByText('Expirada')).toBeInTheDocument()
+    expect(alert).toHaveTextContent('Your Jira connection has expired')
+    expect(screen.getByText('Expired')).toBeInTheDocument()
 
-    const nav = screen.getByRole('navigation', { name: 'Principal' })
-    await user.click(within(nav).getByRole('link', { name: 'Projetos Jira' }))
+    const nav = screen.getByRole('navigation', { name: 'Main' })
+    await user.click(within(nav).getByRole('link', { name: 'Jira projects' }))
     const banner = await screen.findByRole('alert')
-    expect(banner).toHaveTextContent('Sua conexão com o Jira expirou')
-    await user.click(within(banner).getByRole('link', { name: 'Reconectar' }))
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Configurações' }),
-    ).toBeInTheDocument()
+    expect(banner).toHaveTextContent('Your Jira connection has expired')
+    await user.click(within(banner).getByRole('link', { name: 'Reconnect' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Reconectar' }))
-    expect(screen.getByLabelText('URL do site')).toHaveValue('https://sandbox.atlassian.net')
+    await user.click(screen.getByRole('button', { name: 'Reconnect' }))
+    expect(screen.getByLabelText('Site URL')).toHaveValue('https://sandbox.atlassian.net')
   })
 })
 
 describe('F04-RF-07 como criar o token', () => {
   it('o painel explica e leva à página da Atlassian', async () => {
-    renderAt('/configuracoes')
+    renderAt('/settings')
     expect(
-      await screen.findByRole('heading', { name: 'Como criar o token de API' }),
+      await screen.findByRole('heading', { name: 'How to create an API token' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Abrir a página de tokens' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open the API tokens page' })).toHaveAttribute(
       'href',
       'https://id.atlassian.com/manage-profile/security/api-tokens',
     )
-    expect(screen.queryByText(/chega na próxima versão \(F04\)/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/arrives in the next release \(F04\)/)).not.toBeInTheDocument()
   })
 })
 
@@ -225,11 +223,11 @@ describe('F08-RT-08 projetos enquanto a F09 não chega', () => {
       status: 'ok',
       last_validated_at: '2026-11-16T12:00:00Z',
     }
-    renderAt('/projetos')
+    renderAt('/projects')
 
     expect(
-      await screen.findByRole('heading', { name: 'A lista de projetos chega na próxima versão' }),
+      await screen.findByRole('heading', { name: 'The project list arrives in the next release' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText(/0 projetos/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/0 projects/)).not.toBeInTheDocument()
   })
 })

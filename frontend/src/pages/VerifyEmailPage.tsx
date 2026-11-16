@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
 import { Alert, Button, Card } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 
 export function VerifyEmailPage() {
   const { status, user, client, refresh } = useAuth()

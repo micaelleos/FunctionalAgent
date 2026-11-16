@@ -5,7 +5,8 @@
 | **Status** | Rascunho |
 | **Fase** | 2 — Produto |
 | **Dependências** | F06, F08 |
-| **Estimativa** | 3 dias |
+| **Estimativa** | 3,5 dias |
+| **Revisão** | 2026-11-16: issues escritas para agentes de IA de código ([doc 10](../../docs/modernizacao/10-specs-para-agentes.md), ADR-007) |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
@@ -31,6 +32,8 @@
 | F10-RF-03 | O usuário filtra por projeto, tipo e período | Should |
 | F10-RF-04 | Cada item tem link funcional para o Jira e para a conversa de origem | Must |
 | F10-RF-05 | O usuário pode ver o status atual do issue no Jira (consulta sob demanda) | Could |
+| F10-RF-06 | Cada item tem "Copiar para agente de código": copia o Markdown da spec e uma instrução curta de uso ("Implemente a issue ABC-12 abaixo; os critérios de aceite são os testes de pronto") (RA-30) | Should |
+| F10-RF-07 | A lista mostra se a issue foi criada como pronta para agente (`agent-ready`) ou `human-only` e filtra por isso | Should |
 
 ### 4. Requisitos técnicos
 | ID | Requisito | Verificação |
@@ -59,12 +62,20 @@ Funcionalidade: Histórico de issues
   Cenário: AT-F10-03 Status atual                                # F10-RF-05
     Quando clico em "Ver status" em "E2E-<n>"
     Então vejo o status atual do Jira (ex.: "To Do")
+
+  Cenário: AT-F10-04 Copiar para agente de código               # F10-RF-06, F10-RF-07
+    Dado que confirmei "E2E-<n>" como pronta para agente
+    Quando abro "Issues criadas"
+    Então vejo "E2E-<n>" marcada "Pronta para agente"
+    Quando clico em "Copiar para agente de código"
+    Então a área de transferência tem "E2E-<n>", a seção "## Critérios de aceite" e a instrução de uso
 ```
 
 ### 6. Conformidade com a Constituição
 | Artigo | Cumprimento |
 |---|---|
 | II Privacidade | `users/{uid}/jira_issues`; incluso na exportação/exclusão (F03) |
+| XII Specs para agentes | Entrega da spec ao agente de código pelo "Copiar para agente" |
 
 ---
 
@@ -77,6 +88,8 @@ Funcionalidade: Histórico de issues
 | F10-RF-03 | AT-F10-02 | ⬜ |
 | F10-RF-04 | AT-F10-01 | ⬜ |
 | F10-RF-05 | AT-F10-03 | ⬜ |
+| F10-RF-06 | AT-F10-04 | ⬜ |
+| F10-RF-07 | AT-F10-04 | ⬜ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |

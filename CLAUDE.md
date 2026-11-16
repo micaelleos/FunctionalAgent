@@ -4,8 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Agente Funcional: an AI agent that helps Product Owners write functional documentation (epics, BDD
-user stories, tasks) and export it to Jira. The project is **mid-migration** from a Streamlit
+Agente Funcional ("SpecFlow AI"): an AI agent that helps Product Owners write specs (epics, BDD user
+stories, tasks) and export them to Jira. Since 2026-11-16 the primary reader of every issue it creates is
+an **AI coding agent** that implements it: issues are generated from a structured `AgentReadySpec` with
+fixed sections and a no-LLM readiness check (`docs/modernizacao/10-specs-para-agentes.md`, ADR-007,
+constitution Article XII). The project is **mid-migration** from a Streamlit
 prototype (`legacy/`, kept until go-live in F12, no new features) to a React SPA (`frontend/`) +
 FastAPI backend (`backend/`) on Firebase Hosting + Cloud Run + Firestore. Only F01 (monorepo,
 tooling, CI) is implemented so far; most backend packages are empty placeholders for later
@@ -65,13 +68,18 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   `ProductApi` (`frontend/src/product/`). Production uses `unavailableProductApi` (empty states, no
   invented data); `createDemoProductApi` runs only in `npm run dev:demo` / tests, and `postbuild`
   (`scripts/check-no-demo.mjs`) fails a build that contains it. Each feature (F04, F07, F09–F11)
-  replaces its methods with the real `/api/v1` calls.
+  replaces its methods with the real `/api/v1` calls; `createHttpProductApi` (`product/http.ts`) is the
+  production default and already wires the F04 Jira connection.
+- **Jira credentials (F04, ADR-004)**: `/api/v1/jira/connections` validates on `GET /rest/api/3/myself`, then
+  stores the token encrypted with `kms.encrypt` (`KMS_KEY_NAME`); `LocalFernetCipher` only with `ENV`
+  local/test. The token is never returned or logged; `JiraConnectionService.client_for(uid, id)` decrypts
+  per request and is the entry point for F05/F09/F10. Only `https://<site>.atlassian.net` URLs (SSRF).
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 
 ## Spec-driven workflow (Spec Kit)
 
-- Constitution (non-negotiable rules, Articles I–XI): `.specify/memory/constitution.md`.
+- Constitution (non-negotiable rules, Articles I–XII): `.specify/memory/constitution.md`.
   `docs/modernizacao/02-constituicao.md` is a mirror; amend both in the same PR.
 - Each feature `Fxx` lives in `specs/0xx-slug/` (`F05` → `specs/005-agente-chat-api/`):
   `spec.md` (requirements, Gherkin acceptance tests, constitution check, traceability, evidence),

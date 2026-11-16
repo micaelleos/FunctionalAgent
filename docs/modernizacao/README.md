@@ -36,6 +36,11 @@ back em paralelo). Ver [Roadmap](../../specs/ROADMAP.md).
 
 ---
 
+**Revisão de 2026-11-16:** as issues que o produto cria passam a ser escritas para **agentes de IA de código**
+implementarem (Claude Code, Copilot, Cursor, Codex), com o PO como autor e revisor. Ver
+[10 — Specs para agentes](10-specs-para-agentes.md), [ADR-007](adr/ADR-007-spec-pronta-para-agente.md) e o
+Artigo XII da Constituição.
+
 ## 2. Como ler este plano
 
 | # | Documento | Pergunta que responde |
@@ -49,6 +54,7 @@ back em paralelo). Ver [Roadmap](../../specs/ROADMAP.md).
 | 07 | [Roadmap e índice de features](../../specs/ROADMAP.md) | Em que ordem, em quais fases, com quais marcos? |
 | 08 | [Processo de desenvolvimento](08-processo-de-desenvolvimento.md) | Como cada feature é especificada, planejada, implementada e **validada**? |
 | 09 | [Estratégia de testes](09-estrategia-de-testes.md) | Que testes existem em cada camada e o que bloqueia um merge? |
+| 10 | [Specs para agentes de código](10-specs-para-agentes.md) | Como as issues que o produto cria são escritas para um agente de IA implementar? |
 | — | [ADRs](adr/) | Decisões arquiteturais registradas, com alternativas descartadas |
 | — | [Features](../../specs/) | Uma pasta por feature (`spec.md`, `plan.md`, `tasks.md`): requisitos, plano, teste final |
 
@@ -91,6 +97,8 @@ flowchart LR
 | F13 | Login Atlassian via OAuth 2.0 (3LO) | 4 — Evolução | [F13](../../specs/013-oauth-atlassian/spec.md) |
 | F14 | Editor de artefatos antes da exportação | 4 — Evolução | [F14](../../specs/014-editor-artefatos/spec.md) |
 | F15 | Suíte contínua de avaliação do agente (evals) | 4 — Evolução | [F15](../../specs/015-evals-agente/spec.md) |
+| F17 | Contexto do repositório (GitHub, só leitura) | 4 — Evolução | [F17](../../specs/017-contexto-repositorio/spec.md) |
+| F18 | Exportar specs para o repositório (Spec Kit) | 4 — Evolução | [F18](../../specs/018-exportar-specs-repositorio/spec.md) |
 
 ---
 

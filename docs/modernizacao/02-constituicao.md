@@ -4,12 +4,13 @@
 > pelos comandos do Spec Kit. Os dois arquivos MUST ter o mesmo conteúdo; uma emenda altera ambos no
 > mesmo PR (ver Governança).
 >
-> **Versão:** 2.0.0 · **Ratificada em:** 2026-11-13 (aprovação formal do dono do produto pendente)
-> · **Última emenda:** 2026-11-14
+> **Versão:** 2.1.0 · **Ratificada em:** 2026-11-13 (aprovação formal do dono do produto pendente)
+> · **Última emenda:** 2026-11-16 (Artigo XII, specs para agentes de código — ADR-007)
 
-**Missão:** ajudar Product Owners a transformar ideias em documentação funcional de qualidade
-(épicos, user stories em BDD, tarefas) e a manter o backlog do Jira organizado — **com o humano
-sempre no controle** do que é escrito em sistemas externos.
+**Missão:** ajudar Product Owners a transformar ideias em **specs que agentes de IA de código
+conseguem implementar** (épicos, histórias e tarefas com critérios de aceite verificáveis) e a manter
+o backlog do Jira organizado — **com o humano sempre no controle** do que é escrito em sistemas
+externos e do que vai para um agente.
 
 Os artigos abaixo são **inegociáveis**. Um artigo só pode ser violado com uma exceção registrada em
 ADR (`docs/modernizacao/adr/`) e aprovada pelo dono do produto.
@@ -44,8 +45,9 @@ a única fronteira confiável.
 ### III. Segredos nunca em código nem no cliente
 
 1. Segredos do sistema (chave do LLM etc.) ficam no **Secret Manager**, injetados no Cloud Run.
-2. Credenciais de terceiros por usuário (tokens do Jira) são cifradas com **Cloud KMS** (envelope
-   encryption) antes de gravar no Firestore e MUST NOT retornar ao frontend após salvas.
+2. Credenciais de terceiros por usuário (tokens do Jira) são cifradas com **Cloud KMS** (cifra
+   direta ou envelope, conforme o ADR-004) antes de gravar no Firestore e MUST NOT retornar ao
+   frontend após salvas.
 3. `gitleaks` roda em todo PR; um segredo detectado bloqueia o merge.
 
 **Razão:** um vazamento de credencial do Jira expõe o backlog inteiro do cliente.
@@ -115,7 +117,23 @@ agente.
 1. Prompts são arquivos versionados (`system_vN.md`), nunca strings soltas no código.
 2. Ferramentas do agente são funções puras de domínio, testáveis sem LLM e sem UI.
 3. Toda user story gerada segue BDD (cenários + critérios de aceite); todo épico tem objetivo,
-   benefício, escopo e critérios de aceite — verificados por evals.
+   benefício, escopo e critérios de aceite — verificados por evals. O formato completo é o do
+   Artigo XII.
+
+### XII. Specs prontas para agentes de código
+
+1. O leitor principal de cada issue criada pelo SpecFlow é um **agente de IA de código**; a spec
+   MUST permitir que ele implemente a mudança lendo só o issue (autocontida, escopo de um PR).
+2. Toda issue é gerada de um **esquema estruturado** (`AgentReadySpec`, ADR-007) e renderizada com
+   seções fixas; critérios de aceite são cenários Gherkin com ID, incluindo erro ou borda.
+3. A prontidão é verificada **no código**, sem LLM (regras do doc 10), e mostrada ao PO antes da
+   confirmação. Ela avisa e não bloqueia: quem decide é o humano (Artigo IV).
+4. Quando falta informação, o agente MUST perguntar ao PO em vez de inventar requisitos.
+5. Conteúdo vindo do Jira ou do usuário entra na spec como dado, nunca como instrução ao agente de
+   código.
+
+**Razão:** agentes de código implementam o que está escrito; spec ambígua ou grande demais vira PR
+errado, e o custo recai sobre o time que revisa.
 
 ## Restrições de Stack e Plataforma
 
@@ -158,9 +176,9 @@ agente.
 - **Versionamento:** SemVer — MAJOR remove ou redefine um artigo; MINOR adiciona artigo/seção ou
   amplia materialmente uma regra; PATCH esclarece texto sem mudar significado.
 - **Conformidade:** toda spec tem a seção "Conformidade com a Constituição"; todo PR preenche o
-  checklist correspondente; o revisor verifica os Artigos I–XI. Revisão da Constituição só por emenda,
+  checklist correspondente; o revisor verifica os Artigos I–XII. Revisão da Constituição só por emenda,
   avaliada na retrospectiva de cada fase do roadmap.
 - **Guia de execução:** `CONTRIBUTING.md`, `specs/ROADMAP.md` e
   `docs/modernizacao/08-processo-de-desenvolvimento.md`.
 
-**Version**: 2.0.0 | **Ratified**: 2026-11-13 | **Last Amended**: 2026-11-14
+**Version**: 2.1.0 | **Ratified**: 2026-11-13 | **Last Amended**: 2026-11-16

@@ -74,6 +74,14 @@ class JiraProject:
 
 
 @dataclass(frozen=True)
+class JiraIssueType:
+    id: str
+    name: str
+    hierarchy_level: int  # 1: épico, 0: história/tarefa, -1: subtarefa
+    subtask: bool
+
+
+@dataclass(frozen=True)
 class JiraCreated:
     key: str
     url: str
@@ -230,6 +238,25 @@ class JiraClient:
                 raise JiraError(f"o Jira respondeu {status}")
             return response
         raise AssertionError("inalcançável")  # pragma: no cover
+
+    async def project_issue_types(self, project_key: str) -> list[JiraIssueType]:
+        """Tipos que o projeto aceita na criação, com os nomes do site (podem estar em
+        português: "História", "Tarefa"). `GET /rest/api/3/issue/createmeta/{key}/issuetypes`."""
+        response = await self._request(
+            "GET",
+            f"/rest/api/3/issue/createmeta/{project_key}/issuetypes",
+            params={"maxResults": MAX_SEARCH},
+            not_found=True,
+        )
+        return [
+            JiraIssueType(
+                str(t["id"]),
+                str(t.get("name") or ""),
+                int(t.get("hierarchyLevel") or 0),
+                bool(t.get("subtask")),
+            )
+            for t in response.json().get("issueTypes", [])
+        ]
 
     async def create_issue(self, fields: dict[str, Any]) -> JiraCreated:
         """`POST /rest/api/3/issue` com os campos já derivados da ação confirmada (F06-RF-02)."""

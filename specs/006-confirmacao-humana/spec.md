@@ -116,16 +116,17 @@ Funcionalidade: Confirmação humana
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F06-RF-01 | AT-F06-01, `ActionCard.test.tsx`, `test_tools_propose.py` | ✅ unit · ⬜ aceitação |
-| F06-RF-02 | AT-F06-01, `test_actions.py`, `test_actions_api.py`, `test_jira_write.py`, `integration/test_actions.py` | ✅ unit · ⬜ aceitação |
-| F06-RF-03 | AT-F06-02, `test_actions.py`, `test_chat_service.py` | ✅ unit · ⬜ aceitação |
-| F06-RF-04 | AT-F06-01, AT-F06-03, `test_actions_api.py`, eval `injection_*` | ✅ unit · ⬜ aceitação |
+| F06-RF-01 | AT-F06-01, `ActionCard.test.tsx`, `test_tools_propose.py` | ✅ unit · ✅ aceitação |
+| F06-RF-02 | AT-F06-01, `test_actions.py`, `test_actions_api.py`, `test_jira_write.py`, `integration/test_actions.py` | ✅ unit · ✅ aceitação |
+| F06-RF-03 | AT-F06-02, `test_actions.py`, `test_chat_service.py` | ✅ unit · ✅ aceitação |
+| F06-RF-04 | AT-F06-01, AT-F06-03, `test_actions_api.py`, eval `injection_*` | ✅ unit · ✅ aceitação |
 | F06-RF-05 | `test_actions.py`, `test_actions_api.py`, `ActionCard.test.tsx` | ✅ unit |
-| F06-RF-06 | AT-F06-05, `test_tools_propose.py`, `actions.test.ts`, `ActionCard.test.tsx` | ✅ unit · ⬜ aceitação |
-| F06-RF-07 | AT-F06-06, `test_actions.py`, `test_actions_api.py`, `ActionCard.test.tsx` | ✅ unit · ⬜ aceitação |
-| F06-RF-08 | AT-F06-07, `ActionCard.test.tsx` | ✅ unit · ⬜ aceitação |
-| F06-RF-09 | AT-F06-01, AT-F06-07, `test_actions.py` | ✅ unit · ⬜ aceitação |
+| F06-RF-06 | AT-F06-05, `test_tools_propose.py`, `actions.test.ts`, `ActionCard.test.tsx` | ✅ unit · ✅ aceitação |
+| F06-RF-07 | AT-F06-06, `test_actions.py`, `test_actions_api.py`, `ActionCard.test.tsx` | ✅ unit · ✅ aceitação |
+| F06-RF-08 | AT-F06-07, `ActionCard.test.tsx` | ✅ unit · ✅ aceitação |
+| F06-RF-09 | AT-F06-01, AT-F06-07, `test_actions.py` | ✅ unit · ✅ aceitação |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-16 | PR #17 (`feat/F06-confirmacao-humana`) | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` (site em português) | `pytest tests/acceptance` (F05 + F06), 2 execuções seguidas; evals 30 casos | 16/16 nas duas; issues mantidas para conferência a pedido do PO (SCRUM-20..29); evals: nenhuma métrica abaixo do baseline, todas 100% (`evals/results/2026-11-16-new-gemini-3.5-flash-lite-f06.json`) | Pendente (PO) |

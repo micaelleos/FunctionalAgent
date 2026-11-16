@@ -6,6 +6,7 @@ o "clique" é a chamada que o cartão faz (`POST /api/v1/actions/{id}/confirm`).
 """
 
 import asyncio
+import os
 import re
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
@@ -38,9 +39,11 @@ async def _get(key: str) -> Any:
 
 async def _create_precondition(summary: str) -> str:
     async with _sandbox() as jira:
+        types = await jira.project_issue_types(JIRA_PROJECT)
+        task = next(t for t in types if t.hierarchy_level == 0)  # o nome depende do idioma
         fields = {
             "project": {"key": JIRA_PROJECT},
-            "issuetype": {"name": "Task"},
+            "issuetype": {"id": task.id},
             "summary": summary,
         }
         return (await jira.create_issue(fields)).key
@@ -54,9 +57,13 @@ def _delete(key: str) -> None:
 
 @pytest.fixture(scope="module")
 def created() -> Iterator[list[str]]:
-    """Chaves criadas no sandbox durante o módulo; apagadas no fim, mesmo se um teste falhar."""
+    """Chaves criadas no sandbox durante o módulo; apagadas no fim, mesmo se um teste falhar
+    (`ACCEPTANCE_KEEP_ISSUES=1` mantém, para conferir no Jira)."""
     keys: list[str] = []
     yield keys
+    if os.environ.get("ACCEPTANCE_KEEP_ISSUES") == "1":
+        print(f"\nIssues mantidas no sandbox: {', '.join(keys)}")
+        return
     for key in keys:
         _delete(key)
 

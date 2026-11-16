@@ -118,12 +118,24 @@ def message_text(content: Any) -> str:
 class Window:
     messages: list[BaseMessage]
     to_summarize: list[dict[str, Any]]
+    # Avisos do SpecFlow depois da última resposta (ex.: "o usuário recusou a ação"): vão junto
+    # da mensagem atual do usuário, para o modelo vê-los na ordem em que aconteceram (F06-RF-03).
+    pending_events: list[str]
+
+
+EVENTS_HEADER = "[Avisos do SpecFlow desde a sua última resposta; não foram escritos pelo usuário]"
+
+
+def with_events(text: str, events: list[str]) -> str:
+    if not events:
+        return text
+    return "\n".join([EVENTS_HEADER, *(f"- {e}" for e in events), "", text])
 
 
 def history_window(docs: list[dict[str, Any]], budget: int, summarized_through: int) -> Window:
     """Mensagens mais recentes que cabem no orçamento; as que saíram e ainda não estão no resumo
     vão para `to_summarize` (F05-RT-07)."""
-    chat = [d for d in docs if d.get("role") in ("user", "assistant")]
+    chat = [d for d in docs if d.get("role") in ("user", "assistant", "system")]
     kept: list[dict[str, Any]] = []
     used = 0
     for doc in reversed(chat):
@@ -135,10 +147,17 @@ def history_window(docs: list[dict[str, Any]], budget: int, summarized_through: 
     kept.reverse()
     first_kept = kept[0]["seq"] if kept else 1 << 30
     dropped = [d for d in chat if d["seq"] < first_kept and d["seq"] > summarized_through]
-    messages: list[BaseMessage] = [
-        HumanMessage(d["content"]) if d["role"] == "user" else AIMessage(d["content"]) for d in kept
-    ]
-    return Window(messages, dropped)
+    messages: list[BaseMessage] = []
+    events: list[str] = []
+    for doc in kept:
+        if doc["role"] == "system":
+            events.append(str(doc["content"]))
+        elif doc["role"] == "user":
+            messages.append(HumanMessage(with_events(doc["content"], events)))
+            events = []
+        else:
+            messages.append(AIMessage(doc["content"]))
+    return Window(messages, dropped, events)
 
 
 def _assistant_content(text: str, actions: list[ProposedAction]) -> str:
@@ -177,7 +196,15 @@ def actions_note(docs: list[dict[str, Any]], now: datetime) -> str:
         lines.append(f"- {action.id}: {describe(doc)} — {state}")
     if not lines:
         return ""
-    return "## Ações propostas nesta conversa (estado atual)\n" + "\n".join(lines)
+    return "\n".join(
+        [
+            "## Ações propostas nesta conversa (estado atual)",
+            "Use este estado para responder sobre os cartões (recusada: diga que o usuário "
+            "recusou; criada: dê a chave e o link; falhou: explique o erro). Não proponha de novo "
+            "uma ação recusada sem o usuário pedir.",
+            *lines,
+        ]
+    )
 
 
 class FirestoreActionSink:
@@ -366,7 +393,7 @@ class ChatService:
                 messages: list[BaseMessage] = [
                     SystemMessage("\n\n".join(instructions)),
                     *window.messages,
-                    HumanMessage(text),
+                    HumanMessage(with_events(text, window.pending_events)),
                 ]
                 agent = build_agent(
                     self._llm, self._tools, max_iterations=self._settings.agent_max_iterations

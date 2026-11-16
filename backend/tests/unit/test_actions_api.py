@@ -18,7 +18,15 @@ from app.main import create_app
 from app.services.actions import ActionService
 from app.services.chat import ChatService
 from app.services.jira_connections import JiraConnectionService
-from tests.chat_fakes import NOW, SITE, FakeJiraService, MemoryChatStore, call
+from tests.chat_fakes import (
+    ISSUE_TYPES_EN,
+    NOW,
+    SITE,
+    FakeJiraService,
+    MemoryChatStore,
+    call,
+    issue_types_response,
+)
 from tests.fakes import FakeVerifier
 from tests.spec_fixtures import pix_story_data
 
@@ -34,6 +42,8 @@ class Jira:
         self.fail_with: httpx.Response | None = None
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
+        if (types := issue_types_response(request, ISSUE_TYPES_EN)) is not None:
+            return types
         if request.url.path == "/rest/api/3/project/search":
             return httpx.Response(200, json={"values": [{"key": "ABC", "name": "Loja"}]})
         self.writes.append(request)

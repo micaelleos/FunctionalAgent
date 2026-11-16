@@ -110,3 +110,19 @@ async def test_400_traz_os_erros_por_campo() -> None:
 
     assert info.value.errors == {"priority": "Priority name 'X' is not valid"}
     assert str(info.value) == "priority: Priority name 'X' is not valid"
+
+
+async def test_tipos_do_projeto_com_os_nomes_do_site() -> None:
+    types = [
+        {"id": "10004", "name": "História", "hierarchyLevel": 0, "subtask": False},
+        {"id": "10002", "name": "Subtarefa", "hierarchyLevel": -1, "subtask": True},
+    ]
+    client, seen = _client(httpx.Response(200, json={"issueTypes": types}))
+
+    found = await client.project_issue_types("SCRUM")
+
+    assert [(t.id, t.name, t.hierarchy_level, t.subtask) for t in found] == [
+        ("10004", "História", 0, False),
+        ("10002", "Subtarefa", -1, True),
+    ]
+    assert seen[0].url.path == "/rest/api/3/issue/createmeta/SCRUM/issuetypes"

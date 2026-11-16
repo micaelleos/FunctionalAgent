@@ -7,10 +7,10 @@ do serviço de chat e o `ToolContext` chega por `RunnableConfig` (F05-RT-01).
 from datetime import date
 from functools import cache
 from importlib import resources
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, AnyMessage
+from langchain_core.messages import AIMessage, AnyMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langgraph.graph import START, StateGraph
@@ -18,6 +18,7 @@ from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 
+from app.agent.tools.context import REVIEW_PREFIX
 from app.agent.tools.schemas import model_tool_specs
 
 JIRA_CONNECTED = "O usuário tem conexão com o Jira."
@@ -30,6 +31,9 @@ JIRA_MISSING = (
 class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     iterations: int
+    # Rodadas em que toda ferramenta só devolveu a proposta para correção (REVIEW_PREFIX): não
+    # gastam o limite de iterações, mas têm um teto próprio, contra loops de correção.
+    reviews: NotRequired[int]
     limit_reached: bool
 
 
@@ -64,11 +68,15 @@ def build_agent(
     tool_node = ToolNode(tools, handle_tool_errors=True)
 
     async def run_tools(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
-        if state.get("iterations", 0) >= max_iterations:
+        iterations, reviews = state.get("iterations", 0), state.get("reviews", 0)
+        if iterations >= max_iterations or reviews >= max_iterations:
             # F05-RT-03: para aqui; o serviço avisa o usuário.
             return {"limit_reached": True}
         result = await tool_node.ainvoke(state, config)
-        return {**result, "iterations": state.get("iterations", 0) + 1}
+        replies = [m for m in result.get("messages", []) if isinstance(m, ToolMessage)]
+        if replies and all(str(m.content).startswith(REVIEW_PREFIX) for m in replies):
+            return {**result, "reviews": reviews + 1}
+        return {**result, "iterations": iterations + 1}
 
     def after_tools(state: AgentState) -> Literal["model", "__end__"]:
         return "__end__" if state.get("limit_reached") else "model"

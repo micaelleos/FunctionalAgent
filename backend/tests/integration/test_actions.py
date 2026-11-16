@@ -23,7 +23,7 @@ from app.core.errors import ApiProblemError
 from app.repositories.actions import ActionRepository
 from app.services.actions import ActionService
 from app.services.jira_connections import JiraConnectionService
-from tests.chat_fakes import FakeJiraService, call
+from tests.chat_fakes import ISSUE_TYPES_EN, FakeJiraService, call, issue_types_response
 from tests.integration.conftest import DATABASE, PROJECT, AuthEmulator
 from tests.spec_fixtures import pix_story, pix_story_data
 
@@ -33,6 +33,8 @@ class Jira:
         self.writes: list[httpx.Request] = []
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
+        if (types := issue_types_response(request, ISSUE_TYPES_EN)) is not None:
+            return types
         if request.url.path == "/rest/api/3/project/search":
             return httpx.Response(200, json={"values": [{"key": "ABC", "name": "Loja"}]})
         self.writes.append(request)

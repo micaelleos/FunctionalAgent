@@ -53,4 +53,4 @@
 
 **Aceitação:** AT-F06-01..06
 
-- [ ] T005 AT-F06-01..07 — teste: Playwright/API — 1 d
+- [x] T005 AT-F06-01..07 — teste: Playwright/API — 1 d

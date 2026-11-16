@@ -9,7 +9,13 @@ from pydantic import BaseModel
 
 from app.agent.fake_llm import ScriptedChatModel
 from app.core.config import Settings
-from app.services.chat import ChatService, ConversationNotFoundError, history_window
+from app.services.actions import ActionService
+from app.services.chat import (
+    EVENTS_HEADER,
+    ChatService,
+    ConversationNotFoundError,
+    history_window,
+)
 from app.services.chat_events import CHAT_EVENT
 from app.services.jira_connections import JiraConnectionService
 from tests.chat_fakes import NOW, SITE, FakeJiraService, MemoryChatStore, call
@@ -263,14 +269,21 @@ async def test_proximo_turno_sabe_que_o_usuario_recusou_a_acao() -> None:
             AIMessage("Você recusou a criação."),
         ]
     )
-    service, store, _ = _service(llm)
+    service, store, jira = _service(llm)
     cid, _ = await _turn(service, "Crie a story do Pix no ABC")
     [action] = store.actions["uid-alice"]
-    action["status"] = "rejected"
+    actions = ActionService(
+        store, cast(JiraConnectionService, jira), _settings(), clock=lambda: NOW
+    )
+    await actions.reject("uid-alice", action["id"])
 
     await _turn(service, "Por que não foi criado?", conversation=cid)
 
-    [system, *_] = llm.calls[-1]
+    [system, *_, last] = llm.calls[-1]
+    assert isinstance(last, HumanMessage)
+    assert str(last.content).startswith(EVENTS_HEADER)
+    assert "- O usuário recusou a ação: criar Story" in str(last.content)
+    assert str(last.content).endswith("Por que não foi criado?")
     assert isinstance(system, SystemMessage)
     assert "## Ações propostas nesta conversa (estado atual)" in str(system.content)
     assert f"- {action['id']}: criar Story" in str(system.content)

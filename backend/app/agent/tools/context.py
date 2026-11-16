@@ -30,6 +30,11 @@ class Issue:
     url: str
 
 
+# Início das respostas em que a ferramenta devolve a proposta ao modelo para correção, sem criar a
+# ação (Gherkin incompleto, prontidão, termo sensível). O grafo conta essas rodadas à parte.
+REVIEW_PREFIX = "Proposta não criada"
+
+
 class JiraToolError(Exception):
     """Falha ao consultar o Jira; a mensagem é segura para o modelo e para o usuário."""
 

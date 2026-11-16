@@ -29,6 +29,7 @@ from app.agent.spec.jira_payload import (
     jira_create_fields,
     jira_update_fields,
     payload_hash,
+    resolve_issue_type,
 )
 from app.core.config import Settings
 from app.core.errors import ApiProblemError
@@ -385,6 +386,9 @@ class ActionService:
             await self._fail(uid, doc, failure, now)
         try:
             result = await self._write(client, doc["kind"], payload)
+        except _IssueTypeMissingError as exc:
+            failure = Failure(code="jira-issue-type", message=str(exc), retryable=False)
+            await self._fail(uid, doc, failure, now)
         except JiraError as exc:
             failure = translate(doc["kind"], payload, exc)
             if isinstance(exc, JiraAuthError) and doc.get("connectionId"):
@@ -403,11 +407,26 @@ class ActionService:
 
     async def _write(self, client: JiraClient, kind: str, payload: dict[str, Any]) -> ActionResult:
         if kind == "create_issue":
-            created = await client.create_issue(jira_create_fields(payload))
+            fields = jira_create_fields(payload)
+            fields["issuetype"] = {"id": await self._issue_type_id(client, payload)}
+            created = await client.create_issue(fields)
             return ActionResult(issue_key=created.key, url=created.url)
         key = str(payload["issue_key"])
         await client.update_issue(key, jira_update_fields(payload))
         return ActionResult(issue_key=key, url=f"{client.site_url}/browse/{key}")
+
+    async def _issue_type_id(self, client: JiraClient, payload: dict[str, Any]) -> str:
+        """O tipo vai pelo id do projeto: os nomes mudam com o idioma do site (ex.: "História")."""
+        types = await client.project_issue_types(payload["project_key"])
+        available = [(t.id, t.name, t.hierarchy_level) for t in types if not t.subtask]
+        type_id = resolve_issue_type(payload["issue_type"], available)
+        if type_id is None:
+            names = ", ".join(t.name for t in types if not t.subtask) or "nenhum"
+            raise _IssueTypeMissingError(
+                f"O projeto {payload['project_key']} não tem um tipo equivalente a "
+                f'"{payload["issue_type"]}" (tipos do projeto: {names}).'
+            )
+        return type_id
 
     async def _done(
         self, uid: str, doc: dict[str, Any], result: ActionResult, now: datetime
@@ -473,6 +492,10 @@ class ActionService:
 
 
 class _ConnectionChangedError(Exception):
+    pass
+
+
+class _IssueTypeMissingError(Exception):
     pass
 
 

@@ -201,6 +201,22 @@ class MemoryChatStore:
 
 JiraHandler = Callable[[httpx.Request], httpx.Response]
 
+ISSUE_TYPES_EN = [
+    {"id": "10001", "name": "Epic", "hierarchyLevel": 1, "subtask": False},
+    {"id": "10003", "name": "Task", "hierarchyLevel": 0, "subtask": False},
+    {"id": "10004", "name": "Story", "hierarchyLevel": 0, "subtask": False},
+    {"id": "10005", "name": "Subtask", "hierarchyLevel": -1, "subtask": True},
+]
+
+
+def issue_types_response(
+    request: httpx.Request, types: list[dict[str, Any]]
+) -> httpx.Response | None:
+    """Responde `createmeta/{projeto}/issuetypes`, que a execução consulta antes de criar."""
+    if request.method == "GET" and request.url.path.endswith("/issuetypes"):
+        return httpx.Response(200, json={"issueTypes": types})
+    return None
+
 
 def jira_handler(projects: list[dict[str, Any]] | None = None) -> JiraHandler:
     """Jira mínimo: lista projetos, recusa escrita (o teste falha se o agente tentar escrever)."""

@@ -72,6 +72,28 @@ def spec_of(payload: dict[str, Any]) -> WorkItemSpec | EpicSpec | None:
     return None if raw is None else _SPEC.validate_python(raw)
 
 
+# Nomes do tipo nos idiomas do Jira Cloud (o site define os nomes; projetos podem renomear).
+_TYPE_NAMES = {
+    "Story": {"story", "user story", "história", "historia", "história de usuário", "estória"},
+    "Task": {"task", "tarefa", "tarea", "tâche", "aufgabe"},
+}
+
+
+def resolve_issue_type(issue_type: str, available: list[tuple[str, str, int]]) -> str | None:
+    """Id do tipo no projeto para o tipo lógico do payload (`Story`, `Task`, `Epic`).
+
+    `available`: (id, nome, nível de hierarquia) de cada tipo do projeto. Épico é o tipo de nível
+    1; história e tarefa são de nível 0 e se distinguem pelo nome. Sem correspondência: `None`."""
+    if issue_type == "Epic":
+        epics = [i for i, _, level in available if level == 1]
+        return epics[0] if len(epics) == 1 else None
+    names = _TYPE_NAMES.get(issue_type, {issue_type.lower()})
+    for type_id, name, level in available:
+        if level == 0 and name.strip().lower() in names:
+            return type_id
+    return None
+
+
 def jira_create_fields(payload: dict[str, Any]) -> dict[str, Any]:
     """Corpo de `POST /rest/api/3/issue` (`fields`) para uma ação `create_issue` confirmada."""
     spec = spec_of(payload)

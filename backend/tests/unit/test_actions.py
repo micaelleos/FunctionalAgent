@@ -21,7 +21,14 @@ from app.core.errors import ApiProblemError
 from app.services.actions import ActionService, translate
 from app.services.chat import ACTION_TTL
 from app.services.jira_connections import JiraConnectionService
-from tests.chat_fakes import NOW, SITE, FakeJiraService, MemoryChatStore
+from tests.chat_fakes import (
+    ISSUE_TYPES_EN,
+    NOW,
+    SITE,
+    FakeJiraService,
+    MemoryChatStore,
+    issue_types_response,
+)
 from tests.spec_fixtures import pix_story
 
 pytestmark = pytest.mark.req("F06-RF-02")
@@ -32,11 +39,16 @@ UID, OTHER = "alice", "bob"
 class FakeJira:
     """Jira com escritas: cria ABC-<n>, aceita PUT e responde o que o teste mandar."""
 
-    def __init__(self, *responses: httpx.Response | Exception) -> None:
+    def __init__(
+        self, *responses: httpx.Response | Exception, types: list[dict[str, Any]] | None = None
+    ) -> None:
         self.responses = list(responses)
         self.writes: list[httpx.Request] = []
+        self.types = ISSUE_TYPES_EN if types is None else types
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
+        if (types := issue_types_response(request, self.types)) is not None:
+            return types
         assert request.method in {"POST", "PUT"}, request
         self.writes.append(request)
         if self.responses:
@@ -117,7 +129,7 @@ async def test_confirmar_cria_exatamente_o_que_foi_exibido() -> None:
     out = await service.confirm(UID, aid)
 
     [body] = fake.bodies()
-    assert body == {"fields": jira_create_fields(payload)}
+    assert body == {"fields": jira_create_fields(payload) | {"issuetype": {"id": "10004"}}}
     assert body["fields"]["labels"] == ["agent-ready", "specflow"]
     description = adf_to_markdown(body["fields"]["description"])
     for section in ("Objetivo", "Critérios de aceite", "Fora de escopo", "Como verificar"):
@@ -465,4 +477,41 @@ async def test_disputa_perdida_na_transacao_responde_409_com_o_estado(
     problem = await _problem(service.confirm(UID, aid))
 
     assert (problem.status, problem.extra["action"]["status"]) == (409, "executing")
+    assert fake.writes == []
+
+
+ISSUE_TYPES_PT = [
+    {"id": "20001", "name": "Epic", "hierarchyLevel": 1, "subtask": False},
+    {"id": "20002", "name": "Subtarefa", "hierarchyLevel": -1, "subtask": True},
+    {"id": "20003", "name": "Tarefa", "hierarchyLevel": 0, "subtask": False},
+    {"id": "20004", "name": "História", "hierarchyLevel": 0, "subtask": False},
+]
+
+
+@pytest.mark.req("F06-RF-02")
+@pytest.mark.parametrize(
+    ("issue_type", "expected"), [("Story", "20004"), ("Task", "20003"), ("Epic", "20001")]
+)
+async def test_tipo_resolvido_pelo_id_em_site_em_portugues(issue_type: str, expected: str) -> None:
+    service, store, _, fake = _setup(FakeJira(types=ISSUE_TYPES_PT))
+    payload = create_payload(pix_story(), "ABC", ["specflow"], None) | {"issue_type": issue_type}
+    aid = _propose(store, payload)
+
+    await service.confirm(UID, aid)
+
+    assert fake.bodies()[0]["fields"]["issuetype"] == {"id": expected}
+
+
+@pytest.mark.req("F06-RF-07")
+async def test_projeto_sem_tipo_equivalente_explica_os_tipos_disponiveis() -> None:
+    only_tasks = [{"id": "1", "name": "Tarefa", "hierarchyLevel": 0, "subtask": False}]
+    service, store, _, fake = _setup(FakeJira(types=only_tasks))
+    aid = _propose(store)
+
+    problem = await _problem(service.confirm(UID, aid))
+
+    assert (problem.status, problem.code) == (422, "jira-issue-type")
+    assert problem.detail == (
+        'O projeto ABC não tem um tipo equivalente a "Story" (tipos do projeto: Tarefa).'
+    )
     assert fake.writes == []

@@ -24,6 +24,7 @@ from app.agent.spec.readiness import (
 from app.agent.spec.render import section_markdown, to_markdown
 from app.agent.spec.schema import EpicSpec, IssueKey, Title, WorkItemSpec
 from app.agent.tools.context import (
+    REVIEW_PREFIX,
     Issue,
     IssueNotFoundError,
     JiraToolError,
@@ -310,7 +311,7 @@ def _gherkin_problem(spec: WorkItemSpec | EpicSpec | None) -> str | None:
     if not broken:
         return None
     return (
-        f"Proposta não criada: os cenários {', '.join(broken)} precisam de pelo menos um passo em "
+        f"{REVIEW_PREFIX}: os cenários {', '.join(broken)} precisam de pelo menos um passo em "
         "`given` (Dado), `when` (Quando) e `then` (Então). Corrija e chame a ferramenta de novo."
     )
 
@@ -326,7 +327,7 @@ def _sensitive_check(ctx: ToolContext, spec: WorkItemSpec | EpicSpec | None) -> 
         return None
     asked.add(spec.title)
     return (
-        f"Proposta não criada ainda: a spec cita {', '.join(terms)}. Se a mudança envolve "
+        f"{REVIEW_PREFIX} ainda: a spec cita {', '.join(terms)}. Se a mudança envolve "
         "segurança, autenticação, criptografia, permissões, dados pessoais ou pagamentos, marque "
         "`human_only: true` com o motivo em `human_only_reason`. Se não envolve, chame de novo "
         "sem mudar."
@@ -346,7 +347,7 @@ def _review_once(ctx: ToolContext, spec: WorkItemSpec | EpicSpec | None) -> str 
     reviewed.add(spec.title)
     items = "; ".join(f"{r.id} {r.label}" + (f" ({r.detail})" if r.detail else "") for r in missing)
     return (
-        f"Proposta não criada ainda: a spec não está pronta para agente de código ({items}). "
+        f"{REVIEW_PREFIX} ainda: a spec não está pronta para agente de código ({items}). "
         "Corrija o que der sem inventar fatos; o que depender do usuário, pergunte a ele ou "
         "registre em `open_questions`. Depois chame a ferramenta de novo."
     )

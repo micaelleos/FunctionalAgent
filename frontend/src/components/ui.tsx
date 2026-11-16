@@ -12,7 +12,7 @@ export function Field({
       </label>
       <input
         id={id}
-        className="rounded-md border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-sky-600"
+        className="rounded-md border border-slate-300 px-3 py-2 focus:outline-2 focus:outline-indigo-600"
         {...input}
       />
     </div>
@@ -25,13 +25,13 @@ export function Button({
   ...props
 }: { variant?: 'primary' | 'secondary' | 'danger' } & ButtonHTMLAttributes<HTMLButtonElement>) {
   const styles = {
-    primary: 'bg-sky-700 text-white hover:bg-sky-800',
+    primary: 'bg-indigo-600 text-white hover:bg-indigo-700',
     secondary: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
     danger: 'bg-red-700 text-white hover:bg-red-800',
   }[variant]
   return (
     <button
-      className={`rounded-md px-4 py-2 font-medium disabled:opacity-50 ${styles} ${className}`}
+      className={`min-h-11 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 ${styles} ${className}`}
       {...props}
     />
   )
@@ -52,8 +52,48 @@ export function Alert({ kind, children }: { kind: 'error' | 'info'; children: Re
       {children}
     </p>
   ) : (
-    <p role="status" className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
+    <p role="status" className="rounded-md bg-indigo-50 px-3 py-2 text-sm text-indigo-950">
       {children}
     </p>
+  )
+}
+
+/** Cabeçalho das páginas do app: título (h1) e subtítulo. */
+export function PageHeader({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  children?: ReactNode
+}) {
+  return (
+    <div className="flex flex-wrap items-end gap-4">
+      <div className="flex min-w-0 flex-1 basis-80 flex-col gap-1">
+        <h1 className="text-2xl font-semibold text-zinc-900">{title}</h1>
+        {subtitle && <p className="text-sm text-zinc-600">{subtitle}</p>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+export function Panel({
+  label,
+  className = '',
+  children,
+}: {
+  label?: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <section
+      aria-label={label}
+      className={`rounded-xl border border-zinc-200 bg-white p-6 ${className}`}
+    >
+      {children}
+    </section>
   )
 }

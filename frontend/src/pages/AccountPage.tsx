@@ -3,6 +3,7 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
+import { UsagePanel } from '../components/UsagePanel'
 import { Alert, Button } from '../components/ui'
 import { errorMessage, t } from '../i18n/pt-BR'
 
@@ -39,10 +40,10 @@ export function AccountPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-10">
+    <main className="flex max-w-3xl flex-col gap-8 px-4 py-8 md:px-10">
       <h1 className="text-2xl font-semibold text-slate-900">{t.account.title}</h1>
 
-      <section aria-labelledby="perfil" className="rounded-lg border bg-white p-4">
+      <section aria-labelledby="perfil" className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 id="perfil" className="mb-3 text-lg font-semibold">
           {t.account.profile}
         </h2>
@@ -60,7 +61,9 @@ export function AccountPage() {
         )}
       </section>
 
-      <section aria-labelledby="dados" className="rounded-lg border bg-white p-4">
+      <UsagePanel />
+
+      <section aria-labelledby="dados" className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 id="dados" className="mb-2 text-lg font-semibold">
           {t.account.exportTitle}
         </h2>
@@ -76,7 +79,7 @@ export function AccountPage() {
         </Button>
       </section>
 
-      <section aria-labelledby="excluir" className="rounded-lg border border-red-200 bg-white p-4">
+      <section aria-labelledby="excluir" className="rounded-xl border border-red-200 bg-white p-6">
         <h2 id="excluir" className="mb-2 text-lg font-semibold text-red-800">
           {t.account.deleteTitle}
         </h2>

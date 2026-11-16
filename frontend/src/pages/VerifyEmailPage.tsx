@@ -44,7 +44,7 @@ export function VerifyEmailPage() {
       </Button>
       <button
         type="button"
-        className="text-sm text-sky-800 underline"
+        className="text-sm text-indigo-700 underline"
         onClick={() => void client.signOut()}
       >
         {t.verify.other}

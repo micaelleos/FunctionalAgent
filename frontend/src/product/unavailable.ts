@@ -15,13 +15,16 @@ export class NotAvailableError extends Error {
  * Cada feature substitui os métodos dela pela chamada à API real.
  */
 export const unavailableProductApi: ProductApi = {
-  features: { jira: false, chat: false, usage: false },
+  features: { jira: false, projects: false, chat: false, usage: false },
   demo: false,
   getJiraConnection: async () => null,
   connectJira: async () => {
     throw new NotAvailableError('A conexão com o Jira')
   },
   disconnectJira: async () => {
+    throw new NotAvailableError('A conexão com o Jira')
+  },
+  validateJira: async () => {
     throw new NotAvailableError('A conexão com o Jira')
   },
   listProjects: async () => [],

@@ -45,6 +45,7 @@
 | IX Observabilidade | Indicador da spec (§1) instrumentado | ⬜ |
 | X UX e acessibilidade | pt-BR, WCAG 2.1 AA, erros com ação sugerida (ou N/A) | ⬜ |
 | XI Qualidade do agente | Prompt versionado, ferramentas puras, evals (ou N/A) | ⬜ |
+| XII Specs para agentes | Issues geradas pelo esquema `AgentReadySpec` com prontidão verificada (ou N/A) | ⬜ |
 
 ### 7. Desenho
 - **Componentes afetados:** <camadas `api → services → agent | integrations | repositories → core`

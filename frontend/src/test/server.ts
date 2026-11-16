@@ -20,4 +20,5 @@ export const server = setupServer(
   http.get(api('/api/v1/me'), () => HttpResponse.json(PROFILE)),
   http.get(api('/api/v1/me/export'), () => HttpResponse.json({ uid: 'uid-alice', user: {} })),
   http.delete(api('/api/v1/me'), () => new HttpResponse(null, { status: 204 })),
+  http.get(api('/api/v1/jira/connections'), () => HttpResponse.json([])),
 )

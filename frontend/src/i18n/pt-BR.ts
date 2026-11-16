@@ -17,6 +17,10 @@ export const t = {
     usageOf: (used: number, limit: number) => `${used} de ${limit}`,
     jiraConnected: (site: string) => `Jira conectado · ${site}`,
     jiraDisconnected: 'Jira não conectado',
+    jiraInvalid: 'Jira: reconecte',
+    jiraExpiredTitle: 'Sua conexão com o Jira expirou',
+    jiraExpiredBody: 'O Jira recusou o token guardado. Gere um novo token e conecte de novo.',
+    reconnect: 'Reconectar',
     demo: 'Dados de demonstração: nada aqui vem do seu Jira.',
   },
   login: {
@@ -133,6 +137,9 @@ export const t = {
     connectTitle: 'Conecte sua conta do Jira',
     connectBody: 'Com o Jira conectado, você vê seus projetos aqui e cria issues a partir do chat.',
     connect: 'Conectar o Jira',
+    soonTitle: 'A lista de projetos chega na próxima versão',
+    soonBody: (site: string) =>
+      `Seu Jira (${site}) já está conectado. Na próxima versão, os projetos que a sua conta pode ver aparecem aqui.`,
   },
   issues: {
     title: 'Issues criadas',
@@ -158,6 +165,10 @@ export const t = {
       'Jira · a conexão que o agente usa para consultar e, com a sua confirmação, criar issues.',
     panel: 'Conexão com o Jira',
     connected: 'Conectado',
+    connectedAs: (name: string) => `Conectado como ${name}`,
+    invalid: 'Expirada',
+    test: 'Testar conexão',
+    testOk: 'Conexão testada: o Jira aceitou a credencial.',
     validatedAt: (date: string) => `validado em ${date}`,
     site: 'Site',
     account: 'Conta do Jira',
@@ -214,8 +225,13 @@ export const t = {
     unauthenticated: 'Sua sessão expirou. Entre de novo.',
     'email-not-verified': 'Confirme seu e-mail para continuar.',
     'not-available': 'Isso ainda não está disponível nesta versão.',
-    'jira-invalid-credentials':
-      'O Jira recusou o e-mail ou o token. Confira os dois e tente de novo.',
+    'jira-invalid-credentials': 'O Jira recusou a credencial. Verifique e-mail e token.',
+    'jira-invalid-url': 'Informe uma URL https://<seu-site>.atlassian.net',
+    'jira-unreachable':
+      'Não conseguimos falar com esse site do Jira. Confira a URL e tente de novo.',
+    'jira-connection-exists':
+      'Você já tem uma conexão com o Jira. Troque a credencial ou remova a atual.',
+    'jira-connection-not-found': 'Essa conexão não existe mais. Recarregue a página.',
   } as Record<string, string>,
   landing: {
     nav: 'Site',

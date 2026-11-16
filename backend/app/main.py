@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import health
-from app.api.v1 import me
+from app.api.v1 import jira, me
 from app.core.config import get_settings
 from app.core.errors import install_problem_handlers
 
@@ -26,6 +26,7 @@ def create_app() -> FastAPI:
     install_problem_handlers(app)
     app.include_router(health.router)
     app.include_router(me.router)
+    app.include_router(jira.router)
     return app
 
 

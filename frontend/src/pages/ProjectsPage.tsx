@@ -16,7 +16,7 @@ export function ProjectsPage() {
   const projects = useQuery({
     queryKey: ['jira-projects'],
     queryFn: product.listProjects,
-    enabled: Boolean(connection.data),
+    enabled: product.features.projects && Boolean(connection.data),
   })
 
   const q = query.trim().toLowerCase()
@@ -30,7 +30,7 @@ export function ProjectsPage() {
         title={t.projects.title}
         subtitle={projects.data ? t.projects.subtitle(projects.data.length) : undefined}
       >
-        {connection.data && (
+        {product.features.projects && connection.data && (
           <div className="flex w-full flex-col gap-1 text-xs text-zinc-600 sm:w-80">
             <label htmlFor="busca-projetos">{t.projects.search}</label>
             <input
@@ -65,7 +65,14 @@ export function ProjectsPage() {
         </section>
       )}
 
-      {projects.data && (
+      {connection.data && !product.features.projects && (
+        <section className="flex flex-col gap-1 rounded-xl border border-dashed border-zinc-400 bg-white p-6">
+          <h2 className="text-lg font-semibold">{t.projects.soonTitle}</h2>
+          <p className="text-sm text-zinc-700">{t.projects.soonBody(connection.data.site)}</p>
+        </section>
+      )}
+
+      {product.features.projects && projects.data && (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
           {visible.map((p, i) => (
             <li

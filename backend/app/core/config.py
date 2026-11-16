@@ -24,10 +24,26 @@ class Settings(BaseSettings):
         description="Emulador de Auth (aceita tokens sem assinatura); proibido em prd",
     )
 
+    kms_key_name: str | None = Field(
+        default=None,
+        description="Chave KMS dos tokens do Jira (projects/…/cryptoKeys/jira-tokens); F04-RT-01",
+    )
+    local_cipher_key: str | None = Field(
+        default=None,
+        description="Chave Fernet da cifra local (só ENV local/test); vazia = chave fixa de dev",
+    )
+
     @model_validator(mode="after")
     def _sem_emulador_em_producao(self) -> "Settings":
         if self.env == "prd" and self.auth_emulator_host:
             raise ValueError("FIREBASE_AUTH_EMULATOR_HOST não pode ser usado em produção")
+        return self
+
+    @model_validator(mode="after")
+    def _cifra_de_verdade_fora_do_local(self) -> "Settings":
+        # F04-RT-06: fora de local/test, o token do Jira só pode ser cifrado pelo KMS.
+        if self.env not in {"local", "test"} and not self.kms_key_name:
+            raise ValueError(f"KMS_KEY_NAME é obrigatório com ENV={self.env}")
         return self
 
 

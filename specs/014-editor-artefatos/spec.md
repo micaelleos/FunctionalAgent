@@ -6,6 +6,7 @@
 | **Fase** | 4 — Evolução |
 | **Dependências** | F06, F08 |
 | **Estimativa** | 7 dias |
+| **Revisão** | 2026-11-16: issues escritas para agentes de IA de código ([doc 10](../../docs/modernizacao/10-specs-para-agentes.md), ADR-007) |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Roadmap](../ROADMAP.md)
 
@@ -32,6 +33,7 @@
 | F14-RF-03 | O usuário pode desfazer edições e voltar à versão do agente | Should |
 | F14-RF-04 | O usuário seleciona um campo e pede "Refinar com IA" com uma instrução | Should |
 | F14-RF-05 | O agente passa a considerar a versão editada nos turnos seguintes | Must |
+| F14-RF-06 | A edição é feita por seção do `AgentReadySpec` (objetivo, cada critério de aceite, fora de escopo…) e a prontidão é reavaliada a cada mudança | Must |
 
 ### 4. Requisitos técnicos
 | ID | Requisito | Verificação |
@@ -39,6 +41,7 @@
 | F14-RT-01 | Edição gera nova versão imutável com novo `payloadHash`; confirmação referencia a versão | unit |
 | F14-RT-02 | Validação do payload igual à da ferramenta do agente (mesmo esquema Pydantic) | contrato |
 | F14-RT-03 | Autosave de rascunho a cada 2 s de inatividade | Vitest |
+| F14-RT-04 | A edição produz um `AgentReadySpec` válido; seções obrigatórias não podem ser apagadas, só esvaziadas (o que derruba a prontidão) | unit |
 
 ### 5. Teste final de aceitação
 ```gherkin
@@ -55,4 +58,4 @@
 ```
 
 ### 6. Conformidade com a Constituição
-IV (o que se confirma é exatamente o que se vê — inclusive após edição), XI.
+IV (o que se confirma é exatamente o que se vê — inclusive após edição), XI, XII (edição mantém o contrato e mostra a prontidão).

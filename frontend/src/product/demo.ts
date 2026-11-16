@@ -17,6 +17,8 @@ const HOUR = 3_600_000
  */
 export function createDemoProductApi(now: () => number = Date.now): ProductApi {
   let connection: JiraConnection | null = {
+    id: 'demo-conexao',
+    status: 'ok',
     site: 'jira.example.com',
     email: 'po@example.com',
     accountName: 'PO de demonstração',
@@ -144,7 +146,7 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
   let usedToday = 18
 
   return {
-    features: { jira: true, chat: true, usage: true },
+    features: { jira: true, projects: true, chat: true, usage: true },
     demo: true,
     getJiraConnection: async () => connection,
     connectJira: async ({ site, email, token }) => {
@@ -152,6 +154,8 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
         throw Object.assign(new Error('token recusado'), { code: 'jira-invalid-credentials' })
       }
       connection = {
+        id: 'demo-conexao',
+        status: 'ok',
         site: site.replace(/^https?:\/\//, '').replace(/\/$/, ''),
         email,
         accountName: 'PO de demonstração',
@@ -162,6 +166,11 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
     },
     disconnectJira: async () => {
       connection = null
+    },
+    validateJira: async () => {
+      if (!connection) throw Object.assign(new Error('sem conexão'), { code: 'not-available' })
+      connection = { ...connection, validatedAt: new Date(now()).toISOString() }
+      return connection
     },
     listProjects: async () => (connection ? projects : []),
     listIssues: async () => [...issues].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),

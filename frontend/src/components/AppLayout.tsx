@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
 import { t } from '../i18n/pt-BR'
@@ -91,9 +91,19 @@ export function AppLayout() {
             <span className="flex items-center gap-2">
               <span
                 aria-hidden="true"
-                className={`size-2 rounded-full ${connection.data ? 'bg-green-400' : 'bg-zinc-500'}`}
+                className={`size-2 rounded-full ${
+                  !connection.data
+                    ? 'bg-zinc-500'
+                    : connection.data.status === 'invalid'
+                      ? 'bg-red-400'
+                      : 'bg-green-400'
+                }`}
               />
-              {connection.data ? t.nav.jiraConnected(connection.data.site) : t.nav.jiraDisconnected}
+              {!connection.data
+                ? t.nav.jiraDisconnected
+                : connection.data.status === 'invalid'
+                  ? t.nav.jiraInvalid
+                  : t.nav.jiraConnected(connection.data.site)}
             </span>
             {user && (
               <div className="flex items-center gap-2 border-t border-zinc-800 pt-3">
@@ -117,6 +127,23 @@ export function AppLayout() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* F04-RF-06: o Jira recusou o token guardado; o aviso aparece em todas as telas. */}
+        {connection.data?.status === 'invalid' && location.pathname !== '/configuracoes' && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-red-50 px-4 py-3 text-sm text-red-900 md:px-10"
+          >
+            <span className="min-w-0 flex-1 basis-64">
+              <strong>{t.nav.jiraExpiredTitle}</strong> {t.nav.jiraExpiredBody}
+            </span>
+            <Link
+              to="/configuracoes"
+              className="inline-flex min-h-11 items-center rounded-lg bg-red-700 px-4 font-medium text-white hover:bg-red-800"
+            >
+              {t.nav.reconnect}
+            </Link>
+          </div>
+        )}
         {product.demo && (
           <p role="note" className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-950">
             {t.nav.demo}

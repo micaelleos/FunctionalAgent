@@ -29,6 +29,10 @@ export function SettingsPage() {
     },
   })
   const disconnect = useMutation({ mutationFn: product.disconnectJira, onSuccess: invalidate })
+  const validate = useMutation({
+    mutationFn: product.validateJira,
+    onSuccess: (data) => queryClient.setQueryData(['jira-connection'], data),
+  })
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -38,7 +42,19 @@ export function SettingsPage() {
     if (window.confirm(t.settings.removeConfirm)) disconnect.mutate()
   }
 
+  const startEditing = () => {
+    const current = connection.data
+    setForm({
+      site: current ? `https://${current.site}` : '',
+      email: current?.email ?? '',
+      token: '',
+    })
+    validate.reset()
+    setEditing(true)
+  }
+
   const showForm = connection.isSuccess && (!connection.data || editing)
+  const invalid = connection.data?.status === 'invalid'
 
   return (
     <main className="flex flex-col gap-6 px-4 py-8 md:px-10">
@@ -51,11 +67,34 @@ export function SettingsPage() {
 
           {connection.data && !editing && (
             <>
+              {invalid && (
+                <div
+                  role="alert"
+                  className="flex flex-wrap items-center gap-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-900"
+                >
+                  <div className="flex min-w-0 flex-1 basis-64 flex-col gap-0.5">
+                    <strong>{t.nav.jiraExpiredTitle}</strong>
+                    <span>{t.nav.jiraExpiredBody}</span>
+                  </div>
+                  <Button type="button" onClick={startEditing}>
+                    {t.nav.reconnect}
+                  </Button>
+                </div>
+              )}
+              {validate.isError && <Alert kind="error">{errorMessage(validate.error)}</Alert>}
+              {validate.isSuccess && !invalid && <Alert kind="info">{t.settings.testOk}</Alert>}
               <p className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 font-medium text-green-900">
-                  <span aria-hidden="true" className="size-2 rounded-full bg-green-600" />
-                  {t.settings.connected}
-                </span>
+                {invalid ? (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 font-medium text-red-900">
+                    <span aria-hidden="true" className="size-2 rounded-full bg-red-600" />
+                    {t.settings.invalid}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 font-medium text-green-900">
+                    <span aria-hidden="true" className="size-2 rounded-full bg-green-600" />
+                    {t.settings.connectedAs(connection.data.accountName)}
+                  </span>
+                )}
                 <span className="text-zinc-600">
                   {t.settings.validatedAt(
                     new Date(connection.data.validatedAt).toLocaleString('pt-BR', {
@@ -79,7 +118,15 @@ export function SettingsPage() {
                 ))}
               </dl>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={validate.isPending}
+                  onClick={() => validate.mutate()}
+                >
+                  {t.settings.test}
+                </Button>
+                <Button type="button" variant="secondary" onClick={startEditing}>
                   {t.settings.replace}
                 </Button>
                 <Button

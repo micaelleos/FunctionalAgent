@@ -169,11 +169,16 @@ describe('F04 tela de configurações do Jira', () => {
     expect(await screen.findByText('••••••••1234')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Trocar token' }))
+    // Site e e-mail vêm preenchidos com a conexão atual; o token, nunca.
+    expect(screen.getByLabelText('URL do site')).toHaveValue('https://jira.example.com')
+    expect(screen.getByLabelText('Token de API')).toHaveValue('')
+    await user.clear(screen.getByLabelText('URL do site'))
     await user.type(screen.getByLabelText('URL do site'), 'https://acme.atlassian.net')
+    await user.clear(screen.getByLabelText('E-mail da conta Atlassian'))
     await user.type(screen.getByLabelText('E-mail da conta Atlassian'), 'po@acme.dev')
     await user.type(screen.getByLabelText('Token de API'), 'curto')
     await user.click(screen.getByRole('button', { name: 'Validar e salvar' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('O Jira recusou o e-mail ou o token')
+    expect(await screen.findByRole('alert')).toHaveTextContent('O Jira recusou a credencial')
 
     await user.clear(screen.getByLabelText('Token de API'))
     await user.type(screen.getByLabelText('Token de API'), 'token-novo-9876')

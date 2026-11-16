@@ -13,24 +13,32 @@
 | F01 | Monorepo, tooling e CI base | 0 | Em implementação | — | 5 d | 5 / 7 | [spec](001-monorepo-e-ci/spec.md) · [plano](001-monorepo-e-ci/plan.md) · [tarefas](001-monorepo-e-ci/tasks.md) |
 | F02 | Infraestrutura base GCP/Firebase (Terraform) e deploy por `make deploy` | 0 | Em implementação | F01 | 5 d | 4 / 8 | [spec](002-infraestrutura-base/spec.md) · [plano](002-infraestrutura-base/plan.md) · [tarefas](002-infraestrutura-base/tasks.md) |
 | F03 | Autenticação e conta do usuário | 1 | Em produção | F02 | 6,5 d | 8 / 6 | [spec](003-autenticacao/spec.md) · [plano](003-autenticacao/plan.md) · [tarefas](003-autenticacao/tasks.md) |
-| F04 | Conexão Jira por usuário | 1 | Rascunho | F03 | 5 d | 7 / 6 | [spec](004-conexao-jira/spec.md) · [plano](004-conexao-jira/plan.md) · [tarefas](004-conexao-jira/tasks.md) |
-| F05 | API de chat com agente (LangGraph + streaming) | 1 | Rascunho | F04 | 10 d | 8 / 12 | [spec](005-agente-chat-api/spec.md) · [plano](005-agente-chat-api/plan.md) · [tarefas](005-agente-chat-api/tasks.md) |
-| F06 | Confirmação humana antes de escrever no Jira | 1 | Rascunho | F05 | 5 d | 7 / 6 | [spec](006-confirmacao-humana/spec.md) · [plano](006-confirmacao-humana/plan.md) · [tarefas](006-confirmacao-humana/tasks.md) |
+| F04 | Conexão Jira por usuário | 1 | Em implementação | F03 | 5 d | 7 / 6 | [spec](004-conexao-jira/spec.md) · [plano](004-conexao-jira/plan.md) · [tarefas](004-conexao-jira/tasks.md) |
+| F05 | API de chat com agente (LangGraph + streaming), escrevendo specs prontas para agentes de código | 1 | Rascunho (revisado em 2026-11-16, ADR-007) | F04 | 12 d | 12 / 15 | [spec](005-agente-chat-api/spec.md) · [plano](005-agente-chat-api/plan.md) · [tarefas](005-agente-chat-api/tasks.md) |
+| F06 | Confirmação humana antes de escrever no Jira (com prontidão para agente) | 1 | Rascunho (revisado em 2026-11-16) | F05 | 5,5 d | 9 / 7 | [spec](006-confirmacao-humana/spec.md) · [plano](006-confirmacao-humana/plan.md) · [tarefas](006-confirmacao-humana/tasks.md) |
 | F07 | Conversas persistentes | 2 | Rascunho | F05, F06 | 5 d | 6 / 5 | [spec](007-conversas-persistentes/spec.md) · [plano](007-conversas-persistentes/plan.md) · [tarefas](007-conversas-persistentes/tasks.md) |
 | F08 | Interface de chat em React | 2 | Em implementação (telas principais com dados de demonstração) | F03 (mocks), F05, F06, F07 | 9.5 d | 11 / 8 | [spec](008-interface-chat/spec.md) · [plano](008-interface-chat/plan.md) · [tarefas](008-interface-chat/tasks.md) |
 | F09 | Projetos Jira | 2 | Rascunho | F04, F08 | 3 d | 6 / 4 | [spec](009-projetos-jira/spec.md) · [plano](009-projetos-jira/plan.md) · [tarefas](009-projetos-jira/tasks.md) |
-| F10 | Histórico de issues criados | 2 | Rascunho | F06, F08 | 3 d | 5 / 4 | [spec](010-historico-issues/spec.md) · [plano](010-historico-issues/plan.md) · [tarefas](010-historico-issues/tasks.md) |
+| F10 | Histórico de issues criados (com "Copiar para agente de código") | 2 | Rascunho (revisado em 2026-11-16) | F06, F08 | 3,5 d | 7 / 4 | [spec](010-historico-issues/spec.md) · [plano](010-historico-issues/plan.md) · [tarefas](010-historico-issues/tasks.md) |
 | F11 | Observabilidade, limites de uso e proteção | 3 | Rascunho | F05–F10 | 5 d | 4 / 10 | [spec](011-observabilidade-e-limites/spec.md) · [plano](011-observabilidade-e-limites/plan.md) · [tarefas](011-observabilidade-e-limites/tasks.md) |
 | F12 | Go-live e desativação do Streamlit | 3 | Rascunho | F01–F11 | 3 d | 3 / 3 | [spec](012-go-live/spec.md) · [plano](012-go-live/plan.md) · [tarefas](012-go-live/tasks.md) |
 | F13 | Login Atlassian via OAuth 2.0 (3LO) | 4 | Rascunho · plano após GA | F04, F12 | 7 d | 4 / 4 | [spec](013-oauth-atlassian/spec.md) · [plano](013-oauth-atlassian/plan.md) |
-| F14 | Editor de artefatos antes da exportação | 4 | Rascunho · plano após GA | F06, F08 | 7 d | 5 / 3 | [spec](014-editor-artefatos/spec.md) · [plano](014-editor-artefatos/plan.md) |
-| F15 | Suíte contínua de avaliação do agente (evals) | 4 (baseline na 1) | Rascunho · plano após GA | F05 | 5 d | 3 / — | [spec](015-evals-agente/spec.md) · [plano](015-evals-agente/plan.md) |
+| F14 | Editor de artefatos antes da exportação (por seção do contrato) | 4 | Rascunho · plano após GA | F06, F08 | 7 d | 6 / 4 | [spec](014-editor-artefatos/spec.md) · [plano](014-editor-artefatos/plan.md) |
+| F15 | Suíte contínua de avaliação do agente (evals, incluindo prontidão e implementabilidade) | 4 (baseline na 1) | Rascunho · plano após GA | F05 | 6 d | 4 / — | [spec](015-evals-agente/spec.md) · [plano](015-evals-agente/plan.md) |
 | F16 | Google Analytics (consentimento LGPD, CSP, eventos) | 4 | A especificar (aprovado pelo PO em 2026-11-14) | F02, F08 | — | — | — |
+| F17 | Contexto do repositório (GitHub, só leitura) para "Onde mexer" | 4 | Rascunho · plano após GA | F05, F12 | 5 d | 4 / 3 | [spec](017-contexto-repositorio/spec.md) |
+| F18 | Exportar specs para o repositório (formato Spec Kit, por PR) | 4 | Rascunho · plano após GA | F06, F17 | 4 d | 4 / 2 | [spec](018-exportar-specs-repositorio/spec.md) |
 
-**Totais:** 15 features · 86 requisitos funcionais · 86 técnicos · ~84,5 dias de estimativa.
+**Totais:** 17 features especificadas (F16 a especificar) · 103 requisitos funcionais · 99 técnicos · ~97 dias de estimativa
+(contados nas specs em 2026-11-16).
 Status, dependências e estimativas vêm do cabeçalho de cada `spec.md` — atualize lá e reflita aqui.
 
-Nova feature: `/speckit-specify <descrição>` cria `specs/016-…/spec.md` a partir do template do
+> **Revisão de 2026-11-16 — specs para agentes de código.** O leitor principal das issues que o SpecFlow cria passa a
+> ser um agente de IA de código. Requisitos em [doc 10](../docs/modernizacao/10-specs-para-agentes.md), decisão em
+> [ADR-007](../docs/modernizacao/adr/ADR-007-spec-pronta-para-agente.md), Artigo XII da Constituição (v2.1.0).
+> Mudaram F05 (+2 d), F06 (+0,5 d), F10 (+0,5 d), F14 e F15 (+1 d); entraram F17 e F18 na Fase 4.
+
+Nova feature: `/speckit-specify <descrição>` cria `specs/019-…/spec.md` a partir do template do
 projeto (`.specify/templates/overrides/spec-template.md`); depois `/speckit-plan` e `/speckit-tasks`.
 
 ## 1. Visão das fases
@@ -46,7 +54,7 @@ gantt
     section Fase 1 · Núcleo
     F03 Autenticação e conta               :f03, after f02, 5d
     F04 Conexão Jira por usuário           :f04, after f03, 5d
-    F05 API de chat com agente             :f05, after f04, 10d
+    F05 API de chat com agente             :f05, after f04, 12d
     F06 Confirmação humana (ações)         :f06, after f05, 5d
     section Fase 2 · Produto
     F07 Conversas persistentes             :f07, after f06, 5d
@@ -59,7 +67,9 @@ gantt
     section Fase 4 · Evolução
     F13 OAuth Atlassian                    :f13, after f12, 7d
     F14 Editor de artefatos                :f14, after f13, 7d
-    F15 Evals contínuas                    :f15, after f12, 5d
+    F15 Evals contínuas                    :f15, after f12, 6d
+    F17 Contexto do repositório            :f17, after f12, 5d
+    F18 Exportar specs para o repositório  :f18, after f17, 4d
 ```
 
 > Com **2 devs** (front e back), F08 começa logo após F03 usando mocks (MSW) gerados do contrato OpenAPI,
@@ -73,9 +83,11 @@ gantt
 - **Marco M0:** "hello world" do React no Hosting chamando `/healthz` do Cloud Run em dev, publicado só pelo pipeline.
 
 ### Fase 1 — Núcleo (semanas 3–7)
-**Objetivo:** paridade de capacidade do agente com o app atual, de forma segura e multiusuário.
+**Objetivo:** paridade de capacidade do agente com o app atual, de forma segura e multiusuário, já escrevendo
+issues no formato "spec pronta para agente de código" (ADR-007).
 - F03 Autenticação · F04 Conexão Jira · F05 Agente + streaming · F06 Confirmação humana.
-- **Marco M1:** via API, um usuário autenticado conversa com o agente, consulta o Jira e cria um issue após confirmar.
+- **Marco M1:** via API, um usuário autenticado conversa com o agente, consulta o Jira e cria, após confirmar, uma
+  issue `agent-ready` que um agente de código consegue implementar.
 
 ### Fase 2 — Produto (semanas 7–10)
 **Objetivo:** experiência completa no React, superior à do Streamlit.
@@ -88,8 +100,10 @@ gantt
 - **Marco M3 (GA):** app em produção, Streamlit desligado, SLOs medidos.
 
 ### Fase 4 — Evolução (após GA, priorizar por feedback)
-- F13 OAuth Atlassian (elimina API token manual) · F14 Editor de artefatos · F15 Evals contínuas.
-- Ideias de backlog (sem spec ainda): templates de documentação por empresa, exportar para Confluence/Markdown,
+- F13 OAuth Atlassian (elimina API token manual) · F14 Editor de artefatos · F15 Evals contínuas (com eval de
+  implementabilidade) · F17 Contexto do repositório · F18 Exportar specs para o repositório.
+- Ideias de backlog (sem spec ainda): templates de documentação por empresa, exportar para Confluence, títulos de seção em inglês,
+  atribuir a issue direto a um agente de código (Rovo Dev, Copilot para Jira), ler o resultado do PR de volta,
   análise de lacunas do backlog (épicos sem critério de aceite), priorização impacto × esforço,
   workspaces compartilhados entre membros do time, suporte a múltiplos provedores de LLM na UI.
 
@@ -108,6 +122,8 @@ flowchart LR
     F06 & F08 --> F10
     F05 & F06 & F07 & F08 & F09 & F10 --> F11 --> F12
     F04 & F12 --> F13
+    F05 & F12 --> F17 --> F18
+    F06 --> F18
     F06 & F08 --> F14
     F05 --> F15
 ```

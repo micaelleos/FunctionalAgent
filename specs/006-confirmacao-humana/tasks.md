@@ -10,7 +10,7 @@
 - **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
   acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
 
-**Total:** 5 tarefas · 5 d.
+**Total:** 6 tarefas · 5,5 d. Revisão 2026-11-16: T004 inclui spec por seção e prontidão (ADR-007).
 **Dividir antes de implementar** (> 1 d, Art. I/VI): T001 (1,5 d).
 
 ## 8. Tarefas
@@ -42,7 +42,8 @@
 
 **Aceitação:** AT-F06-01, AT-F06-05
 
-- [ ] T004 [P] [F06-RF-01][F06-RF-06] `<ActionCard>` + diff antes/depois — teste: Vitest — 1 d
+- [ ] T004 [P] [F06-RF-01][F06-RF-06][F06-RF-08] `<ActionCard>` por seção + prontidão + diff antes/depois — teste: Vitest — 1 d
+- [ ] T006 [F06-RF-09] Labels e ADF renderizado do `AgentReadySpec` na execução (F06-RT-07) — teste: unit + AT-F06-07 — 0,5 d
 
 ---
 
@@ -52,4 +53,4 @@
 
 **Aceitação:** AT-F06-01..06
 
-- [ ] T005 AT-F06-01..06 — teste: Playwright/API — 1 d
+- [ ] T005 AT-F06-01..07 — teste: Playwright/API — 1 d

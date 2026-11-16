@@ -5,8 +5,9 @@
 | **Status** | Rascunho |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F05 |
-| **ADRs** | ADR-003 |
-| **Estimativa** | 5 dias |
+| **ADRs** | ADR-003, ADR-007 |
+| **Estimativa** | 5,5 dias |
+| **Revisão** | 2026-11-16: issues escritas para agentes de IA de código ([doc 10](../../docs/modernizacao/10-specs-para-agentes.md), ADR-007) |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
@@ -27,13 +28,15 @@
 ### 3. Requisitos funcionais
 | ID | Requisito | Prio. |
 |---|---|---|
-| F06-RF-01 | Para cada ação proposta o usuário vê um cartão com: tipo de ação, projeto, tipo de issue, título, prioridade, pai e descrição renderizada | Must |
+| F06-RF-01 | Para cada ação proposta o usuário vê um cartão com: tipo de ação, projeto, tipo de issue, título, prioridade, pai e a spec renderizada **por seção** (objetivo, critérios de aceite, fora de escopo, como verificar…) | Must |
 | F06-RF-02 | Ao confirmar, o sistema executa exatamente a ação exibida e mostra a chave e o link do issue | Must |
 | F06-RF-03 | Ao recusar, nada é escrito e o agente é informado no próximo turno | Must |
 | F06-RF-04 | Nenhuma escrita no Jira acontece sem confirmação, mesmo que o usuário peça "crie sem perguntar" | Must |
 | F06-RF-05 | Ações não confirmadas expiram em 24 h e o cartão passa a "Expirada" | Should |
 | F06-RF-06 | Para atualização, o cartão mostra o antes/depois dos campos alterados | Must |
 | F06-RF-07 | Se a execução falhar (permissão, campo obrigatório), o usuário vê o erro do Jira traduzido e pode pedir ajuste ao agente | Must |
+| F06-RF-08 | O cartão mostra a prontidão para agente de código: "Pronta para agente" ou a lista de regras que faltam (P-01 a P-10), sem impedir a confirmação (RA-20, RA-22) | Must |
+| F06-RF-09 | A issue criada leva as labels da proposta (`specflow`, `agent-ready` quando pronta, `human-only` quando indicado) e a descrição em ADF com as seções fixas (RA-21) | Must |
 
 ### 4. Requisitos técnicos
 | ID | Requisito | Verificação |
@@ -44,6 +47,7 @@
 | F06-RT-04 | Só o dono (`uid`) confirma/recusa; ação de outro usuário → 404 | matriz de autorização |
 | F06-RT-05 | TTL do Firestore em `expiresAt`; endpoint retorna 410 para ação expirada | integração |
 | F06-RT-06 | Log de auditoria estruturado `jira_write` com `uid`, `actionId`, `issueKey`, resultado | teste de log |
+| F06-RT-07 | O hash da proposta é calculado sobre o `AgentReadySpec` canônico; o ADF enviado é renderizado dele na execução, de forma determinística | unit |
 
 ### 5. Teste final de aceitação
 ```gherkin
@@ -84,6 +88,13 @@ Funcionalidade: Confirmação humana
     Dado um projeto em que não tenho permissão de criação
     Quando confirmo uma proposta para ele
     Então vejo "Você não tem permissão para criar issues neste projeto"
+
+  Cenário: AT-F06-07 Prontidão no cartão e labels no Jira       # F06-RF-08, F06-RF-09
+    Dado uma proposta de story sem cenário de erro
+    Então o cartão mostra "Falta: cenário de erro ou de borda (P-04)"
+    Quando confirmo mesmo assim
+    Então a issue no Jira tem a label "specflow" e não tem "agent-ready"
+    E a descrição tem as seções "Objetivo", "Critérios de aceite", "Fora de escopo" e "Como verificar"
 ```
 
 ### 6. Conformidade com a Constituição
@@ -92,6 +103,7 @@ Funcionalidade: Confirmação humana
 | IV Humano no controle | Implementação direta do artigo |
 | II Privacidade | Ações em `users/{uid}/pending_actions` |
 | IX Observabilidade | Log de auditoria `jira_write` |
+| XII Specs para agentes | Prontidão visível antes de confirmar; labels e seções fixas no Jira |
 
 ---
 
@@ -106,6 +118,8 @@ Funcionalidade: Confirmação humana
 | F06-RF-05 | `test_actions_expiry.py` | ⬜ |
 | F06-RF-06 | AT-F06-05 | ⬜ |
 | F06-RF-07 | AT-F06-06 | ⬜ |
+| F06-RF-08 | AT-F06-07, `ActionCard.test.tsx` | ⬜ |
+| F06-RF-09 | AT-F06-07 | ⬜ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |

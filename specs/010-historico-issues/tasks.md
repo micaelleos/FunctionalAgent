@@ -10,7 +10,7 @@
 - **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
   acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
 
-**Total:** 3 tarefas · 3 d.
+**Total:** 4 tarefas · 3,5 d. Revisão 2026-11-16: T004 (copiar para agente, ADR-007).
 
 ## 8. Tarefas
 
@@ -31,4 +31,5 @@
 
 **Aceitação:** AT-F10-01..03
 
-- [ ] T003 AT-F10-01..03 — teste: Playwright — 1 d
+- [ ] T004 [P] [F10-RF-06][F10-RF-07] "Copiar para agente de código" + marca/filtro de prontidão — teste: Vitest — 0,5 d
+- [ ] T003 AT-F10-01..04 — teste: Playwright — 1 d

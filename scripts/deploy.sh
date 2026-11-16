@@ -43,6 +43,22 @@ run_patch() {
   echo "Tempo esgotado esperando $op" >&2; return 1
 }
 
+# Smoke do modelo (F05-RT-09): chama o Gemini configurado no serviço (LLM_MODEL/LLM_LOCATION) com
+# uma pergunta curta. Confirma que a API do Vertex está ativa e que o ID do modelo existe; a
+# permissão da SA do Cloud Run é do Terraform (roles/aiplatform.user).
+smoke_llm() {
+  local svc=$1 model location host
+  model=$(jq -r '[.template.containers[0].env[]? | select(.name == "LLM_MODEL") | .value][0] // empty' <<<"$svc")
+  location=$(jq -r '[.template.containers[0].env[]? | select(.name == "LLM_LOCATION") | .value][0] // "global"' <<<"$svc")
+  if [ -z "$model" ]; then echo "LLM_MODEL não configurado no serviço (terraform apply)" >&2; return 1; fi
+  host=$([ "$location" = global ] && echo aiplatform.googleapis.com || echo "$location-aiplatform.googleapis.com")
+  log "Smoke do modelo $model ($location)"
+  curl -sS --fail-with-body -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    "https://$host/v1/projects/$PROJECT/locations/$location/publishers/google/models/$model:generateContent" \
+    -d '{"contents":[{"role":"user","parts":[{"text":"Responda só: ok"}]}],"generationConfig":{"maxOutputTokens":16}}' \
+    | jq -e '.candidates | length > 0' >/dev/null
+}
+
 deploy_api() {
   local tag="rc-${VERSION//[^a-z0-9]/-}" image svc previous revision tag_url url ok=""
   TOKEN=$("$GCLOUD" auth print-access-token)
@@ -58,6 +74,7 @@ deploy_api() {
   echo "$image"
 
   svc=$(run_get)
+  smoke_llm "$svc" || { echo "Smoke do modelo falhou; nada foi publicado." >&2; exit 1; }
   previous=$(jq -r '([.trafficStatuses[]? | select(.percent == 100) | .revision // empty][0])
     // (.latestReadyRevision | split("/") | last)' <<<"$svc")
 

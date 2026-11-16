@@ -8,7 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env.local", extra="ignore")
+    # Variáveis vazias (ex.: `LLM_MODEL=` no .env.local) não apagam os padrões.
+    model_config = SettingsConfigDict(env_file=".env.local", extra="ignore", env_ignore_empty=True)
 
     env: Literal["local", "test", "dev", "stg", "prd"] = "local"
     app_version: str = Field(default="dev", description="SHA do commit, injetado no build")
@@ -32,6 +33,33 @@ class Settings(BaseSettings):
         default=None,
         description="Chave Fernet da cifra local (só ENV local/test); vazia = chave fixa de dev",
     )
+
+    # Agente (F05, ADR-008): Gemini no Vertex AI, autenticado pela SA do Cloud Run (sem chave).
+    llm_provider: Literal["google_vertexai", "fake"] = Field(
+        default="google_vertexai", description="`fake` só em local/test (LLM roteirizado)"
+    )
+    llm_model: str = "gemini-3.5-flash-lite"
+    llm_location: str = Field(default="global", description="Região do Vertex AI")
+    llm_project: str | None = Field(
+        default=None,
+        description="Projeto do Vertex AI; vazio = GCP_PROJECT (local: emulador ≠ projeto real)",
+    )
+    llm_temperature: float = 0.2
+    # Preço por milhão de tokens, para o custo estimado por turno (F05-RT-10).
+    llm_price_input_per_mtok: float = 0.30
+    llm_price_output_per_mtok: float = 2.50
+    prompt_version: str = "v1"
+    agent_max_iterations: int = Field(default=8, description="Iterações de ferramenta por turno")
+    agent_turn_timeout_s: float = 240.0
+    history_token_budget: int = Field(
+        default=12_000, description="Orçamento do histórico; acima disso, sumarização (RT-07)"
+    )
+
+    @model_validator(mode="after")
+    def _sem_llm_fake_em_producao(self) -> "Settings":
+        if self.llm_provider == "fake" and self.env not in {"local", "test"}:
+            raise ValueError("LLM_PROVIDER=fake só com ENV local/test")
+        return self
 
     @model_validator(mode="after")
     def _sem_emulador_em_producao(self) -> "Settings":

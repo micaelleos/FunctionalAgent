@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import health
-from app.api.v1 import jira, me
+from app.api.v1 import chat, jira, me
 from app.core.config import get_settings
 from app.core.errors import install_problem_handlers
 
@@ -22,11 +22,13 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
         allow_headers=["Authorization", "Content-Type", "X-Firebase-AppCheck"],
+        expose_headers=["X-Conversation-Id", "X-Sse-Schema-Version"],
     )
     install_problem_handlers(app)
     app.include_router(health.router)
     app.include_router(me.router)
     app.include_router(jira.router)
+    app.include_router(chat.router)
     return app
 
 

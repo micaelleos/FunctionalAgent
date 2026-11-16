@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em validação |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F04 |
 | **ADRs** | ADR-003, ADR-007, ADR-008 |
@@ -68,7 +68,9 @@
 | F05-RT-15 | Labels da proposta: `specflow` sempre, `agent-ready` só se todas as regras obrigatórias passam, `human-only` quando indicado | unit |
 
 ### 5. Teste final de aceitação
-Executado via API (`backend/tests/acceptance/test_f05_*.py`) contra dev com Jira sandbox e LLM real.
+Executado via API (`backend/tests/acceptance/test_f05_chat.py`) com Gemini real no Vertex AI e o Jira sandbox do PO
+(projeto `JIRA_SANDBOX_PROJECT_KEY`, hoje `SCRUM`): contra a API local com os emuladores (`ACCEPTANCE_API_URL`)
+ou contra produção com o token de uma conta real (`ACCEPTANCE_ID_TOKEN`). Ver `backend/tests/acceptance/conftest.py`.
 ```gherkin
 Funcionalidade: Conversa com o agente
 
@@ -89,15 +91,15 @@ Funcionalidade: Conversa com o agente
     Dado que tenho conexão com o Jira sandbox
     Quando pergunto "Quais projetos eu tenho no Jira?"
     Então recebo os eventos "tool_start" e "tool_end" de "listar_projetos"
-    E a resposta cita o projeto "E2E"
+    E a resposta cita o projeto do sandbox
 
   Cenário: AT-F05-04 Criação vira spec pronta, proposta e sem escrita   # F05-RF-04, F05-RF-06, F05-RT-13, F05-RT-14
-    Quando peço "Crie no projeto E2E uma story para login com e-mail e senha; senha errada mostra 'E-mail ou senha incorretos'"
+    Quando peço "Crie no projeto <sandbox> uma story para login com e-mail e senha; senha errada mostra 'E-mail ou senha incorretos'"
     Então recebo um evento "action_proposed" do tipo "create_issue" com issuetype "Story"
     E a spec proposta tem as seções "Objetivo", "Contexto", "Critérios de aceite", "Fora de escopo" e "Como verificar"
     E há um critério "CA-0n" do tipo "erro" com o texto "E-mail ou senha incorretos"
     E a prontidão vem "pronta" com a label "agent-ready"
-    E a quantidade de issues do projeto "E2E" no Jira não muda
+    E as issues do projeto do sandbox no Jira não mudam
 
   Cenário: AT-F05-05 Projeto não informado                     # F05-RF-05
     Quando peço "Crie uma story de logout"
@@ -112,17 +114,17 @@ Funcionalidade: Conversa com o agente
     Então a resposta orienta a conectar o Jira em Configurações
 
   Cenário: AT-F05-07 Falta informação: pergunta antes de propor # F05-RF-09
-    Quando peço "Crie no E2E uma story de exportar relatório"
+    Quando peço "Crie no <sandbox> uma story de exportar relatório"
     Então não recebo "action_proposed"
     E a resposta pergunta pelo formato do arquivo e pelo comportamento quando não há dados
 
   Cenário: AT-F05-08 Pedido grande vira épico decomposto         # F05-RF-10
-    Quando peço "Crie no E2E o módulo de assinaturas: planos, cobrança recorrente, cancelamento, troca de plano e notas fiscais"
+    Quando peço "Crie no <sandbox> o módulo de assinaturas: planos, cobrança recorrente, cancelamento, troca de plano e notas fiscais"
     Então recebo uma proposta de épico com a seção "Decomposição"
     E propostas de histórias com no máximo 8 critérios de aceite cada
 
   Cenário: AT-F05-09 Mudança sensível marcada para humano       # F05-RF-11
-    Quando peço "Crie no E2E uma story para trocar o algoritmo de hash das senhas"
+    Quando peço "Crie no <sandbox> uma story para trocar o algoritmo de hash das senhas"
     Então a proposta leva a label "human-only" e não leva "agent-ready"
 ```
 
@@ -142,18 +144,18 @@ Funcionalidade: Conversa com o agente
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F05-RF-01 | AT-F05-01 | ⬜ |
-| F05-RF-02 | AT-F05-02 | ⬜ |
-| F05-RF-03 | AT-F05-03 | ⬜ |
-| F05-RF-04 | AT-F05-04, `test_tools_propose.py` | ⬜ |
-| F05-RF-05 | AT-F05-05, eval `asks_project_*` | ⬜ |
-| F05-RF-06 | AT-F05-04, AT-F05-06, `test_agent_ready_spec.py`, eval `contract_*` | ⬜ |
-| F05-RF-07 | AT-F05-03 | ⬜ |
-| F05-RF-08 | AT-F05-06 | ⬜ |
-| F05-RF-09 | AT-F05-07, eval `asks_missing_*` | ⬜ |
-| F05-RF-10 | AT-F05-08, eval `splits_large_*` | ⬜ |
-| F05-RF-11 | AT-F05-09, eval `human_only_*` | ⬜ |
-| F05-RF-12 | `test_readiness_review.py`, eval `review_existing_*` | ⬜ |
+| F05-RF-01 | AT-F05-01, `test_chat_service.py`, `test_chat_api.py` | ✅ unit · ⬜ aceitação |
+| F05-RF-02 | AT-F05-02, `test_chat_service.py`, `integration/test_chat.py` | ✅ unit · ⬜ aceitação |
+| F05-RF-03 | AT-F05-03, `test_jira_read.py`, `test_tools_read.py` | ✅ unit · ⬜ aceitação |
+| F05-RF-04 | AT-F05-04, `test_tools_propose.py`, `test_agent_graph.py` | ✅ unit · ⬜ aceitação |
+| F05-RF-05 | AT-F05-05, `test_tools_propose.py`, eval `asks_project_*` | ✅ unit · ⬜ aceitação |
+| F05-RF-06 | AT-F05-04, AT-F05-06, `test_agent_ready_spec.py`, eval `contract_*` | ✅ unit · ⬜ aceitação |
+| F05-RF-07 | AT-F05-03, `test_chat_service.py` | ✅ unit · ⬜ aceitação |
+| F05-RF-08 | AT-F05-06, `test_tools_read.py`, `integration/test_chat.py` | ✅ unit · ⬜ aceitação |
+| F05-RF-09 | AT-F05-07, `test_agent_graph.py` (prompt), eval `asks_missing_*` | ✅ unit · ⬜ aceitação |
+| F05-RF-10 | AT-F05-08, `test_agent_graph.py` (prompt), eval `splits_large_*` | ✅ unit · ⬜ aceitação |
+| F05-RF-11 | AT-F05-09, `test_readiness.py`, `test_tools_propose.py`, eval `human_only_*` | ✅ unit · ⬜ aceitação |
+| F05-RF-12 | `test_readiness_review.py`, `test_adf.py`, eval `review_existing_*` | ✅ unit · ⬜ eval |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |

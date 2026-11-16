@@ -5,6 +5,7 @@ variable "project_id" { type = string }
 
 locals {
   services = toset([
+    "aiplatform.googleapis.com", # Vertex AI: Gemini do agente (F05, ADR-008)
     "artifactregistry.googleapis.com",
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",

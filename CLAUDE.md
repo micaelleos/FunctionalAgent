@@ -77,6 +77,13 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
 - **Agent LLM (ADR-008)**: LangGraph (ADR-003) with Gemini on Vertex AI via `ChatGoogleGenerativeAI`
   (`langchain-google-genai`, `vertexai=True`), authenticated by the Cloud Run service account (no LLM key); provider
   and model from `LLM_PROVIDER`/`LLM_MODEL` (default `gemini-3.5-flash-lite`).
+- **Chat (F05)**: `POST /api/v1/conversations/{id}/messages` (SSE; `id=new` creates one) → `services/chat.py`
+  builds the graph per request (`agent/graph.py`) with a `ToolContext` in `RunnableConfig["configurable"]["ctx"]`.
+  `agent` never imports `integrations`/`repositories`: it gets `JiraReader`/`ActionSink` interfaces. Tools are
+  handed to Gemini as inlined schemas (`agent/tools/schemas.py`; the genai converter drops `$ref`/`oneOf`).
+  SSE events are versioned in `docs/api/sse-events.v1.json` (regenerate with `make api-types`). Tests use
+  `ScriptedChatModel` (`agent/fake_llm.py`); `LLM_PROVIDER=fake` echoes locally; `LLM_PROJECT` points Vertex at
+  `pcb-inspect` while Firebase uses the emulator. Evals: `evals/run.py`; acceptance: `backend/tests/acceptance/`.
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 

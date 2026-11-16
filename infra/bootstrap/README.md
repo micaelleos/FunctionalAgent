@@ -19,7 +19,6 @@ Passos manuais **únicos**. Depois disto, a infraestrutura muda com `terraform a
 | Cloud Run | `specflow-api` |
 | Artifact Registry | `specflow` |
 | KMS keyring / chave | `specflow` / `jira-tokens` |
-| Secret Manager | `specflow-llm-api-key` |
 | Service account (runtime) | `specflow-api` |
 | Firebase web app | `SpecFlow AI` |
 | Hosting | site `specsflow-ai` (importado) |
@@ -79,10 +78,9 @@ lista. Os provedores de login (e-mail/senha, Google) são configurados na F03.
 | F02-RT-08 | `gcloud storage buckets describe gs://pcb-inspect-tfstate --format "value(versioning_enabled)"` | `True` |
 | F02-RT-09 | revisar o `plan` do passo 2 | nenhum recurso fora de `specflow-*` / `specsflow-ai` |
 
-## 6. Segredo do LLM (antes da F05)
+## 6. LLM (F05, ADR-008)
 
-O Terraform cria só o contêiner do segredo; o valor nunca passa pelo estado:
-
-```bash
-printf '%s' "$CHAVE" | gcloud secrets versions add specflow-llm-api-key --data-file=- --project pcb-inspect
-```
+Não há segredo de LLM: o Gemini é chamado no Vertex AI pela conta de serviço `specflow-api`
+(`roles/aiplatform.user`). O Terraform ativa `aiplatform.googleapis.com` e configura `LLM_MODEL` e
+`LLM_LOCATION` no Cloud Run (variáveis `llm_model`/`llm_location`). O segredo `specflow-llm-api-key`,
+criado vazio na F02, foi removido.

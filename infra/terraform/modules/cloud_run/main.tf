@@ -8,6 +8,8 @@ variable "max_instances" { type = number }
 variable "cors_origins" { type = list(string) }
 variable "kms_key_name" { type = string }
 variable "deletion_protection" { type = bool }
+variable "llm_model" { type = string }
+variable "llm_location" { type = string }
 
 # O Terraform cria o serviço e a configuração (F02-RT-05); a imagem e o tráfego pertencem ao
 # `make deploy` (scripts/deploy.sh), que publica sempre por digest. Por isso image/traffic são ignorados.
@@ -65,8 +67,19 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "KMS_KEY_NAME"
         value = var.kms_key_name
       }
-      # LLM_API_KEY (secret specflow-llm-api-key) entra na F05, quando o backend passar a usá-lo:
-      # montar um secret sem versão impede a revisão de subir.
+      # Agente (F05, ADR-008): Gemini no Vertex AI pela SA do serviço; não há chave de LLM.
+      env {
+        name  = "LLM_PROVIDER"
+        value = "google_vertexai"
+      }
+      env {
+        name  = "LLM_MODEL"
+        value = var.llm_model
+      }
+      env {
+        name  = "LLM_LOCATION"
+        value = var.llm_location
+      }
 
       startup_probe {
         http_get {

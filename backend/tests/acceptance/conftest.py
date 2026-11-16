@@ -53,6 +53,12 @@ class Turn:
     def actions(self) -> list[dict[str, Any]]:
         return [e["data"] for e in self.events if e["event"] == "action_proposed"]
 
+    def __repr__(self) -> str:
+        """Resumo para as mensagens de falha: ferramentas, ações e o fim do texto."""
+        tools = [e["data"]["name"] for e in self.events if e["event"] == "tool_start"]
+        kinds = [a["preview"]["issue_type"] for a in self.actions()]
+        return f"Turn(tools={tools}, actions={kinds}, text=...{self.text[-600:]!r})"
+
 
 class User:
     def __init__(self, token: str) -> None:
@@ -83,7 +89,13 @@ class User:
                         first = time.monotonic() - started
                     events.append(current)
                     current = {}
-        return Turn(events, cid, first)
+        turn = Turn(events, cid, first)
+        # Erro da API (p. ex. llm-unavailable por cota) não é comportamento do agente: falha
+        # com o código para não ser confundido com uma resposta ruim.
+        for event in events:
+            if event["event"] == "error":
+                pytest.fail(f"a API emitiu erro {event['data']}: {turn!r}")
+        return turn
 
 
 def _emulator_user() -> str:

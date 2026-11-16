@@ -41,7 +41,9 @@ def build_chat_model(settings: LlmSettings) -> BaseChatModel:
         project=settings.llm_project or settings.gcp_project,
         location=settings.llm_location,
         temperature=settings.llm_temperature,
-        max_retries=2,
+        # O endpoint global usa cota compartilhada (DSQ): 429 é esperado em picos; a lib
+        # repete com espera exponencial.
+        max_retries=4,
         timeout=60,
         streaming=True,
     )

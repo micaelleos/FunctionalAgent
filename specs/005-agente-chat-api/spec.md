@@ -94,10 +94,10 @@ Funcionalidade: Conversa com o agente
     E a resposta cita o projeto do sandbox
 
   Cenário: AT-F05-04 Criação vira spec pronta, proposta e sem escrita   # F05-RF-04, F05-RF-06, F05-RT-13, F05-RT-14
-    Quando peço "Crie no projeto <sandbox> uma story para login com e-mail e senha; senha errada mostra 'E-mail ou senha incorretos'"
+    Quando peço "Crie no projeto <sandbox> uma story para filtrar 'Meus pedidos' por período; data final anterior à inicial mostra 'A data final deve ser igual ou posterior à inicial'"
     Então recebo um evento "action_proposed" do tipo "create_issue" com issuetype "Story"
     E a spec proposta tem as seções "Objetivo", "Contexto", "Critérios de aceite", "Fora de escopo" e "Como verificar"
-    E há um critério "CA-0n" do tipo "erro" com o texto "E-mail ou senha incorretos"
+    E há um critério "CA-0n" do tipo "erro" com o texto "A data final deve ser igual ou posterior à inicial"
     E a prontidão vem "pronta" com a label "agent-ready"
     E as issues do projeto do sandbox no Jira não mudam
 
@@ -144,19 +144,22 @@ Funcionalidade: Conversa com o agente
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F05-RF-01 | AT-F05-01, `test_chat_service.py`, `test_chat_api.py` | ✅ unit · ⬜ aceitação |
-| F05-RF-02 | AT-F05-02, `test_chat_service.py`, `integration/test_chat.py` | ✅ unit · ⬜ aceitação |
-| F05-RF-03 | AT-F05-03, `test_jira_read.py`, `test_tools_read.py` | ✅ unit · ⬜ aceitação |
-| F05-RF-04 | AT-F05-04, `test_tools_propose.py`, `test_agent_graph.py` | ✅ unit · ⬜ aceitação |
-| F05-RF-05 | AT-F05-05, `test_tools_propose.py`, eval `asks_project_*` | ✅ unit · ⬜ aceitação |
-| F05-RF-06 | AT-F05-04, AT-F05-06, `test_agent_ready_spec.py`, eval `contract_*` | ✅ unit · ⬜ aceitação |
-| F05-RF-07 | AT-F05-03, `test_chat_service.py` | ✅ unit · ⬜ aceitação |
-| F05-RF-08 | AT-F05-06, `test_tools_read.py`, `integration/test_chat.py` | ✅ unit · ⬜ aceitação |
-| F05-RF-09 | AT-F05-07, `test_agent_graph.py` (prompt), eval `asks_missing_*` | ✅ unit · ⬜ aceitação |
-| F05-RF-10 | AT-F05-08, `test_agent_graph.py` (prompt), eval `splits_large_*` | ✅ unit · ⬜ aceitação |
-| F05-RF-11 | AT-F05-09, `test_readiness.py`, `test_tools_propose.py`, eval `human_only_*` | ✅ unit · ⬜ aceitação |
-| F05-RF-12 | `test_readiness_review.py`, `test_adf.py`, eval `review_existing_*` | ✅ unit · ⬜ eval |
+| F05-RF-01 | AT-F05-01, `test_chat_service.py`, `test_chat_api.py` | ✅ unit · ✅ aceitação local |
+| F05-RF-02 | AT-F05-02, `test_chat_service.py`, `integration/test_chat.py` | ✅ unit · ✅ aceitação local |
+| F05-RF-03 | AT-F05-03, `test_jira_read.py`, `test_tools_read.py` | ✅ unit · ✅ aceitação local |
+| F05-RF-04 | AT-F05-04, `test_tools_propose.py`, `test_agent_graph.py` | ✅ unit · ✅ aceitação local |
+| F05-RF-05 | AT-F05-05, `test_tools_propose.py`, eval `asks_project_*` | ✅ unit · ✅ aceitação local |
+| F05-RF-06 | AT-F05-04, AT-F05-06, `test_agent_ready_spec.py`, eval `contract_*` | ✅ unit · ✅ aceitação local |
+| F05-RF-07 | AT-F05-03, `test_chat_service.py` | ✅ unit · ✅ aceitação local |
+| F05-RF-08 | AT-F05-06, `test_tools_read.py`, `integration/test_chat.py` | ✅ unit · ✅ aceitação local |
+| F05-RF-09 | AT-F05-07, `test_agent_graph.py` (prompt), eval `asks_missing_*` | ✅ unit · ✅ aceitação local |
+| F05-RF-10 | AT-F05-08, `test_agent_graph.py` (prompt), eval `splits_large_*` | ✅ unit · ✅ aceitação local |
+| F05-RF-11 | AT-F05-09, `test_readiness.py`, `test_tools_propose.py`, eval `human_only_*` | ✅ unit · ✅ aceitação local |
+| F05-RF-12 | `test_readiness_review.py`, `test_adf.py`, eval `review_existing_*` | ✅ unit · ✅ eval |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-16 | PR #15 | prd (pcb-inspect) | `terraform apply`: Vertex AI ativo, `roles/aiplatform.user` na SA, envs LLM, segredo vazio removido; `generateContent` em `gemini-3.5-flash-lite` (global) | 2 criados, 1 alterado, 2 removidos; modelo respondeu | PO (aprovação do apply) |
+| 2026-11-16 | PR #15 | local + Vertex AI + Jira sandbox | Evals `f05_v1` (30 casos): baseline `prompt_2` × agente novo, mesmo modelo (`evals/results/2026-11-16-*.json`) | Nenhuma métrica abaixo do baseline; contrato P-01..P-07 0 → 100%, `human_only` 0 → 100%, épico decomposto 0 → 100%, sem Jira 50 → 100% | — |
+| 2026-11-16 | PR #15 | local (emuladores) + Vertex AI + Jira sandbox `SCRUM` | Aceitação AT-F05-01..09, 3 rodadas seguidas | 27/27 | — |

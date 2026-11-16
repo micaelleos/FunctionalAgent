@@ -19,9 +19,9 @@
 
 **Objetivo:** Gravar o baseline do agente legado **antes** da migração (risco do roadmap).
 
-- [ ] T001 Dataset inicial de evals (30 casos) + baseline do agente legado — teste: `evals/` — 1,5 d
+- [x] T001 Dataset inicial de evals (30 casos) + baseline do agente legado — teste: `evals/` — 1,5 d
   - [x] T001a Dataset `evals/datasets/f05_v1.jsonl` (30 casos) e runner com métricas determinísticas — 1 d
-  - [ ] T001b Baseline gravado: `prompt_2` + ferramentas legadas no mesmo Gemini (o GPT do legado não tem chave; ver `evals/README.md`) — precisa do Vertex AI ativo — 0,5 d
+  - [x] T001b Baseline gravado: `prompt_2` + ferramentas legadas no mesmo Gemini (o GPT do legado não tem chave; ver `evals/README.md`) — precisa do Vertex AI ativo — 0,5 d
 
 ---
 
@@ -32,9 +32,9 @@
 - [x] T002 Conversor Markdown⇄ADF (`agent/spec/adf.py`; o renderizador usa o Markdown inline) — teste: `test_adf.py` — 1 d
 - [x] T008 [F05-RF-06] `AgentReadySpec` + renderizador ADF/Markdown com seções fixas (F05-RT-13) — teste: `test_agent_ready_spec.py` com fixtures — 1 d
 - [x] T009 [P] [F05-RF-06][F05-RF-11] Verificação de prontidão P-01..P-10 e labels (F05-RT-14, F05-RT-15) — teste: `test_readiness.py` — 1 d
-- [ ] T010 [P] Vertex AI no Terraform (API, papel da SA, `LLM_MODEL`/`LLM_LOCATION`; remove `specflow-llm-api-key`) + fábrica `build_chat_model` e config (F05-RT-09) — teste: `make infra-check`, unit de config, chamada real ao modelo no smoke — 0,5 d
+- [x] T010 [P] Vertex AI no Terraform (API, papel da SA, `LLM_MODEL`/`LLM_LOCATION`; remove `specflow-llm-api-key`) + fábrica `build_chat_model` e config (F05-RT-09) — teste: `make infra-check`, unit de config, chamada real ao modelo no smoke — 0,5 d
   - [x] T010a Terraform (API, papel, envs, segredo removido), fábrica, config e smoke no `deploy.sh` — teste: `terraform validate`, `test_llm_config.py` — 0,4 d
-  - [ ] T010b `terraform apply` aprovado pelo PO e smoke do modelo em produção — 0,1 d
+  - [x] T010b `terraform apply` aprovado pelo PO e smoke do modelo em produção — 0,1 d
 
 ---
 
@@ -70,4 +70,4 @@
 
 **Aceitação:** AT-F05-01..09
 
-- [ ] T007 Testes de aceitação AT-F05-01..09 + evals comparadas ao baseline — teste: acceptance + evals — 1,5 d
+- [x] T007 Testes de aceitação AT-F05-01..09 + evals comparadas ao baseline — teste: acceptance + evals — 1,5 d

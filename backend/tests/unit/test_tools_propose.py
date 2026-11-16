@@ -49,7 +49,16 @@ async def test_proposta_de_historia_gera_acao_com_spec_canonica_e_previa() -> No
 
 @pytest.mark.req("F05-RT-14")
 async def test_prontidao_vai_na_acao_e_avisa_sem_bloquear() -> None:
-    out, sink = await _create(pix_story_data(out_of_scope=[]))
+    sink = MemorySink()
+    config = tool_config(FakeJiraReader(), sink)
+    args = {"project_key": "ABC", "spec": pix_story_data(out_of_scope=[])}
+
+    review = await propor_criacao_issue.ainvoke(args, config)
+    assert review.startswith("Proposta não criada ainda: a spec não está pronta")
+    assert "P-05 Fora de escopo" in review
+    assert sink.actions == []
+
+    out = await propor_criacao_issue.ainvoke(args, config)  # segunda vez: segue, sem bloquear
     readiness = sink.actions[0]["readiness"]
 
     assert readiness["ready"] is False
@@ -151,3 +160,43 @@ async def test_sem_jira_nao_propoe() -> None:
     )
     assert out == NO_JIRA
     assert sink.actions == []
+
+
+@pytest.mark.req("F05-RF-06")
+async def test_cenario_sem_dado_volta_ao_modelo_sem_criar_acao() -> None:
+    criterion = dict(pix_story_data()["acceptance_criteria"][1], given=[])
+    out, sink = await _create(
+        pix_story_data(acceptance_criteria=[pix_story_data()["acceptance_criteria"][0], criterion])
+    )
+
+    assert sink.actions == []
+    assert out.startswith("Proposta não criada: os cenários CA-02")
+
+
+@pytest.mark.req("F05-RF-11")
+async def test_termo_sensivel_pede_confirmacao_uma_vez_e_depois_segue() -> None:
+    sink = MemorySink()
+    config = tool_config(FakeJiraReader(), sink)
+    spec = pix_story_data(title="Trocar o algoritmo de hash das senhas para Argon2id")
+    args = {"project_key": "ABC", "spec": spec}
+
+    first = await propor_criacao_issue.ainvoke(args, config)
+    second = await propor_criacao_issue.ainvoke(args, config)
+
+    assert first.startswith("Proposta não criada ainda: a spec cita hash, argon2")
+    assert "aguardando confirmação" in second
+    assert len(sink.actions) == 1
+
+
+@pytest.mark.req("F05-RF-11")
+async def test_spec_ja_human_only_ou_sem_termos_nao_recebe_o_aviso() -> None:
+    marked = pix_story_data(
+        title="Trocar o algoritmo de hash das senhas para Argon2id",
+        human_only=True,
+        human_only_reason="Criptografia de senhas.",
+    )
+    out_marked, _ = await _create(marked)
+    out_plain, _ = await _create(pix_story_data())  # "estorno" só em Fora de escopo
+
+    assert "aguardando confirmação" in out_marked
+    assert "aguardando confirmação" in out_plain

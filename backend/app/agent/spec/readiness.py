@@ -41,6 +41,8 @@ class ReadinessConfig(BaseModel):
     min_body_words_with_link: int
     vague_terms: tuple[VagueTerm, ...]
     link_only_phrases: tuple[str, ...]
+    # RA-24: indícios de mudança sensível; o agente confirma se a spec é `human_only`.
+    sensitive_terms: tuple[str, ...] = ()
 
 
 @cache
@@ -215,6 +217,17 @@ def evaluate(spec: WorkItemSpec | EpicSpec, config: ReadinessConfig | None = Non
         ]
     warnings = [_p08_vague_terms(text, cfg), _p09_length(body, cfg), _p10_link_only(body, cfg)]
     return Readiness(cfg.version, tuple(structural + warnings))
+
+
+def sensitive_terms_in(
+    spec: WorkItemSpec | EpicSpec, config: ReadinessConfig | None = None
+) -> list[str]:
+    """Termos que sugerem segurança, dados pessoais, permissões ou pagamentos (RA-24)."""
+    cfg = config or load_config()
+    # "Fora de escopo" diz o que NÃO será feito: não conta como indício.
+    in_scope = spec.model_copy(update={"out_of_scope": []})
+    text = f"{spec.title}\n{to_markdown(in_scope)}".lower()
+    return [term for term in cfg.sensitive_terms if term in text]
 
 
 def labels_for(spec: WorkItemSpec | EpicSpec, readiness: Readiness) -> tuple[str, ...]:

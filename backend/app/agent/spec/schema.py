@@ -42,9 +42,11 @@ class Scenario(_Strict):
     id: ScenarioId
     kind: ScenarioKind
     title: Line
-    given: list[Line] = Field(default_factory=list, max_length=10)
-    when: list[Line] = Field(default_factory=list, max_length=10)
-    then: list[Line] = Field(default_factory=list, max_length=10)
+    # Obrigatórios no esquema (o modelo sempre os envia); listas vazias só vêm de issues lidas do
+    # Jira, e a prontidão (P-03) aponta o que falta.
+    given: list[Line] = Field(max_length=10, description="Pré-condições (Dado); pelo menos 1")
+    when: list[Line] = Field(max_length=10, description="Ação (Quando); pelo menos 1")
+    then: list[Line] = Field(max_length=10, description="Resultado esperado (Então); pelo menos 1")
 
 
 class SpecType(StrEnum):

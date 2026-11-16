@@ -14,7 +14,13 @@ from pydantic import BaseModel, Field, StringConstraints
 
 from app.agent.spec.jira_payload import ISSUE_TYPES, create_payload, update_payload
 from app.agent.spec.parse import parse_issue
-from app.agent.spec.readiness import LABEL_SPECFLOW, Readiness, evaluate, labels_for
+from app.agent.spec.readiness import (
+    LABEL_SPECFLOW,
+    Readiness,
+    evaluate,
+    labels_for,
+    sensitive_terms_in,
+)
 from app.agent.spec.render import to_markdown
 from app.agent.spec.schema import EpicSpec, IssueKey, WorkItemSpec
 from app.agent.tools.context import (
@@ -268,9 +274,64 @@ async def _check_project(ctx: ToolContext, project_key: str) -> str | None:
     return None
 
 
+def _gherkin_problem(spec: WorkItemSpec | EpicSpec | None) -> str | None:
+    """Cenário sem Dado, Quando ou Então é defeito de formatação do agente, não falta de
+    informação: volta ao modelo para corrigir, sem criar a ação."""
+    if not isinstance(spec, WorkItemSpec):
+        return None
+    broken = [s.id for s in spec.acceptance_criteria if not (s.given and s.when and s.then)]
+    if not broken:
+        return None
+    return (
+        f"Proposta não criada: os cenários {', '.join(broken)} precisam de pelo menos um passo em "
+        "`given` (Dado), `when` (Quando) e `then` (Então). Corrija e chame a ferramenta de novo."
+    )
+
+
+def _sensitive_check(ctx: ToolContext, spec: WorkItemSpec | EpicSpec | None) -> str | None:
+    """Uma vez por spec no turno: se há termos sensíveis e ela não veio `human_only`, o modelo
+    confirma a decisão (RA-24). Na segunda chamada a proposta segue como ele decidir."""
+    if spec is None or spec.human_only:
+        return None
+    terms = sensitive_terms_in(spec)
+    asked: set[str] = ctx.turn_cache.setdefault("sensitive_asked", set())
+    if not terms or spec.title in asked:
+        return None
+    asked.add(spec.title)
+    return (
+        f"Proposta não criada ainda: a spec cita {', '.join(terms)}. Se a mudança envolve "
+        "segurança, autenticação, criptografia, permissões, dados pessoais ou pagamentos, marque "
+        "`human_only: true` com o motivo em `human_only_reason`. Se não envolve, chame de novo "
+        "sem mudar."
+    )
+
+
+def _review_once(ctx: ToolContext, spec: WorkItemSpec | EpicSpec | None) -> str | None:
+    """Uma revisão antes de criar a ação: se falta uma regra obrigatória (fora P-07), o modelo
+    corrige ou pergunta ao usuário, sem deixar dois cartões para a mesma issue. Na segunda chamada
+    a proposta segue como estiver: a prontidão avisa, não bloqueia (RA-22)."""
+    if spec is None:
+        return None
+    missing = [r for r in evaluate(spec).missing if r.id != "P-07"]
+    reviewed: set[str] = ctx.turn_cache.setdefault("readiness_reviewed", set())
+    if not missing or spec.title in reviewed:
+        return None
+    reviewed.add(spec.title)
+    items = "; ".join(f"{r.id} {r.label}" + (f" ({r.detail})" if r.detail else "") for r in missing)
+    return (
+        f"Proposta não criada ainda: a spec não está pronta para agente de código ({items}). "
+        "Corrija o que der sem inventar fatos; o que depender do usuário, pergunte a ele ou "
+        "registre em `open_questions`. Depois chame a ferramenta de novo."
+    )
+
+
 async def _propose_create(
     ctx: ToolContext, project_key: str, spec: WorkItemSpec | EpicSpec, parent_key: str | None
 ) -> str:
+    if problem := (
+        _gherkin_problem(spec) or _sensitive_check(ctx, spec) or _review_once(ctx, spec)
+    ):
+        return problem
     if ctx.jira is None:
         return NO_JIRA
     if problem := await _check_project(ctx, project_key):
@@ -328,6 +389,10 @@ async def propor_atualizacao_issue(
         return NO_JIRA
     if new_spec is None and priority is None and labels is None:
         return "Nada a atualizar: informe a spec, a prioridade ou as labels."
+    if problem := (
+        _gherkin_problem(new_spec) or _sensitive_check(ctx, new_spec) or _review_once(ctx, new_spec)
+    ):
+        return problem
     try:
         current = await ctx.jira.get_issue(key)
     except IssueNotFoundError:

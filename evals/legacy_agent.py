@@ -15,7 +15,9 @@ from pydantic import BaseModel, Field
 
 from app.agent.tools.context import IssueNotFoundError, tool_context
 
-LEGACY_PROMPT_FILE = Path(__file__).resolve().parents[1] / "legacy" / "src" / "scripts" / "prompt.py"
+LEGACY_PROMPT_FILE = (
+    Path(__file__).resolve().parents[1] / "legacy" / "src" / "scripts" / "prompt.py"
+)
 
 
 def legacy_prompt() -> str:
@@ -49,7 +51,9 @@ async def criar_issue_jira(config: RunnableConfig, **data: Any) -> str:
     """Chame essa função para criar issues no Jira"""
     ctx = tool_context(config)
     if ctx.jira is None:
-        return "Aconteceu um erro ao enviar o issue ao Jira. O usuário não configurou as credenciais"
+        return (
+            "Aconteceu um erro ao enviar o issue ao Jira. O usuário não configurou as credenciais"
+        )
     _writes(config).append({"kind": "create_issue", **data})
     return f"Issue criado: {data['project']}-{100 + len(_writes(config))}"
 
@@ -73,7 +77,9 @@ async def consultar_issue(issue_key: str, config: RunnableConfig) -> str:
         issue = await ctx.jira.get_issue(issue_key)
     except IssueNotFoundError:
         return "Erro: issue não encontrado"
-    return str({"key": issue.key, "summary": issue.summary, "description": issue.description_markdown})
+    return str(
+        {"key": issue.key, "summary": issue.summary, "description": issue.description_markdown}
+    )
 
 
 class AtualizaIssue(BaseModel):
@@ -82,7 +88,9 @@ class AtualizaIssue(BaseModel):
 
 
 @tool(args_schema=AtualizaIssue)
-async def atualizar_issue_jira(issue_key: str, fields: dict[str, str], config: RunnableConfig) -> str:
+async def atualizar_issue_jira(
+    issue_key: str, fields: dict[str, str], config: RunnableConfig
+) -> str:
     """Chame essa ferramenta para atualizar issues no Jira"""
     _writes(config).append({"kind": "update_issue", "issue_key": issue_key, **fields})
     return "Issue atualizado"

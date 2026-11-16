@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Em produção |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F03 |
 | **ADRs** | ADR-004 |
@@ -102,10 +102,11 @@ backend, Vitest no front) e conferido à mão no roteiro M-F04-01 (revogar um to
 | F04-RF-03 | AT-F04-02, AT-F04-03, `test_jira_connections_api.py`, `test_jira_urls.py` | ✅ (AT no sandbox em 2026-11-16) |
 | F04-RF-04 | AT-F04-01, `test_jira_connections_api.py` | ✅ (AT no sandbox em 2026-11-16) |
 | F04-RF-05 | AT-F04-05, `test_jira_connections_api.py` | ✅ (AT no sandbox em 2026-11-16) |
-| F04-RF-06 | AT-F04-04 (`test_jira_connections_api.py`, `jira.test.tsx`), M-F04-01 | 🟡 automatizado; falta M-F04-01 |
+| F04-RF-06 | AT-F04-04 (`test_jira_connections_api.py`, `jira.test.tsx`), M-F04-01 | ✅ (M-F04-01 em produção em 2026-11-16) |
 | F04-RF-07 | `jira.test.tsx` (painel "Como criar o token") | ✅ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
-| 2026-11-16 | `b779943` (master) | `make dev` (emuladores + API local) + Jira sandbox do PO, projeto SCRUM | `E2E_EMULATORS=1 npx playwright test f04-jira.spec.ts` (AT-F04-01, 02, 03, 05) | 2 passed | pendente (PO) |
+| 2026-11-16 | `b779943` (master) | `make dev` (emuladores + API local) + Jira sandbox do PO, projeto SCRUM | `E2E_EMULATORS=1 npx playwright test f04-jira.spec.ts` (AT-F04-01, 02, 03, 05) | 2 passed | PO (2026-11-16) |
+| 2026-11-16 | `44ae63e8db77` (deploy) | Produção (https://specsflow-ai.web.app) + Jira sandbox do PO | Roteiro manual M-F04-01: conectar, revogar o token no Atlassian, "Test connection" | Conexão marcada como expirada; aviso "Your Jira connection has expired" com "Reconnect" | PO (2026-11-16) |

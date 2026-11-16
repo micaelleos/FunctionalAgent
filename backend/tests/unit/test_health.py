@@ -39,6 +39,7 @@ def test_cors_permite_origem_do_frontend_local(client: TestClient) -> None:
 def test_docs_desabilitado_fora_de_local_e_dev(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
     monkeypatch.setenv("ENV", "prd")
+    monkeypatch.setenv("KMS_KEY_NAME", "projects/p/locations/l/keyRings/k/cryptoKeys/jira-tokens")
     monkeypatch.delenv("FIREBASE_AUTH_EMULATOR_HOST", raising=False)
     try:
         with TestClient(create_app()) as c:

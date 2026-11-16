@@ -4,6 +4,59 @@
  */
 
 export interface paths {
+    "/api/v1/jira/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Minhas conexões (sem o token) */
+        get: operations["list_connections_api_v1_jira_connections_get"];
+        put?: never;
+        /** Valida a credencial no Jira e guarda a conexão (token cifrado) */
+        post: operations["create_connection_api_v1_jira_connections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jira/connections/{connection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Troca a credencial */
+        put: operations["replace_connection_api_v1_jira_connections__connection_id__put"];
+        post?: never;
+        /** Remove a conexão */
+        delete: operations["delete_connection_api_v1_jira_connections__connection_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jira/connections/{connection_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Testa a credencial guardada; se o Jira recusar, a conexão fica inválida */
+        post: operations["validate_connection_api_v1_jira_connections__connection_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -94,6 +147,47 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * JiraConnection
+         * @description O que a API devolve: nunca o token, só os 4 últimos caracteres (F04-RF-04).
+         */
+        JiraConnection: {
+            /** Account Name */
+            account_name: string;
+            /** Email */
+            email: string;
+            /** Id */
+            id: string;
+            /**
+             * Last Validated At
+             * Format: date-time
+             */
+            last_validated_at: string;
+            /** Site Url */
+            site_url: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "invalid";
+            /** Token Hint */
+            token_hint: string;
+        };
+        /** JiraConnectionInput */
+        JiraConnectionInput: {
+            /**
+             * Api Token
+             * Format: password
+             */
+            api_token: string;
+            /** Email */
+            email: string;
+            /**
+             * Site Url
+             * @example https://sua-empresa.atlassian.net
+             */
+            site_url: string;
+        };
         /** Profile */
         Profile: {
             /**
@@ -132,6 +226,173 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_connections_api_v1_jira_connections_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraConnection"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_connection_api_v1_jira_connections_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JiraConnectionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraConnection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_connection_api_v1_jira_connections__connection_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JiraConnectionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraConnection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_connection_api_v1_jira_connections__connection_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_connection_api_v1_jira_connections__connection_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraConnection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_me_api_v1_me_get: {
         parameters: {
             query?: never;

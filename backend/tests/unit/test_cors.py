@@ -15,6 +15,7 @@ SITE = "https://specsflow-ai.web.app"
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     # Mesmos valores que o Terraform injeta no Cloud Run (infra/terraform/main.tf).
     monkeypatch.setenv("ENV", "prd")
+    monkeypatch.setenv("KMS_KEY_NAME", "projects/p/locations/l/keyRings/k/cryptoKeys/jira-tokens")
     monkeypatch.delenv("FIREBASE_AUTH_EMULATOR_HOST", raising=False)
     monkeypatch.setenv("CORS_ORIGINS", f'["{SITE}"]')
     get_settings.cache_clear()

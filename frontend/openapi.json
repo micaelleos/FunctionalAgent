@@ -38,6 +38,89 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "JiraConnection": {
+        "description": "O que a API devolve: nunca o token, só os 4 últimos caracteres (F04-RF-04).",
+        "properties": {
+          "account_name": {
+            "title": "Account Name",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_validated_at": {
+            "format": "date-time",
+            "title": "Last Validated At",
+            "type": "string"
+          },
+          "site_url": {
+            "title": "Site Url",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "invalid"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "token_hint": {
+            "title": "Token Hint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "site_url",
+          "email",
+          "account_name",
+          "token_hint",
+          "status",
+          "last_validated_at"
+        ],
+        "title": "JiraConnection",
+        "type": "object"
+      },
+      "JiraConnectionInput": {
+        "properties": {
+          "api_token": {
+            "format": "password",
+            "maxLength": 2048,
+            "minLength": 8,
+            "title": "Api Token",
+            "type": "string",
+            "writeOnly": true
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "pattern": "^[^@\\s]+@[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          },
+          "site_url": {
+            "examples": [
+              "https://sua-empresa.atlassian.net"
+            ],
+            "maxLength": 300,
+            "title": "Site Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_url",
+          "email",
+          "api_token"
+        ],
+        "title": "JiraConnectionInput",
+        "type": "object"
+      },
       "Profile": {
         "properties": {
           "created_at": {
@@ -134,6 +217,291 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/jira/connections": {
+      "get": {
+        "operationId": "list_connections_api_v1_jira_connections_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/JiraConnection"
+                  },
+                  "title": "Response List Connections Api V1 Jira Connections Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Minhas conexões (sem o token)",
+        "tags": [
+          "jira"
+        ]
+      },
+      "post": {
+        "operationId": "create_connection_api_v1_jira_connections_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JiraConnectionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraConnection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Valida a credencial no Jira e guarda a conexão (token cifrado)",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
+    "/api/v1/jira/connections/{connection_id}": {
+      "delete": {
+        "operationId": "delete_connection_api_v1_jira_connections__connection_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connection_id",
+            "required": true,
+            "schema": {
+              "title": "Connection Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove a conexão",
+        "tags": [
+          "jira"
+        ]
+      },
+      "put": {
+        "operationId": "replace_connection_api_v1_jira_connections__connection_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connection_id",
+            "required": true,
+            "schema": {
+              "title": "Connection Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JiraConnectionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraConnection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Troca a credencial",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
+    "/api/v1/jira/connections/{connection_id}/validate": {
+      "post": {
+        "operationId": "validate_connection_api_v1_jira_connections__connection_id__validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connection_id",
+            "required": true,
+            "schema": {
+              "title": "Connection Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraConnection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Testa a credencial guardada; se o Jira recusar, a conexão fica inválida",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
     "/api/v1/me": {
       "delete": {
         "operationId": "delete_me_api_v1_me_delete",

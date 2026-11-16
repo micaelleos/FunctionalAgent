@@ -8,11 +8,13 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_account_service, get_verifier
+from app.api.deps import get_account_service, get_jira_service, get_verifier
 from app.core.config import Settings, get_settings
+from app.core.crypto import LocalFernetCipher
 from app.main import create_app
 from app.services.account import AccountService
-from tests.fakes import FakeVerifier, MemoryStore
+from app.services.jira_connections import JiraConnectionService
+from tests.fakes import FakeVerifier, MemoryJiraStore, MemoryStore
 
 _OPENAPI = create_app().openapi()
 _HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
@@ -37,6 +39,8 @@ def client(verifier: FakeVerifier) -> Iterator[TestClient]:
     app.dependency_overrides[get_settings] = lambda: Settings(env="test")
     app.dependency_overrides[get_verifier] = lambda: verifier
     app.dependency_overrides[get_account_service] = lambda: AccountService(store)
+    jira = JiraConnectionService(MemoryJiraStore(), LocalFernetCipher())
+    app.dependency_overrides[get_jira_service] = lambda: jira
     with TestClient(app) as c:
         yield c
 

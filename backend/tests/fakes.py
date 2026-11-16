@@ -39,3 +39,30 @@ class MemoryStore:
 
     def delete(self, uid: str) -> int:
         return 1 if self.users.pop(uid, None) is not None else 0
+
+
+class MemoryJiraStore:
+    """Conexões Jira em memória, com a mesma interface do repositório Firestore."""
+
+    def __init__(self) -> None:
+        self.docs: dict[str, dict[str, dict[str, Any]]] = {}
+        self._next = 0
+
+    def list(self, uid: str) -> list[dict[str, Any]]:
+        return [{"id": k, **copy.deepcopy(v)} for k, v in self.docs.get(uid, {}).items()]
+
+    def get(self, uid: str, connection_id: str) -> dict[str, Any] | None:
+        doc = self.docs.get(uid, {}).get(connection_id)
+        return None if doc is None else {"id": connection_id, **copy.deepcopy(doc)}
+
+    def create(self, uid: str, data: dict[str, Any]) -> str:
+        self._next += 1
+        connection_id = f"conn-{self._next}"
+        self.docs.setdefault(uid, {})[connection_id] = copy.deepcopy(data)
+        return connection_id
+
+    def update(self, uid: str, connection_id: str, data: dict[str, Any]) -> None:
+        self.docs[uid][connection_id].update(copy.deepcopy(data))
+
+    def delete(self, uid: str, connection_id: str) -> None:
+        self.docs.get(uid, {}).pop(connection_id, None)

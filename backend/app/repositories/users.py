@@ -11,6 +11,10 @@ from typing import Any
 from google.api_core.exceptions import AlreadyExists
 from google.cloud import firestore
 
+# Campos que nunca saem na exportação: o token do Jira cifrado não serve ao usuário e não deve
+# circular fora do backend (F04-RT-02).
+_NOT_EXPORTED = {"tokenCiphertext"}
+
 
 def _plain(value: Any) -> Any:
     """Converte valores do Firestore em JSON (datas em ISO 8601, referências em caminho)."""
@@ -19,7 +23,7 @@ def _plain(value: Any) -> Any:
     if isinstance(value, firestore.DocumentReference):
         return value.path
     if isinstance(value, dict):
-        return {k: _plain(v) for k, v in value.items()}
+        return {k: _plain(v) for k, v in value.items() if k not in _NOT_EXPORTED}
     if isinstance(value, list):
         return [_plain(v) for v in value]
     return value

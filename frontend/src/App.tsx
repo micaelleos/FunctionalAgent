@@ -5,23 +5,26 @@ import { createBrowserRouter, createMemoryRouter, RouterProvider } from 'react-r
 import { AuthProvider } from './auth/AuthProvider'
 import type { AuthClient } from './auth/client'
 import { ProductContext } from './product/context'
+import { createHttpProductApi } from './product/http'
 import type { ProductApi } from './product/types'
-import { unavailableProductApi } from './product/unavailable'
 import { routes } from './routes'
 
 export default function App({
   authClient,
-  productApi = unavailableProductApi,
+  productApi,
   initialPath,
 }: {
   authClient: AuthClient
-  /** Dados das telas principais; em produção, só o que já existe no backend (F08-RT-08). */
+  /** Dados das telas principais; sem ele, a API real (o que ainda não existe fica vazio, F08-RT-08). */
   productApi?: ProductApi
   /** Só nos testes: usa um roteador em memória começando neste caminho. */
   initialPath?: string
 }) {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  )
+  const [product] = useState(
+    () => productApi ?? createHttpProductApi((force) => authClient.getIdToken(force)),
   )
   const [router] = useState(() =>
     initialPath
@@ -31,7 +34,7 @@ export default function App({
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider client={authClient}>
-        <ProductContext.Provider value={productApi}>
+        <ProductContext.Provider value={product}>
           <RouterProvider router={router} />
         </ProductContext.Provider>
       </AuthProvider>

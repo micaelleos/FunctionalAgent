@@ -39,6 +39,18 @@ variable "cloud_run_max_instances" {
   default = 10
 }
 
+variable "llm_model" {
+  description = "Modelo Gemini do agente no Vertex AI (F05-RT-09, ADR-008)."
+  type        = string
+  default     = "gemini-3.5-flash-lite"
+}
+
+variable "llm_location" {
+  description = "Região do Vertex AI para o Gemini (global atende os modelos Gemini 3.x)."
+  type        = string
+  default     = "global"
+}
+
 variable "deletion_protection" {
   description = "Protege o banco Firestore e o Cloud Run contra destroy acidental."
   type        = bool

@@ -5,14 +5,18 @@ from typing import Annotated
 
 from fastapi import Depends, Header
 from google.cloud import firestore
+from langchain_core.language_models import BaseChatModel
 
+from app.agent.llm import build_chat_model
 from app.core.auth import FirebaseTokenVerifier, Identity, InvalidTokenError, TokenVerifier
 from app.core.config import Settings, get_settings
 from app.core.crypto import Cipher, build_cipher
 from app.core.errors import EmailNotVerifiedError, UnauthenticatedError
+from app.repositories.conversations import ConversationRepository
 from app.repositories.jira_connections import JiraConnectionRepository
 from app.repositories.users import UserRepository
 from app.services.account import AccountService
+from app.services.chat import ChatService
 from app.services.jira_connections import JiraConnectionService
 
 
@@ -46,6 +50,30 @@ def get_jira_service(settings: Annotated[Settings, Depends(get_settings)]) -> Ji
         JiraConnectionRepository(db),
         _cipher(settings.env, settings.kms_key_name, settings.local_cipher_key),
     )
+
+
+_models: dict[tuple[str, ...], BaseChatModel] = {}
+
+
+def _chat_model(settings: Settings) -> BaseChatModel:
+    # O modelo não guarda estado de conversa (só configuração): pode ser compartilhado.
+    key = (
+        settings.llm_provider,
+        settings.llm_model,
+        settings.llm_location,
+        settings.llm_project or settings.gcp_project,
+    )
+    if key not in _models:
+        _models[key] = build_chat_model(settings)
+    return _models[key]
+
+
+def get_chat_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
+) -> ChatService:
+    db = _firestore(settings.gcp_project, settings.firestore_database)
+    return ChatService(ConversationRepository(db), jira, _chat_model(settings), settings)
 
 
 def _bearer(authorization: str | None) -> str:
@@ -87,3 +115,4 @@ CurrentUser = Annotated[Identity, Depends(current_user)]
 CurrentUserChecked = Annotated[Identity, Depends(current_user_checked)]
 Account = Annotated[AccountService, Depends(get_account_service)]
 JiraConnections = Annotated[JiraConnectionService, Depends(get_jira_service)]
+Chat = Annotated[ChatService, Depends(get_chat_service)]

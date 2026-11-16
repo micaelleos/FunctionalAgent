@@ -1,0 +1,83 @@
+{
+  "version": "v1",
+  "title_min_words": 5,
+  "title_max_words": 20,
+  "max_criteria": 8,
+  "max_body_words": 600,
+  "min_body_words_with_link": 60,
+  "vague_terms": [
+    {
+      "term": "rápido"
+    },
+    {
+      "term": "rápida"
+    },
+    {
+      "term": "intuitivo"
+    },
+    {
+      "term": "intuitiva"
+    },
+    {
+      "term": "amigável"
+    },
+    {
+      "term": "adequado"
+    },
+    {
+      "term": "adequada"
+    },
+    {
+      "term": "etc"
+    },
+    {
+      "term": "user-friendly"
+    },
+    {
+      "term": "simples"
+    },
+    {
+      "term": "melhorar",
+      "unless_number": true
+    },
+    {
+      "term": "otimizar",
+      "unless_number": true
+    },
+    {
+      "term": "performático",
+      "unless_number": true
+    }
+  ],
+  "link_only_phrases": [
+    "ver documento",
+    "ver doc",
+    "conforme documento",
+    "conforme o documento",
+    "ver link",
+    "detalhes no link",
+    "ver anexo",
+    "ver confluence"
+  ],
+  "sensitive_terms": [
+    "hash",
+    "criptograf",
+    "bcrypt",
+    "argon2",
+    "lgpd",
+    "dados pessoais",
+    "permissão",
+    "permissões",
+    "papel de acesso",
+    "estorno",
+    "chargeback",
+    "oauth",
+    "sso",
+    "mfa",
+    "dois fatores",
+    "2fa",
+    "credencia",
+    "chave de api",
+    "cartão de crédito"
+  ]
+}

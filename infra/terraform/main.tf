@@ -38,8 +38,9 @@ resource "google_service_account" "api_runtime" {
 }
 
 # Papéis do runtime (05-infraestrutura.md §3). O acesso ao Firestore é condicionado ao banco do
-# app, para não alcançar os bancos dos outros apps do portfólio. Secret e chave KMS têm IAM no
-# próprio recurso. Nada além disto (F02-RT-03).
+# app, para não alcançar os bancos dos outros apps do portfólio. A chave KMS tem IAM no próprio
+# recurso. O Vertex AI (Gemini, ADR-008) é chamado pela SA, sem chave de LLM. Nada além disto
+# (F02-RT-03).
 resource "google_project_iam_member" "api_runtime_firestore" {
   project = var.project_id
   role    = "roles/datastore.user"
@@ -53,20 +54,13 @@ resource "google_project_iam_member" "api_runtime_firestore" {
 resource "google_project_iam_member" "api_runtime" {
   for_each = toset([
     "roles/firebaseauth.viewer", # Auth é do projeto (compartilhado entre os apps)
+    "roles/aiplatform.user",     # Gemini no Vertex AI (F05-RT-09)
     "roles/cloudtrace.agent",
     "roles/logging.logWriter",
   ])
   project = var.project_id
   role    = each.value
   member  = google_service_account.api_runtime.member
-}
-
-module "secrets" {
-  source         = "./modules/secrets"
-  project_id     = var.project_id
-  secret_id      = "${local.p}-llm-api-key"
-  accessor_email = google_service_account.api_runtime.email
-  depends_on     = [module.project_services]
 }
 
 module "kms" {
@@ -89,6 +83,8 @@ module "cloud_run" {
   firestore_database    = local.p
   cors_origins          = local.cors_origins
   kms_key_name          = module.kms.jira_tokens_key_id
+  llm_model             = var.llm_model
+  llm_location          = var.llm_location
   deletion_protection   = var.deletion_protection
   depends_on            = [module.project_services, google_project_iam_member.api_runtime]
 }

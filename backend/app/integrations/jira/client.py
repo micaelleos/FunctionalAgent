@@ -33,11 +33,57 @@ class JiraUnreachableError(JiraError):
     """Site inexistente, fora do ar, lento demais ou respondendo erro depois das tentativas."""
 
 
+class JiraNotFoundError(JiraError):
+    """Issue ou projeto inexistente, ou sem permissão de leitura (o Jira responde 404 nos dois)."""
+
+
+class JiraBadRequestError(JiraError):
+    """O Jira recusou a requisição (400), por exemplo uma JQL inválida; a mensagem é a do Jira."""
+
+
 @dataclass(frozen=True)
 class JiraAccount:
     account_id: str
     display_name: str
     email: str | None
+
+
+@dataclass(frozen=True)
+class JiraProject:
+    key: str
+    name: str
+    type: str
+
+
+@dataclass(frozen=True)
+class JiraIssue:
+    key: str
+    summary: str
+    issue_type: str
+    status: str
+    priority: str | None
+    labels: tuple[str, ...]
+    parent_key: str | None
+    description: dict[str, Any] | None  # ADF
+    url: str
+
+
+ISSUE_FIELDS = ["summary", "description", "issuetype", "status", "priority", "labels", "parent"]
+MAX_SEARCH = 50
+
+
+def _error_messages(response: httpx.Response) -> str:
+    try:
+        data = response.json()
+    except ValueError:
+        return "o Jira respondeu 400"
+    messages = [str(m) for m in data.get("errorMessages", [])]
+    messages += [f"{k}: {v}" for k, v in (data.get("errors") or {}).items()]
+    return "; ".join(messages)[:500] or "o Jira respondeu 400"
+
+
+def _name(value: Any) -> str | None:
+    return str(value["name"]) if isinstance(value, dict) and value.get("name") else None
 
 
 def _backoff(attempt: int) -> float:
@@ -88,7 +134,9 @@ class JiraClient:
     async def aclose(self) -> None:
         await self._http.aclose()
 
-    async def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
+    async def _request(
+        self, method: str, path: str, *, not_found: bool = False, **kwargs: Any
+    ) -> httpx.Response:
         for attempt in range(MAX_ATTEMPTS):
             try:
                 response = await self._http.request(method, path, **kwargs)
@@ -100,13 +148,17 @@ class JiraClient:
             if response.status_code in _RETRY_STATUS and attempt + 1 < MAX_ATTEMPTS:
                 await self._sleep(_retry_after(response, attempt))
                 continue
-            return self._check(response)
+            return self._check(response, not_found=not_found)
         raise AssertionError("inalcançável")  # pragma: no cover
 
-    def _check(self, response: httpx.Response) -> httpx.Response:
+    def _check(self, response: httpx.Response, *, not_found: bool = False) -> httpx.Response:
         status = response.status_code
         if status in {401, 403}:
             raise JiraAuthError(f"o Jira respondeu {status}")
+        if status == 404 and not_found:
+            raise JiraNotFoundError("não encontrado no Jira")
+        if status == 400:
+            raise JiraBadRequestError(_error_messages(response))
         if 300 <= status < 400 or status == 404 or status >= 500 or status == 429:
             # 404 em /myself: não é um site Jira (ou foi desativado); 3xx: não seguimos.
             raise JiraUnreachableError(f"o Jira respondeu {status}")
@@ -122,3 +174,46 @@ class JiraClient:
             display_name=str(data.get("displayName") or data.get("emailAddress") or ""),
             email=data.get("emailAddress"),
         )
+
+    def _issue(self, data: dict[str, Any]) -> JiraIssue:
+        fields = data.get("fields") or {}
+        parent = fields.get("parent")
+        description = fields.get("description")
+        return JiraIssue(
+            key=str(data["key"]),
+            summary=str(fields.get("summary") or ""),
+            issue_type=_name(fields.get("issuetype")) or "",
+            status=_name(fields.get("status")) or "",
+            priority=_name(fields.get("priority")),
+            labels=tuple(str(label) for label in fields.get("labels") or []),
+            parent_key=str(parent["key"])
+            if isinstance(parent, dict) and parent.get("key")
+            else None,
+            description=description if isinstance(description, dict) else None,
+            url=f"{self.site_url}/browse/{data['key']}",
+        )
+
+    async def list_projects(self) -> list[JiraProject]:
+        """`GET /rest/api/3/project/search`: projetos visíveis para a conta (até 50)."""
+        response = await self._request(
+            "GET", "/rest/api/3/project/search", params={"maxResults": MAX_SEARCH}
+        )
+        return [
+            JiraProject(str(p["key"]), str(p.get("name") or ""), str(p.get("projectTypeKey") or ""))
+            for p in response.json().get("values", [])
+        ]
+
+    async def get_issue(self, key: str) -> JiraIssue:
+        response = await self._request(
+            "GET",
+            f"/rest/api/3/issue/{key}",
+            params={"fields": ",".join(ISSUE_FIELDS)},
+            not_found=True,
+        )
+        return self._issue(response.json())
+
+    async def search(self, jql: str, limit: int = MAX_SEARCH) -> list[JiraIssue]:
+        """`POST /rest/api/3/search/jql`, limitado a 50 resultados (F05-RT-04)."""
+        body = {"jql": jql, "maxResults": max(1, min(limit, MAX_SEARCH)), "fields": ISSUE_FIELDS}
+        response = await self._request("POST", "/rest/api/3/search/jql", json=body)
+        return [self._issue(issue) for issue in response.json().get("issues", [])]

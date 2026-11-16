@@ -121,6 +121,21 @@
         "title": "JiraConnectionInput",
         "type": "object"
       },
+      "MessageInput": {
+        "properties": {
+          "content": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "MessageInput",
+        "type": "object"
+      },
       "Profile": {
         "properties": {
           "created_at": {
@@ -217,6 +232,71 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/conversations/{conversation_id}/messages": {
+      "post": {
+        "description": "`conversation_id = new` cria a conversa. Eventos: token, tool_start, tool_end, action_proposed, message_saved, error, done (esquema em docs/api/sse-events.v1.json).",
+        "operationId": "send_message_api_v1_conversations__conversation_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Envia uma mensagem e recebe a resposta do agente em SSE",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
     "/api/v1/jira/connections": {
       "get": {
         "operationId": "list_connections_api_v1_jira_connections_get",

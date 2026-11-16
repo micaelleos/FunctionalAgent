@@ -99,12 +99,13 @@ api  →  services  →  agent, integrations, repositories  →  core
 
 | Ferramenta | Tipo | Execução | Limites |
 |---|---|---|---|
-| `listar_projetos` | leitura | automática | cache 5 min |
+| `listar_projetos` | leitura | automática | memorizado no turno (nada em memória entre requisições) |
 | `consultar_issue(key)` | leitura | automática | campos selecionados |
 | `buscar_issues_jql(jql, limite≤50)` | leitura | automática | máx. 50 resultados, campos resumidos |
 | `listar_issues_do_epico(key)` | leitura | automática | máx. 50 |
-| `propor_criacao_issue(spec: AgentReadySpec)` | **escrita** | **gera ação proposta** | spec validada pelo esquema; prontidão calculada (ADR-007) |
-| `propor_atualizacao_issue(key, secoes, priority?, labels?)` | **escrita** | **gera ação proposta** | só seções do `AgentReadySpec`, `priority`, `labels` |
+| `propor_criacao_issue(project_key, spec: história/tarefa, parent_key?)` | **escrita** | **gera ação proposta** | spec validada pelo esquema; prontidão calculada (ADR-007) |
+| `propor_criacao_epico(project_key, spec: épico)` | **escrita** | **gera ação proposta** | idem; uma ferramenta por tipo porque o Gemini não recebe `oneOf` |
+| `propor_atualizacao_issue(key, spec?, epic_spec?, priority?, labels?)` | **escrita** | **gera ação proposta** | só `summary`, `description`, `priority`, `labels` chegam ao Jira |
 | `avaliar_prontidao(key)` | leitura | automática | devolve as regras P-01 a P-10 que faltam numa issue existente |
 
 Conteúdo devolvido pelo Jira é marcado como **dado não confiável** no prompt (mitigação de prompt injection);
@@ -175,11 +176,13 @@ flowchart LR
 | `token` | `{text}` | Anexa texto à resposta |
 | `tool_start` / `tool_end` | `{name, summary}` | Indicador "Consultando Jira…" |
 | `action_proposed` | `{action_id, kind, preview}` | Cartão de confirmação |
-| `message_saved` | `{message_id}` | Reconciliação do cache |
-| `error` | `{code, message}` | Toast + opção de tentar de novo |
-| `done` | `{usage}` | Finaliza o turno |
+| `message_saved` | `{message_id, conversation_id, user_message_id}` | Reconciliação do cache |
+| `error` | `{code, message}` (`llm-unavailable`, `turn-timeout`, `tool-limit`…) | Toast + opção de tentar de novo; o turno ainda termina com `message_saved` e `done` |
+| `done` | `{usage: {input_tokens, output_tokens, cost_usd}}` | Finaliza o turno |
 
-O Cloud Run suporta respostas em streaming; o `timeout` do serviço é configurado em 300 s.
+O Cloud Run suporta respostas em streaming; o `timeout` do serviço é configurado em 300 s. O esquema versionado
+dos eventos está em [`docs/api/sse-events.v1.json`](../api/sse-events.v1.json) (gerado por `make api-types`,
+conferido no CI e no teste de contrato). `id = new` cria a conversa; o id volta no cabeçalho `X-Conversation-Id`.
 
 ---
 

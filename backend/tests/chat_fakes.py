@@ -1,0 +1,215 @@
+"""Dublês para os testes do agente e do chat (F05): Jira simulado, armazenamento e roteiros."""
+
+import copy
+import json
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any
+
+import httpx
+from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
+
+from app.agent.tools.context import (
+    ActionKind,
+    Issue,
+    IssueNotFoundError,
+    JiraToolError,
+    Project,
+    ProposedAction,
+    ToolContext,
+)
+from app.integrations.jira.client import JiraClient
+from app.services.jira_connections import JiraConnection
+
+SITE = "https://sandbox-teste.atlassian.net"
+NOW = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
+
+
+def issue(key: str, summary: str = "Resumo", **kw: Any) -> Issue:
+    base: dict[str, Any] = {
+        "key": key,
+        "summary": summary,
+        "issue_type": "Story",
+        "status": "To Do",
+        "priority": "Medium",
+        "labels": (),
+        "parent_key": None,
+        "description_markdown": "",
+        "url": f"{SITE}/browse/{key}",
+    }
+    return Issue(**(base | kw))
+
+
+class FakeJiraReader:
+    def __init__(
+        self, projects: list[Project] | None = None, issues: list[Issue] | None = None
+    ) -> None:
+        self.projects = projects if projects is not None else [Project("ABC", "Loja")]
+        self.issues = {i.key: i for i in issues or []}
+        self.searches: list[tuple[str, int]] = []
+        self.fail: JiraToolError | None = None
+
+    async def list_projects(self) -> list[Project]:
+        if self.fail:
+            raise self.fail
+        return list(self.projects)
+
+    async def get_issue(self, key: str) -> Issue:
+        if key not in self.issues:
+            raise IssueNotFoundError(key)
+        return self.issues[key]
+
+    async def search(self, jql: str, limit: int) -> list[Issue]:
+        self.searches.append((jql, limit))
+        return list(self.issues.values())[:limit]
+
+
+@dataclass
+class MemorySink:
+    actions: list[dict[str, Any]] = field(default_factory=list)
+
+    async def propose(
+        self,
+        kind: ActionKind,
+        payload: dict[str, Any],
+        readiness: dict[str, Any],
+        labels: list[str],
+        preview: dict[str, Any],
+    ) -> ProposedAction:
+        action_id = f"act-{len(self.actions) + 1}"
+        self.actions.append(
+            {
+                "id": action_id,
+                "kind": kind,
+                "payload": payload,
+                "readiness": readiness,
+                "labels": labels,
+                "preview": preview,
+            }
+        )
+        return ProposedAction(action_id, kind, preview)
+
+
+def tool_config(jira: FakeJiraReader | None, sink: MemorySink | None = None) -> RunnableConfig:
+    ctx = ToolContext("uid-alice", "conv-1", jira, sink or MemorySink())
+    return {"configurable": {"ctx": ctx}}
+
+
+def call(name: str, args: dict[str, Any], call_id: str = "call-1") -> AIMessage:
+    return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": call_id}])
+
+
+def last_tool_result(messages: list[BaseMessage]) -> str:
+    tool = next(m for m in reversed(messages) if isinstance(m, ToolMessage))
+    return str(tool.content)
+
+
+class MemoryChatStore:
+    """Mesma interface do `ConversationRepository`, em memória e isolada por `uid`."""
+
+    def __init__(self) -> None:
+        self.conversations: dict[str, dict[str, dict[str, Any]]] = {}
+        self.messages: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        self.actions: dict[str, list[dict[str, Any]]] = {}
+        self.usage: dict[tuple[str, str], dict[str, int]] = {}
+        self._next = 0
+
+    def _id(self, prefix: str) -> str:
+        self._next += 1
+        return f"{prefix}-{self._next}"
+
+    def create_conversation(self, uid: str, data: dict[str, Any]) -> str:
+        cid = self._id("conv")
+        self.conversations.setdefault(uid, {})[cid] = copy.deepcopy(data)
+        return cid
+
+    def get_conversation(self, uid: str, conversation_id: str) -> dict[str, Any] | None:
+        doc = self.conversations.get(uid, {}).get(conversation_id)
+        return None if doc is None else {"id": conversation_id, **copy.deepcopy(doc)}
+
+    def update_conversation(self, uid: str, conversation_id: str, data: dict[str, Any]) -> None:
+        self.conversations[uid][conversation_id].update(copy.deepcopy(data))
+
+    def add_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str:
+        mid = self._id("msg")
+        self.messages.setdefault((uid, conversation_id), []).append({"id": mid, **data})
+        conv = self.conversations[uid][conversation_id]
+        conv["messageCount"] = conv.get("messageCount", 0) + 1
+        return mid
+
+    def list_messages(self, uid: str, conversation_id: str, limit: int) -> list[dict[str, Any]]:
+        docs = sorted(self.messages.get((uid, conversation_id), []), key=lambda d: d["seq"])
+        return copy.deepcopy(docs[-limit:])
+
+    def create_action(self, uid: str, data: dict[str, Any]) -> str:
+        aid = self._id("act")
+        self.actions.setdefault(uid, []).append({"id": aid, **copy.deepcopy(data)})
+        return aid
+
+    def add_usage(self, uid: str, day: str, input_tokens: int, output_tokens: int) -> None:
+        doc = self.usage.setdefault(
+            (uid, day), {"inputTokens": 0, "outputTokens": 0, "messages": 0}
+        )
+        doc["inputTokens"] += input_tokens
+        doc["outputTokens"] += output_tokens
+        doc["messages"] += 1
+
+
+JiraHandler = Callable[[httpx.Request], httpx.Response]
+
+
+def jira_handler(projects: list[dict[str, Any]] | None = None) -> JiraHandler:
+    """Jira mínimo: lista projetos, recusa escrita (o teste falha se o agente tentar escrever)."""
+    values = projects if projects is not None else [{"key": "ABC", "name": "Loja"}]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method != "GET" and not request.url.path.endswith("/search/jql"):
+            raise AssertionError(f"escrita no Jira durante o chat: {request.method} {request.url}")
+        if request.url.path == "/rest/api/3/project/search":
+            return httpx.Response(200, json={"values": values})
+        if request.url.path == "/rest/api/3/search/jql":
+            return httpx.Response(200, json={"issues": []})
+        return httpx.Response(404, json={})
+
+    return handler
+
+
+class FakeJiraService:
+    """Substitui o `JiraConnectionService`: uma conexão ok (ou nenhuma) e o Jira simulado."""
+
+    def __init__(self, connected: bool = True, handler: JiraHandler | None = None) -> None:
+        self.connected = connected
+        self.handler = handler or jira_handler()
+        self.invalidated: list[str] = []
+        self.requests: list[httpx.Request] = []
+
+    async def list(self, uid: str) -> list[JiraConnection]:
+        if not self.connected:
+            return []
+        return [
+            JiraConnection(
+                id="conn-1",
+                site_url=SITE,
+                email="po@teste.dev",
+                account_name="PO",
+                token_hint="9876",
+                status="ok",
+                last_validated_at=NOW,
+            )
+        ]
+
+    async def client_for(self, uid: str, connection_id: str) -> JiraClient:
+        def recording(request: httpx.Request) -> httpx.Response:
+            self.requests.append(request)
+            return self.handler(request)
+
+        return JiraClient(SITE, "po@teste.dev", "x" * 12, transport=httpx.MockTransport(recording))
+
+    async def mark_invalid(self, uid: str, connection_id: str) -> None:
+        self.invalidated.append(connection_id)
+
+
+def args_json(message: AIMessage) -> str:
+    return json.dumps([c["args"] for c in message.tool_calls], ensure_ascii=False)

@@ -31,7 +31,7 @@ flowchart TB
         CR[Cloud Run: api<br/>região us-central1]
         AR[Artifact Registry<br/>docker: api]
         F[(Firestore nativo<br/>us-central1<br/>PITR + backups diários)]
-        S[Secret Manager<br/>llm-api-key]
+        S[Vertex AI<br/>Gemini, pela SA]
         K[KMS keyring: app<br/>key: jira-tokens<br/>rotação 90 dias]
         L[Logging / Monitoring<br/>alertas + dashboard]
         B[Budget alert]
@@ -46,11 +46,10 @@ flowchart TB
 
 | Módulo | Recursos principais |
 |---|---|
-| `project_services` | Habilita APIs: run, firestore, secretmanager, cloudkms, artifactregistry, firebase, identitytoolkit, firebaseappcheck, monitoring |
+| `project_services` | Habilita APIs: run, firestore, secretmanager, cloudkms, artifactregistry, aiplatform (Vertex AI, F05), firebase, identitytoolkit, firebaseappcheck, monitoring |
 | `firestore` | `google_firestore_database` (nativo), índices, campo TTL `pending_actions.expiresAt`, PITR, `google_firestore_backup_schedule` |
 | `kms` | Keyring `app`, chave `jira-tokens` (rotação 90 d), IAM `cryptoKeyEncrypterDecrypter` só para `api-runtime` |
-| `secrets` | `llm-api-key` (o valor é inserido fora do Terraform, nunca no estado) |
-| `cloud_run` | Serviço `api`, SA de runtime, envs, secrets montados, `timeout=300s`, `concurrency=40`, CPU 1 / 1 GiB, *startup probe* em `/healthz` |
+| `cloud_run` | Serviço `api`, SA de runtime, envs (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_LOCATION`), `timeout=300s`, `concurrency=40`, CPU 1 / 1 GiB, *startup probe* em `/healthz` |
 | `artifact_registry` | Repositório Docker com política de limpeza (manter 20 últimas) |
 | `firebase` | `google_firebase_project`, web app, site de Hosting, provedores de Auth, App Check |
 | `wif` | Pool + provider OIDC do GitHub restrito a `repository == micaelleos/FunctionalAgent` e branch/ambiente |
@@ -64,7 +63,7 @@ Estado remoto: bucket `gs://functional-agent-tfstate-{env}` com versionamento e 
 | Principal | Papéis | Escopo |
 |---|---|---|
 | `api-runtime@` (SA do Cloud Run) | `roles/datastore.user` | projeto |
-| | `roles/secretmanager.secretAccessor` | **apenas** o secret `llm-api-key` |
+| | `roles/aiplatform.user` | projeto (Gemini no Vertex AI, ADR-008; sem chave de LLM) |
 | | `roles/cloudkms.cryptoKeyEncrypterDecrypter` | **apenas** a chave `jira-tokens` |
 | | `roles/firebaseauth.viewer` *(se necessário p/ exclusão: `firebaseauth.admin`)* | projeto |
 | | `roles/cloudtrace.agent`, `roles/logging.logWriter` | projeto |

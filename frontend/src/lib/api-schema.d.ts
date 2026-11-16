@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envia uma mensagem e recebe a resposta do agente em SSE
+         * @description `conversation_id = new` cria a conversa. Eventos: token, tool_start, tool_end, action_proposed, message_saved, error, done (esquema em docs/api/sse-events.v1.json).
+         */
+        post: operations["send_message_api_v1_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jira/connections": {
         parameters: {
             query?: never;
@@ -188,6 +208,11 @@ export interface components {
              */
             site_url: string;
         };
+        /** MessageInput */
+        MessageInput: {
+            /** Content */
+            content: string;
+        };
         /** Profile */
         Profile: {
             /**
@@ -226,6 +251,43 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    send_message_api_v1_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_connections_api_v1_jira_connections_get: {
         parameters: {
             query?: never;

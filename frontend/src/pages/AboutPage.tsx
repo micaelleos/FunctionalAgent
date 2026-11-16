@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { t } from '../i18n/pt-BR'
+import { t } from '../i18n/en'
 import { fetchHealth, type Health } from '../lib/api'
 
 type ApiState =
@@ -26,10 +26,7 @@ export function AboutPage() {
   return (
     <main className="mx-auto flex max-w-xl flex-col items-center gap-6 px-4 py-16 text-center">
       <h1 className="text-2xl font-semibold">{t.app.name}</h1>
-      <p className="text-slate-600">
-        Agente que ajuda Product Owners a escrever épicos, user stories em BDD e tarefas, e a
-        exportá-los para o Jira.
-      </p>
+      <p className="text-slate-600">{t.about.body}</p>
       <section aria-live="polite" className="rounded-lg border bg-white px-4 py-3">
         {api.kind === 'loading' && <p>{t.status.checking}</p>}
         {api.kind === 'ok' && (

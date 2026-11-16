@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { t } from '../i18n/pt-BR'
+import { t } from '../i18n/en'
 import { useProduct } from '../product/context'
 
 /** Uso do dia e dos últimos 7 dias (tela de F11). Não aparece enquanto o backend não mede o uso. */

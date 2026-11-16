@@ -9,13 +9,13 @@ test.describe('F02 infraestrutura e deploy', () => {
   test('AT-F02-01 F02-RF-01 F02-RF-03 frontend publicado exibe o status e a versão do backend', async ({
     page,
   }) => {
-    await page.goto('/sobre')
+    await page.goto('/about')
 
     const status = page.getByText('API: ok')
     await expect(status).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText(/\(versão \S+, ambiente \S+\)/)).toBeVisible()
+    await expect(page.getByText(/\(version \S+, environment \S+\)/)).toBeVisible()
     if (expectedVersion) {
-      await expect(page.getByText(`(versão ${expectedVersion},`, { exact: false })).toBeVisible()
+      await expect(page.getByText(`(version ${expectedVersion},`, { exact: false })).toBeVisible()
     }
   })
 

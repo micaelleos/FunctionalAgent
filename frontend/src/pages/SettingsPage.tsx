@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 
 import { Alert, Button, Field, PageHeader, Panel } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 import { useProduct } from '../product/context'
 
 const TOKENS_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens'
@@ -97,7 +97,7 @@ export function SettingsPage() {
                 )}
                 <span className="text-zinc-600">
                   {t.settings.validatedAt(
-                    new Date(connection.data.validatedAt).toLocaleString('pt-BR', {
+                    new Date(connection.data.validatedAt).toLocaleString('en-US', {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     }),

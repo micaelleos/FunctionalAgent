@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 import { useAuth } from '../auth/context'
 import { Alert, Button, Card, Field } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 
 export function SignupPage() {
   const { client } = useAuth()
@@ -18,7 +18,7 @@ export function SignupPage() {
     setBusy(true)
     setError(null)
     try {
-      // Depois do cadastro, o GuestRoute leva para /verificar-email (conta ainda não confirmada).
+      // Depois do cadastro, o GuestRoute leva para /verify-email (conta ainda não confirmada).
       await client.signUp(name.trim(), email, password)
     } catch (e) {
       setError(errorMessage(e))

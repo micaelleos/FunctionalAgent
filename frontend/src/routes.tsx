@@ -16,6 +16,16 @@ import { SettingsPage } from './pages/SettingsPage'
 import { SignupPage } from './pages/SignupPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
+const LEGACY_PATHS: Record<string, string> = {
+  '/sobre': '/about',
+  '/cadastro': '/signup',
+  '/recuperar-senha': '/reset-password',
+  '/verificar-email': '/verify-email',
+  '/projetos': '/projects',
+  '/configuracoes': '/settings',
+  '/conta': '/account',
+}
+
 const guest = (page: ReactNode) => <GuestRoute>{page}</GuestRoute>
 
 export const routes: RouteObject[] = [
@@ -24,11 +34,11 @@ export const routes: RouteObject[] = [
   {
     element: <PublicLayout />,
     children: [
-      { path: '/sobre', element: <AboutPage /> },
+      { path: '/about', element: <AboutPage /> },
       { path: '/login', element: guest(<LoginPage />) },
-      { path: '/cadastro', element: guest(<SignupPage />) },
-      { path: '/recuperar-senha', element: guest(<ResetPasswordPage />) },
-      { path: '/verificar-email', element: <VerifyEmailPage /> },
+      { path: '/signup', element: guest(<SignupPage />) },
+      { path: '/reset-password', element: guest(<ResetPasswordPage />) },
+      { path: '/verify-email', element: <VerifyEmailPage /> },
     ],
   },
   {
@@ -41,11 +51,16 @@ export const routes: RouteObject[] = [
     children: [
       { path: '/chat', element: <ChatPage /> },
       { path: '/chat/:conversationId', element: <ChatPage /> },
-      { path: '/projetos', element: <ProjectsPage /> },
+      { path: '/projects', element: <ProjectsPage /> },
       { path: '/issues', element: <IssuesPage /> },
-      { path: '/configuracoes', element: <SettingsPage /> },
-      { path: '/conta', element: <AccountPage /> },
+      { path: '/settings', element: <SettingsPage /> },
+      { path: '/account', element: <AccountPage /> },
     ],
   },
+  // URLs antigas em português (antes do site em inglês): links salvos continuam funcionando.
+  ...Object.entries(LEGACY_PATHS).map(([path, to]) => ({
+    path,
+    element: <Navigate to={to} replace />,
+  })),
   { path: '*', element: <Navigate to="/chat" replace /> },
 ]

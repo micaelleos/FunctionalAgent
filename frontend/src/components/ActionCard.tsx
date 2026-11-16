@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 import { useProduct } from '../product/context'
 import type { ProposedAction } from '../product/types'
 import { Alert, Button } from './ui'
@@ -46,7 +46,7 @@ export function ActionCard({
         {action.status === 'pending' && (
           <span className="font-normal">
             {t.chat.action.expires(
-              new Date(action.expiresAt).toLocaleString('pt-BR', {
+              new Date(action.expiresAt).toLocaleString('en-US', {
                 dateStyle: 'short',
                 timeStyle: 'short',
               }),

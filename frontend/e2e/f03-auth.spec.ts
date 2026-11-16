@@ -17,9 +17,9 @@ test.skip(!EMULATORS, 'precisa dos emuladores: E2E_EMULATORS=1 com `make dev`')
 
 async function signIn(page: Page, email: string, password: string) {
   await page.goto('/login')
-  await page.getByLabel('E-mail').fill(email)
-  await page.getByLabel('Senha').fill(password)
-  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
 }
 
 test.describe('F03 autenticação e conta', () => {
@@ -27,7 +27,7 @@ test.describe('F03 autenticação e conta', () => {
     await page.goto('/chat')
 
     await expect(page).toHaveURL(/\/login$/)
-    await expect(page.getByRole('heading', { name: 'Entrar no SpecFlow AI' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Sign in to SpecFlow AI' })).toBeVisible()
   })
 
   test('AT-F03-02 F03-RF-02 F03-RF-05 F03-RF-06 cadastro e login por e-mail', async ({
@@ -35,22 +35,22 @@ test.describe('F03 autenticação e conta', () => {
     request,
   }) => {
     const email = randomEmail()
-    await page.goto('/cadastro')
-    await page.getByLabel('Nome').fill('Pessoa E2E')
-    await page.getByLabel('E-mail').fill(email)
-    await page.getByLabel(/Senha/).fill('senha-e2e-123')
-    await page.getByRole('button', { name: 'Criar conta' }).click()
+    await page.goto('/signup')
+    await page.getByLabel('Name').fill('Pessoa E2E')
+    await page.getByLabel('Email').fill(email)
+    await page.getByLabel(/Password/).fill('senha-e2e-123')
+    await page.getByRole('button', { name: 'Create account' }).click()
 
-    await expect(page.getByText(`link de confirmação para ${email}`)).toBeVisible()
+    await expect(page.getByText(`confirmation link to ${email}`)).toBeVisible()
 
     await confirmEmail(request, email)
-    await page.getByRole('button', { name: 'Já confirmei' }).click()
+    await page.getByRole('button', { name: "I've confirmed" }).click()
     await expect(page.getByRole('link', { name: 'Pessoa E2E' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Pessoa E2E' }).click()
     await expect(page.getByText(email)).toBeVisible() // vem de GET /api/v1/me
 
-    await page.getByRole('button', { name: 'Sair' }).click()
+    await page.getByRole('button', { name: 'Sign out' }).click()
     await expect(page).toHaveURL(/\/login$/)
 
     await signIn(page, email, 'senha-e2e-123')
@@ -87,15 +87,15 @@ test.describe('F03 autenticação e conta', () => {
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.getByRole('button', { name: 'Baixar meus dados' }).click(),
+      page.getByRole('button', { name: 'Download my data' }).click(),
     ])
     const exported = JSON.parse(await readFile((await download.path())!, 'utf-8')) as {
       user: { data: { email: string } }
     }
     expect(exported.user.data.email).toBe(account.email)
 
-    await page.getByLabel('Digite EXCLUIR para confirmar').fill('EXCLUIR')
-    await page.getByRole('button', { name: 'Excluir meus dados' }).click()
+    await page.getByLabel('Type DELETE to confirm').fill('DELETE')
+    await page.getByRole('button', { name: 'Delete my data' }).click()
     await expect(page).toHaveURL(/\/login$/)
     expect(await userDocStatus(request, account.uid)).toBe(404)
 
@@ -106,7 +106,7 @@ test.describe('F03 autenticação e conta', () => {
     expect(await userDocStatus(request, account.uid)).toBe(200)
   })
 
-  for (const path of ['/login', '/cadastro', '/recuperar-senha']) {
+  for (const path of ['/login', '/signup', '/reset-password']) {
     test(`F03-RT-06 ${path} sem violações sérias de acessibilidade`, async ({ page }) => {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()

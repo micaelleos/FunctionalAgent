@@ -25,7 +25,9 @@ async function serious(page: Page) {
 test.describe('F08 telas principais', () => {
   test('F08-RF-11 F08-RT-04 página inicial pública sem violações', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { level: 1, name: /coding agent can actually ship/ })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: /coding agent can actually ship/ }),
+    ).toBeVisible()
     expect(await serious(page)).toEqual([])
     await page.getByRole('link', { name: 'Get started free' }).click()
     await expect(page).toHaveURL(/\/signup$/)

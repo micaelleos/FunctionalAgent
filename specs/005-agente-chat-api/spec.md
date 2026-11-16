@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em validação |
+| **Status** | Em produção |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F04 |
 | **ADRs** | ADR-003, ADR-007, ADR-008 |
@@ -161,5 +161,6 @@ Funcionalidade: Conversa com o agente
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
 | 2026-11-16 | PR #15 | prd (pcb-inspect) | `terraform apply`: Vertex AI ativo, `roles/aiplatform.user` na SA, envs LLM, segredo vazio removido; `generateContent` em `gemini-3.5-flash-lite` (global) | 2 criados, 1 alterado, 2 removidos; modelo respondeu | PO (aprovação do apply) |
-| 2026-11-16 | PR #15 | local + Vertex AI + Jira sandbox | Evals `f05_v1` (30 casos): baseline `prompt_2` × agente novo, mesmo modelo (`evals/results/2026-11-16-*.json`) | Nenhuma métrica abaixo do baseline; contrato P-01..P-07 0 → 100%, `human_only` 0 → 100%, épico decomposto 0 → 100%, sem Jira 50 → 100% | — |
-| 2026-11-16 | PR #15 | local (emuladores) + Vertex AI + Jira sandbox `SCRUM` | Aceitação AT-F05-01..09, 3 rodadas seguidas | 27/27 | — |
+| 2026-11-16 | PR #15 | local + Vertex AI + Jira sandbox | Evals `f05_v1` (30 casos): baseline `prompt_2` × agente novo, mesmo modelo (`evals/results/2026-11-16-*.json`) | Nenhuma métrica abaixo do baseline; contrato P-01..P-07 0 → 100%, `human_only` 0 → 100%, épico decomposto 0 → 100%, sem Jira 50 → 100% | PO (aceite com as evidências locais) |
+| 2026-11-16 | PR #15 | local (emuladores) + Vertex AI + Jira sandbox `SCRUM` | Aceitação AT-F05-01..09, 3 rodadas seguidas | 27/27 | PO (aceite com as evidências locais) |
+| 2026-11-16 | `7735c3b` (merge do PR #15) | prd (pcb-inspect) | `make deploy`: revisão `specflow-api-00009-ngl` com 100% do tráfego, smoke `/health` na versão do commit e smoke do modelo; chat sem token → 401; SPA publicado | ok, sem erros nos logs. O chat em produção pela SA do Cloud Run não foi exercitado (ainda não há tela de chat) | PO (aceite com as evidências locais) |

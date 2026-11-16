@@ -77,14 +77,14 @@ Estado remoto: bucket `gs://functional-agent-tfstate-{env}` com versionamento e 
 | Parâmetro | Valor | Motivo |
 |---|---|---|
 | Região | `us-central1` | Decisão do PO (2026-11-14) |
-| CPU / memória | 1 vCPU / 1 GiB | Agente é I/O-bound; LangGraph + SDKs cabem folgado |
+| CPU / memória | 1 vCPU / 1 GiB | Agente é I/O-bound; LangGraph + SDKs cabem folgado; o modelo roda no Vertex AI |
 | Concorrência | 40 | FastAPI async; ajustar após teste de carga |
 | Timeout | 300 s | Turnos longos do agente com streaming |
 | Min / max instâncias | 0 / 20 | Decisão do PO (2026-11-14): cold start aceito; teto de custo |
 | CPU boost na inicialização | ligado | Reduz cold start |
 | Ingress | `all` (público, auth na aplicação) | SPA chama direto; App Check + ID token protegem |
-| Env | `ENV`, `GCP_PROJECT`, `KMS_KEY_NAME`, `LLM_PROVIDER`, `LLM_MODEL`, `CORS_ORIGINS`, `DAILY_TOKEN_QUOTA` | — |
-| Secrets | `LLM_API_KEY` ← `llm-api-key:latest` | Artigo III |
+| Env | `ENV`, `GCP_PROJECT`, `KMS_KEY_NAME`, `LLM_PROVIDER`, `LLM_MODEL`, `LLM_LOCATION`, `CORS_ORIGINS`, `DAILY_TOKEN_QUOTA` | — |
+| LLM | Vertex AI com a SA `specflow-api` (`roles/aiplatform.user`); sem chave | ADR-008 |
 
 ## 5. Firebase Hosting (`firebase.json`)
 

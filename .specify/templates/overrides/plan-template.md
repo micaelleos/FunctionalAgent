@@ -21,7 +21,7 @@
 |---|---|
 | **Backend** | Python 3.12, FastAPI, Pydantic v2, uv |
 | **Frontend** | React 19 + TypeScript strict, Vite, TanStack Query |
-| **Agente** | LangGraph (só se a feature tocar `app/agent/`) |
+| **Agente** | LangGraph com Gemini no Vertex AI (só se a feature tocar `app/agent/`) |
 | **Dados** | Firestore, sempre sob `users/{uid}/…` |
 | **Integrações** | <Jira (httpx, API v3/ADF), LLM, … ou N/A> |
 | **Testes** | pytest + respx + emuladores; Vitest + MSW; Playwright + axe (aceitação) |

@@ -1,13 +1,13 @@
-# F05 — API de chat com agente (LangGraph + streaming)
+# F05 — API de chat com agente (LangGraph + Gemini + streaming)
 
 | Campo | Valor |
 |---|---|
 | **Status** | Rascunho |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F04 |
-| **ADRs** | ADR-003, ADR-007 |
-| **Estimativa** | 12 dias |
-| **Revisão** | 2026-11-16: issues escritas para agentes de IA de código ([doc 10](../../docs/modernizacao/10-specs-para-agentes.md)) |
+| **ADRs** | ADR-003, ADR-007, ADR-008 |
+| **Estimativa** | 12,5 dias |
+| **Revisão** | 2026-11-16: issues escritas para agentes de IA de código ([doc 10](../../docs/modernizacao/10-specs-para-agentes.md)); LLM Gemini no Vertex AI ([ADR-008](../../docs/modernizacao/adr/ADR-008-llm-gemini-vertex.md)) |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
@@ -26,7 +26,7 @@
   `agent-ready` (RA-42).
 
 ### 2. Escopo
-- **Inclui:** grafo LangGraph, migração do `prompt_2` para `prompts/system_v1.md`, ferramentas da tabela em
+- **Inclui:** grafo LangGraph com Gemini no Vertex AI (ADR-008), migração do `prompt_2` para `prompts/system_v1.md`, ferramentas da tabela em
   `03-arquitetura.md §3.2`, esquema `AgentReadySpec` e renderizador
   ADF/Markdown com seções fixas, verificação de prontidão (regras P-01 a P-10 do doc 10), conversor Markdown→ADF, SSE, persistência mínima das mensagens do turno
   (a gestão completa de conversas é F07), **baseline de evals gravado antes da migração**.
@@ -59,7 +59,7 @@
 | F05-RT-06 | `parent` só é enviado quando informado (corrige D07); update só aceita `summary/description/priority/labels` (corrige D06) | unit |
 | F05-RT-07 | Histórico: janela das últimas N mensagens até orçamento de tokens configurável; acima disso, sumarização persistida | unit |
 | F05-RT-08 | Conteúdo vindo do Jira é delimitado como dado não confiável no contexto do modelo | revisão + eval de prompt injection |
-| F05-RT-09 | Provedor/modelo/prompt configuráveis por env (`LLM_PROVIDER`, `LLM_MODEL`, `PROMPT_VERSION`); chave via Secret Manager (corrige D05) | unit de config |
+| F05-RT-09 | Provedor, modelo e prompt configuráveis por env (`LLM_PROVIDER=google_vertexai`, `LLM_MODEL`, padrão `gemini-3.5-flash-lite`; `LLM_LOCATION`; `PROMPT_VERSION`); Gemini no Vertex AI autenticado pela SA do Cloud Run, sem chave de LLM (ADR-008, corrige D05) | unit de config + smoke do deploy chama o modelo |
 | F05-RT-10 | Uso de tokens e custo estimado registrados por turno (log + `users/{uid}/usage/{dia}`) | integração |
 | F05-RT-11 | Evals: baseline do agente atual gravado; nova implementação ≥ baseline em todas as métricas de F15 | `evals.yml` |
 | F05-RT-12 | Eventos SSE seguem o esquema documentado em `03-arquitetura.md §3.5` (schema versionado e validado em teste de contrato) | contrato |

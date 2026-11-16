@@ -10,11 +10,11 @@ flowchart TB
         AUTH[Firebase Authentication]
         API[Cloud Run<br/>functional-agent-api<br/>FastAPI + LangGraph]
         FS[(Firestore<br/>dados por usuário)]
-        SM[Secret Manager<br/>chave do LLM]
+        SM[Secret Manager<br/>segredos do sistema]
+        VTX[Vertex AI<br/>Gemini]
         KMS[Cloud KMS<br/>cifra tokens Jira]
         OBS[Cloud Logging /<br/>Monitoring / Trace]
     end
-    LLM[[Provedor LLM<br/>OpenAI]]
     JIRA[[Jira Cloud<br/>REST API v3]]
 
     PO -->|HTTPS| HOST
@@ -24,7 +24,7 @@ flowchart TB
     API --> FS
     API --> SM
     API --> KMS
-    API --> LLM
+    API -->|SA do Cloud Run| VTX
     API --> JIRA
     API --> OBS
 ```
@@ -85,12 +85,15 @@ api  →  services  →  agent, integrations, repositories  →  core
 
 ### 3.1 Desenho
 
-- **LangGraph** substitui o `AgentExecutor` descontinuado ([ADR-003](adr/ADR-003-agente-langgraph-acoes-propostas.md)).
+- **LangGraph** substitui o `AgentExecutor` descontinuado ([ADR-003](adr/ADR-003-agente-langgraph-acoes-propostas.md)),
+  com Gemini no Vertex AI como modelo ([ADR-008](adr/ADR-008-llm-gemini-vertex.md)).
 - Grafo ReAct: `modelo ⇄ ferramentas`, máximo de **8 iterações** por turno.
 - O agente é **sem estado no processo**: a cada requisição o backend carrega o histórico da conversa do
   Firestore, aplica janela/sumarização por orçamento de tokens e executa o grafo.
 - O cliente Jira **do usuário** é injetado no contexto da execução (`RunnableConfig`), nunca em variável global.
-- Modelo configurável por variável de ambiente (`LLM_PROVIDER`, `LLM_MODEL`), via `init_chat_model`.
+- Modelo configurável por variável de ambiente (`LLM_PROVIDER=google_vertexai`, `LLM_MODEL`, padrão
+  `gemini-3.5-flash-lite`; `LLM_LOCATION`), criado por uma fábrica (`ChatGoogleGenerativeAI` com `vertexai=True`)
+  e autenticado pela conta de serviço do Cloud Run, sem chave de LLM.
 
 ### 3.2 Ferramentas
 

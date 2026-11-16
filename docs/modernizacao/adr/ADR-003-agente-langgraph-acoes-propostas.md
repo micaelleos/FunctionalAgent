@@ -1,6 +1,9 @@
 # ADR-003 — Agente com LangGraph, sem estado no processo, e padrão "ação proposta"
 
 - **Status:** Proposto · **Data:** 2026-11-13 · **Revisado:** 2026-11-16 (payload estruturado, ADR-007)
+- **Provedor alterado pelo [ADR-008](ADR-008-llm-gemini-vertex.md) (2026-11-16):** Gemini no Vertex AI no lugar
+  de OpenAI, via `ChatGoogleGenerativeAI` criado por uma fábrica a partir de `LLM_PROVIDER`/`LLM_MODEL`. O resto
+  deste ADR continua valendo.
 
 ## Contexto
 

@@ -29,7 +29,7 @@
 | **uv** | Dependências/lockfile | Instalação rápida e reprodutível (`uv.lock`) |
 | **FastAPI + Uvicorn** | API HTTP/SSE | Async, OpenAPI automático, Pydantic nativo |
 | **Pydantic v2 + pydantic-settings** | Modelos e config | Validação e configuração tipadas |
-| **LangGraph + langchain-core + langchain-openai** | Agente | Substitui `AgentExecutor`; streaming real, controle do loop |
+| **LangGraph + langchain-core + langchain-google-genai** | Agente | Substitui `AgentExecutor`; streaming real, controle do loop; Gemini no Vertex AI sem chave de LLM ([ADR-008](adr/ADR-008-llm-gemini-vertex.md)) |
 | **httpx** | Cliente Jira | Async, timeouts, fácil de mockar (`respx`); substitui `atlassian-python-api` (síncrono) |
 | **google-cloud-firestore** (async) / **firebase-admin** | Dados e verificação de token | SDKs oficiais |
 | **google-cloud-kms**, **google-cloud-secret-manager** | Criptografia/segredos | Artigo III |
@@ -48,7 +48,8 @@
 | **Cloud Run** | Backend (container), escala a zero, revisões com divisão de tráfego |
 | **Firestore (modo nativo)** | Dados por usuário |
 | **Artifact Registry** | Imagens Docker |
-| **Secret Manager** | `LLM_API_KEY` e demais segredos do sistema |
+| **Secret Manager** | Segredos do sistema (o LLM no Vertex AI usa a conta de serviço, sem chave) |
+| **Vertex AI** | Modelos Gemini do agente (ADR-008) |
 | **Cloud KMS** | Chave simétrica para tokens Jira dos usuários |
 | **Cloud Logging / Monitoring / Trace / Error Reporting** | Observabilidade |
 | **Terraform (provider google/google-beta)** | IaC; estado em bucket GCS versionado |

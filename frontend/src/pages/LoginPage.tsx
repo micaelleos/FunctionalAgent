@@ -65,12 +65,12 @@ export function LoginPage() {
           {t.login.submit}
         </Button>
       </form>
-      <Link to="/recuperar-senha" className="text-sm text-sky-800 underline">
+      <Link to="/recuperar-senha" className="text-sm text-indigo-700 underline">
         {t.login.forgot}
       </Link>
       <p className="text-sm text-slate-600">
         {t.login.noAccount}{' '}
-        <Link to="/cadastro" className="text-sky-800 underline">
+        <Link to="/cadastro" className="text-indigo-700 underline">
           {t.login.signUp}
         </Link>
       </p>

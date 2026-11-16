@@ -1,0 +1,42 @@
+import type { ProductApi } from './types'
+
+/** Lançado quando a tela chama algo cuja feature ainda não está no ar. */
+export class NotAvailableError extends Error {
+  readonly code = 'not-available'
+
+  constructor(feature: string) {
+    super(`${feature} ainda não está disponível`)
+    this.name = 'NotAvailableError'
+  }
+}
+
+/**
+ * Produção enquanto F04–F11 não existem: listas vazias e nenhum dado inventado (F08-RT-08).
+ * Cada feature substitui os métodos dela pela chamada à API real.
+ */
+export const unavailableProductApi: ProductApi = {
+  features: { jira: false, chat: false, usage: false },
+  demo: false,
+  getJiraConnection: async () => null,
+  connectJira: async () => {
+    throw new NotAvailableError('A conexão com o Jira')
+  },
+  disconnectJira: async () => {
+    throw new NotAvailableError('A conexão com o Jira')
+  },
+  listProjects: async () => [],
+  listIssues: async () => [],
+  refreshIssueStatuses: async () => [],
+  listConversations: async () => [],
+  getMessages: async () => [],
+  sendMessage: async () => {
+    throw new NotAvailableError('O agente')
+  },
+  confirmAction: async () => {
+    throw new NotAvailableError('A confirmação de ações')
+  },
+  rejectAction: async () => {
+    throw new NotAvailableError('A confirmação de ações')
+  },
+  getUsage: async () => null,
+}

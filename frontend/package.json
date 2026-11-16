@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "VITE_DEMO_DATA=true vite",
     "build": "tsc -b && vite build",
+    "postbuild": "node scripts/check-no-demo.mjs",
     "lint": "eslint . --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run",

@@ -42,7 +42,7 @@ export function ResetPasswordPage() {
         />
         <Button type="submit">{t.reset.submit}</Button>
       </form>
-      <Link to="/login" className="text-sm text-sky-800 underline">
+      <Link to="/login" className="text-sm text-indigo-700 underline">
         {t.reset.back}
       </Link>
     </Card>

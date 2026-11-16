@@ -10,10 +10,22 @@
 - **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
   acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
 
-**Total:** 6 tarefas · 7 d.
-**Dividir antes de implementar** (> 1 d, Art. I/VI): T001 (1,5 d), T002 (2 d), T006 (1,5 d).
+**Total:** 9 tarefas · 9 d. Incremento 0 (T007–T009) incluído em 2026-11-14 a pedido do PO.
+**Dividir antes de implementar** (> 1 d, Art. I/VI): T002 (2 d), T006 (1,5 d).
 
 ## 8. Tarefas
+
+### Fase 0: Incremento 0 — telas principais com dados de demonstração
+
+**Objetivo:** Ver as telas do produto antes do backend de F04–F11, sem levar dados falsos à produção.
+
+**Aceitação:** AT-F08-07
+
+- [x] T007 [F08-RF-10][F08-RF-09] `AppLayout` (menu lateral, gaveta no celular, uso e estado do Jira), rotas `/chat/:id`, `/projetos`, `/issues`, `/configuracoes` — teste: `screens.test.tsx`, `e2e/f08-telas.spec.ts` — 1 d
+- [x] T008 [F08-RF-10][F08-RT-08] `ProductApi` (`unavailable` em produção, `demo` só em `npm run dev:demo`) e telas Projetos, Issues, Configurações › Jira e uso na Conta — teste: `screens.test.tsx`, `check-no-demo.mjs` — 1 d
+- [x] T009 [F08-RF-04][F08-RF-08] Chat: lista de conversas, sugestões, mensagens, `ActionCard` com confirmar/rejeitar, Enter/Shift+Enter, texto preservado em erro — teste: `screens.test.tsx` — 1 d
+
+---
 
 ### Fase 1: Incremento 1 — estrutura da interface
 
@@ -21,7 +33,7 @@
 
 **Aceitação:** AT-F08-03, AT-F08-06
 
-- [ ] T001 [F08-RF-05][F08-RF-09] Layout, navegação, sidebar responsiva — teste: Vitest — 1,5 d
+- [ ] T001 [F08-RF-05] Barra de conversas ligada à API de F07: criar, renomear e excluir com mutações otimistas (layout e menu responsivo já feitos em T007) — teste: Vitest — 0,5 d
 
 ---
 

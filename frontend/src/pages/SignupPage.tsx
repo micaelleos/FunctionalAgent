@@ -63,7 +63,7 @@ export function SignupPage() {
       </form>
       <p className="text-sm text-slate-600">
         {t.signup.hasAccount}{' '}
-        <Link to="/login" className="text-sky-800 underline">
+        <Link to="/login" className="text-indigo-700 underline">
           {t.signup.signIn}
         </Link>
       </p>

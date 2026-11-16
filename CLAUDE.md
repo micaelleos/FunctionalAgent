@@ -33,6 +33,7 @@ Without Docker:
 ```bash
 cd backend && uv run uvicorn app.main:app --reload   # http://localhost:8000/healthz, /docs in local/dev
 cd frontend && npm run dev                            # VITE_API_BASE_URL defaults to http://localhost:8000
+cd frontend && npm run dev:demo                       # same, screens filled with demo data (never in a build)
 ```
 
 Single tests:
@@ -60,6 +61,11 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
 - Frontend calls Cloud Run directly (not via a Hosting rewrite) because the chat streams over SSE
   and Hosting rewrites cap at 60 s (ADR-002). The TS API client is meant to be generated from the
   FastAPI OpenAPI schema; breaking API changes go to a new `/api/vN` prefix.
+- Frontend screens (chat, Jira projects, created issues, settings, account) read data only through
+  `ProductApi` (`frontend/src/product/`). Production uses `unavailableProductApi` (empty states, no
+  invented data); `createDemoProductApi` runs only in `npm run dev:demo` / tests, and `postbuild`
+  (`scripts/check-no-demo.mjs`) fails a build that contains it. Each feature (F04, F07, F09–F11)
+  replaces its methods with the real `/api/v1` calls.
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 

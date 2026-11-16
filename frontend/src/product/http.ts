@@ -55,7 +55,7 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
     validateJira: async () => {
       const existing = await current()
       if (!existing)
-        throw Object.assign(new Error('sem conexão'), { code: 'jira-connection-not-found' })
+        throw Object.assign(new Error('no connection'), { code: 'jira-connection-not-found' })
       return fromApi(
         await json<ApiConnection>(`${BASE}/${existing.id}/validate`, { method: 'POST' }),
       )

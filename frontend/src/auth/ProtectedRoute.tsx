@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
 
-import { t } from '../i18n/pt-BR'
+import { t } from '../i18n/en'
 import { useAuth } from './context'
 import { safeRedirect } from './redirect'
 
@@ -11,7 +11,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   if (status === 'loading') return <p className="p-6 text-slate-500">{t.common.loading}</p>
-  if (status === 'unverified') return <Navigate to="/verificar-email" replace />
+  if (status === 'unverified') return <Navigate to="/verify-email" replace />
   if (status === 'signed-out') {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
@@ -26,6 +26,6 @@ export function GuestRoute({ children }: { children: ReactNode }) {
 
   if (status === 'loading') return <p className="p-6 text-slate-500">{t.common.loading}</p>
   if (status === 'signed-in') return <Navigate to={safeRedirect(from)} replace />
-  if (status === 'unverified') return <Navigate to="/verificar-email" replace />
+  if (status === 'unverified') return <Navigate to="/verify-email" replace />
   return children
 }

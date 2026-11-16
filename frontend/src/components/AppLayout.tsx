@@ -3,15 +3,15 @@ import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
-import { t } from '../i18n/pt-BR'
+import { t } from '../i18n/en'
 import { useProduct } from '../product/context'
 
 const NAV = [
   { to: '/chat', label: t.nav.chat },
-  { to: '/projetos', label: t.nav.projects },
+  { to: '/projects', label: t.nav.projects },
   { to: '/issues', label: t.nav.issues },
-  { to: '/configuracoes', label: t.nav.settings },
-  { to: '/conta', label: t.nav.account },
+  { to: '/settings', label: t.nav.settings },
+  { to: '/account', label: t.nav.account },
 ] as const
 
 /**
@@ -108,7 +108,7 @@ export function AppLayout() {
             {user && (
               <div className="flex items-center gap-2 border-t border-zinc-800 pt-3">
                 <NavLink
-                  to="/conta"
+                  to="/account"
                   className="min-w-0 flex-1 truncate text-sm text-zinc-100 hover:underline"
                 >
                   {user.displayName ?? user.email}
@@ -128,7 +128,7 @@ export function AppLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* F04-RF-06: o Jira recusou o token guardado; o aviso aparece em todas as telas. */}
-        {connection.data?.status === 'invalid' && location.pathname !== '/configuracoes' && (
+        {connection.data?.status === 'invalid' && location.pathname !== '/settings' && (
           <div
             role="alert"
             className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-red-50 px-4 py-3 text-sm text-red-900 md:px-10"
@@ -137,7 +137,7 @@ export function AppLayout() {
               <strong>{t.nav.jiraExpiredTitle}</strong> {t.nav.jiraExpiredBody}
             </span>
             <Link
-              to="/configuracoes"
+              to="/settings"
               className="inline-flex min-h-11 items-center rounded-lg bg-red-700 px-4 font-medium text-white hover:bg-red-800"
             >
               {t.nav.reconnect}

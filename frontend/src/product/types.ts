@@ -51,7 +51,7 @@ export interface JiraProject {
   url: string
 }
 
-export type IssueType = 'Épico' | 'História' | 'Tarefa'
+export type IssueType = 'Epic' | 'Story' | 'Task'
 
 export interface CreatedIssue {
   key: string

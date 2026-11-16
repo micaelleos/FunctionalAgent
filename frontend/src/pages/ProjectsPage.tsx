@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { Alert, PageHeader } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 import { useProduct } from '../product/context'
 
 const AVATAR_COLORS = ['bg-indigo-600', 'bg-teal-700', 'bg-amber-700', 'bg-pink-700', 'bg-blue-700']
@@ -57,7 +57,7 @@ export function ProjectsPage() {
             <p className="text-sm text-zinc-700">{t.projects.connectBody}</p>
           </div>
           <Link
-            to="/configuracoes"
+            to="/settings"
             className="inline-flex min-h-11 items-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
           >
             {t.projects.connect}

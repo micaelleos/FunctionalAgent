@@ -5,7 +5,7 @@ export class NotAvailableError extends Error {
   readonly code = 'not-available'
 
   constructor(feature: string) {
-    super(`${feature} ainda não está disponível`)
+    super(`${feature} is not available yet`)
     this.name = 'NotAvailableError'
   }
 }
@@ -19,13 +19,13 @@ export const unavailableProductApi: ProductApi = {
   demo: false,
   getJiraConnection: async () => null,
   connectJira: async () => {
-    throw new NotAvailableError('A conexão com o Jira')
+    throw new NotAvailableError('The Jira connection')
   },
   disconnectJira: async () => {
-    throw new NotAvailableError('A conexão com o Jira')
+    throw new NotAvailableError('The Jira connection')
   },
   validateJira: async () => {
-    throw new NotAvailableError('A conexão com o Jira')
+    throw new NotAvailableError('The Jira connection')
   },
   listProjects: async () => [],
   listIssues: async () => [],
@@ -36,10 +36,10 @@ export const unavailableProductApi: ProductApi = {
     throw new NotAvailableError('O agente')
   },
   confirmAction: async () => {
-    throw new NotAvailableError('A confirmação de ações')
+    throw new NotAvailableError('Action confirmation')
   },
   rejectAction: async () => {
-    throw new NotAvailableError('A confirmação de ações')
+    throw new NotAvailableError('Action confirmation')
   },
   getUsage: async () => null,
 }

@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 import { useAuth } from '../auth/context'
 import { Alert, Button, Card, Field } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 
 export function LoginPage() {
   const { client } = useAuth()
@@ -65,12 +65,12 @@ export function LoginPage() {
           {t.login.submit}
         </Button>
       </form>
-      <Link to="/recuperar-senha" className="text-sm text-indigo-700 underline">
+      <Link to="/reset-password" className="text-sm text-indigo-700 underline">
         {t.login.forgot}
       </Link>
       <p className="text-sm text-slate-600">
         {t.login.noAccount}{' '}
-        <Link to="/cadastro" className="text-indigo-700 underline">
+        <Link to="/signup" className="text-indigo-700 underline">
           {t.login.signUp}
         </Link>
       </p>

@@ -11,7 +11,7 @@ afterEach(() => vi.restoreAllMocks())
 
 const renderAccount = () => {
   const auth = fakeAuth(ALICE)
-  render(<App authClient={auth.client} initialPath="/conta" />)
+  render(<App authClient={auth.client} initialPath="/account" />)
   return auth
 }
 
@@ -20,7 +20,7 @@ describe('F03-RF-05 perfil', () => {
     renderAccount()
 
     expect(await screen.findByText('alice@teste.dev')).toBeInTheDocument()
-    expect(screen.getByText('14/11/2026')).toBeInTheDocument()
+    expect(screen.getByText('11/14/2026')).toBeInTheDocument()
   })
 
   it('mostra erro da API em português', async () => {
@@ -31,7 +31,7 @@ describe('F03-RF-05 perfil', () => {
     )
     renderAccount()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Confirme seu e-mail')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Confirm your email')
   })
 })
 
@@ -42,7 +42,7 @@ describe('F03-RF-07 exportar', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     renderAccount()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Baixar meus dados' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Download my data' }))
 
     await waitFor(() => expect(click).toHaveBeenCalled())
     expect(createObjectURL).toHaveBeenCalled()
@@ -61,20 +61,20 @@ describe('F03-RF-08 excluir conta', () => {
     const auth = renderAccount()
     const user = userEvent.setup()
 
-    const button = await screen.findByRole('button', { name: 'Excluir meus dados' })
+    const button = await screen.findByRole('button', { name: 'Delete my data' })
     expect(button).toBeDisabled()
-    expect(screen.getByText(/compartilhado com os outros apps do portfólio/)).toBeInTheDocument()
+    expect(screen.getByText(/shared with the other apps in this portfolio/)).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('Digite EXCLUIR para confirmar'), 'excluir')
+    await user.type(screen.getByLabelText('Type DELETE to confirm'), 'excluir')
     expect(button).toBeDisabled()
-    await user.clear(screen.getByLabelText('Digite EXCLUIR para confirmar'))
-    await user.type(screen.getByLabelText('Digite EXCLUIR para confirmar'), 'EXCLUIR')
+    await user.clear(screen.getByLabelText('Type DELETE to confirm'))
+    await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE')
     await user.click(button)
 
     await waitFor(() => expect(deleted).toBe(true))
     await waitFor(() => expect(auth.current()).toBeNull())
     expect(
-      await screen.findByRole('heading', { name: 'Entrar no SpecFlow AI' }),
+      await screen.findByRole('heading', { name: 'Sign in to SpecFlow AI' }),
     ).toBeInTheDocument()
   })
 })

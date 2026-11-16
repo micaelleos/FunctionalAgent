@@ -8,7 +8,7 @@ export const PROFILE = {
   display_name: 'Alice',
   email: 'alice@teste.dev',
   created_at: '2026-11-14T12:00:00Z',
-  locale: 'pt-BR',
+  locale: 'en',
 }
 
 export const api = (path: string) => `${API_BASE_URL}${path}`

@@ -9,7 +9,7 @@ import {
 import { Link, Navigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
-import { t } from '../i18n/pt-BR'
+import { t } from '../i18n/en'
 
 const L = t.landing
 const SOURCE_URL = 'https://github.com/micaelleos/FunctionalAgent'
@@ -92,9 +92,29 @@ function Arrow() {
   )
 }
 
-/** Passos da conversa ilustrativa: pergunta, "digitando", história, critérios, ação. */
-const STEPS = [600, 1500, 2700, 3700, 4700] as const
-const HOLD_MS = 6500
+/**
+ * Passos da conversa ilustrativa: pedido, "digitando", pergunta do agente, resposta do PO,
+ * "digitando", história, critérios de aceite, prontidão + confirmação.
+ */
+const STEPS = [600, 1400, 2400, 3600, 4400, 5400, 6300, 7300] as const
+const HOLD_MS = 6000
+
+function Typing() {
+  return (
+    <div className="flex w-16 animate-pop-in items-center justify-center gap-1.5 rounded-2xl rounded-bl-sm bg-white px-4 py-3">
+      {[0, 150, 300].map((delay) => (
+        <span
+          key={delay}
+          className="size-2 animate-typing rounded-full bg-zinc-400"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </div>
+  )
+}
+
+const userBubble =
+  'max-w-[85%] animate-pop-in self-end rounded-2xl rounded-br-sm bg-indigo-600 px-4 py-2.5 text-white'
 
 /**
  * Ilustração animada de uma conversa: mostra o fluxo, não dados de ninguém. Toca em laço e, com
@@ -115,66 +135,48 @@ function ExampleChat() {
     return () => timers.forEach((id) => window.clearTimeout(id))
   }, [])
 
-  const typing = step === 2
-  const answered = step >= 3
-
   return (
     <figure className="relative w-full max-w-md min-w-0 animate-fade-up justify-self-center [animation-delay:350ms]">
       <div aria-hidden="true" className="motion-safe:animate-float">
-        <div className="flex min-h-[25rem] flex-col gap-3 rounded-2xl border border-zinc-700/80 bg-zinc-800/70 p-4 text-sm shadow-2xl shadow-indigo-950/50 backdrop-blur">
+        <div className="flex min-h-[31rem] flex-col gap-3 rounded-2xl border border-zinc-700/80 bg-zinc-800/70 p-4 text-sm shadow-2xl shadow-indigo-950/50 backdrop-blur">
           <div className="flex items-center gap-1.5 pb-1">
             <span className="size-2.5 rounded-full bg-zinc-600" />
             <span className="size-2.5 rounded-full bg-zinc-600" />
             <span className="size-2.5 rounded-full bg-zinc-600" />
           </div>
 
-          {step >= 1 && (
-            <p className="max-w-[85%] animate-pop-in self-end rounded-2xl rounded-br-sm bg-indigo-600 px-4 py-2.5 text-white">
-              {L.exampleUser}
+          {step >= 1 && <p className={userBubble}>{L.exampleUser}</p>}
+          {step === 2 && <Typing />}
+          {step >= 3 && (
+            <p className="max-w-[85%] animate-pop-in rounded-2xl rounded-bl-sm bg-white px-4 py-2.5 text-zinc-800">
+              {L.exampleAsk}
             </p>
           )}
+          {step >= 4 && <p className={userBubble}>{L.exampleUserAnswer}</p>}
+          {step === 5 && <Typing />}
 
-          {typing && (
-            <div className="flex w-16 animate-pop-in items-center justify-center gap-1.5 rounded-2xl rounded-bl-sm bg-white px-4 py-3">
-              {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="size-2 animate-typing rounded-full bg-zinc-400"
-                  style={{ animationDelay: `${delay}ms` }}
-                />
-              ))}
-            </div>
-          )}
-
-          {answered && (
+          {step >= 6 && (
             <div className="flex animate-pop-in flex-col gap-2 rounded-2xl rounded-bl-sm bg-white px-4 py-3 text-zinc-800">
               <p className="font-semibold text-zinc-900">{L.exampleHeading}</p>
-              <p>
-                {L.exampleStory.map((line, i) => (
-                  <span
-                    key={line}
-                    className="block animate-fade-up"
-                    style={{ animationDelay: `${i * 120}ms` }}
-                  >
-                    {line}
-                  </span>
-                ))}
-              </p>
-              {step >= 4 && (
-                <pre className="animate-pop-in rounded-lg bg-zinc-100 px-3 py-2 font-mono text-xs leading-relaxed whitespace-pre-wrap text-zinc-800">
-                  {L.exampleGherkin.map((line, i) => (
+              <p className="animate-fade-up">{L.exampleGoal}</p>
+              {step >= 7 && (
+                <pre className="animate-pop-in overflow-hidden rounded-lg bg-zinc-100 px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-zinc-800">
+                  {L.exampleCriteria.map((line, i) => (
                     <span
                       key={line}
                       className="block animate-fade-up"
-                      style={{ animationDelay: `${i * 160}ms` }}
+                      style={{ animationDelay: `${i * 120}ms` }}
                     >
                       {line}
                     </span>
                   ))}
                 </pre>
               )}
-              {step >= 5 && (
+              {step >= 8 && (
                 <div className="flex animate-pop-in flex-wrap items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                    ✓ {L.exampleReady}
+                  </span>
                   <span className="flex-1 text-xs font-medium text-indigo-950">
                     {L.exampleAction}
                   </span>
@@ -218,7 +220,7 @@ function Header() {
         </Link>
         <nav aria-label={L.nav} className="ml-auto flex items-center gap-2 text-sm">
           <Link
-            to="/sobre"
+            to="/about"
             className="hidden px-3 py-2 text-zinc-300 transition-colors hover:text-white sm:block"
           >
             {t.nav.about}
@@ -227,7 +229,7 @@ function Header() {
             {L.signIn}
           </Link>
           <Link
-            to="/cadastro"
+            to="/signup"
             className="rounded-lg bg-white px-3 py-2 font-semibold text-zinc-900 transition duration-200 hover:-translate-y-0.5 hover:bg-zinc-200"
           >
             {L.signUp}
@@ -271,7 +273,7 @@ export function LandingPage() {
                 {L.lead}
               </p>
               <div className="flex animate-fade-up flex-wrap gap-3 [animation-delay:300ms]">
-                <Link to="/cadastro" className={ctaPrimary}>
+                <Link to="/signup" className={ctaPrimary}>
                   {L.ctaPrimary}
                   <Arrow />
                 </Link>
@@ -285,13 +287,91 @@ export function LandingPage() {
         </main>
       </div>
 
-      <section aria-labelledby="como-funciona" className="mx-auto max-w-6xl px-4 py-20 md:px-8">
+      <section aria-labelledby="problem" className="mx-auto max-w-6xl px-4 pt-20 md:px-8">
         <Reveal>
-          <h2 id="como-funciona" className="text-2xl font-bold md:text-3xl">
+          <h2 id="problem" className="text-2xl font-bold md:text-3xl">
+            {L.problemTitle}
+          </h2>
+        </Reveal>
+        <ul className="mt-10 grid gap-6 md:grid-cols-3">
+          {L.problems.map((p, i) => (
+            <Reveal
+              as="li"
+              key={p.title}
+              delay={i * 120}
+              className="border-l-2 border-rose-300 pl-4"
+            >
+              <h3 className="font-semibold">{p.title}</h3>
+              <p className="mt-2 text-zinc-600">{p.body}</p>
+            </Reveal>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="anatomy" className="mx-auto max-w-6xl px-4 pt-20 md:px-8">
+        <div className="grid gap-10 md:grid-cols-[1.2fr_1fr] md:items-start">
+          <div className="min-w-0">
+            <Reveal>
+              <h2 id="anatomy" className="text-2xl font-bold md:text-3xl">
+                {L.anatomyTitle}
+              </h2>
+              <p className="mt-4 text-zinc-600">{L.anatomyBody}</p>
+            </Reveal>
+            <ol className="mt-8 flex flex-col gap-3">
+              {L.anatomy.map((section, i) => (
+                <Reveal
+                  as="li"
+                  key={section.name}
+                  delay={i * 80}
+                  className="flex gap-4 rounded-lg border border-zinc-200 bg-white p-4"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="font-mono text-sm font-semibold text-indigo-600 tabular-nums"
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold">{section.name}</h3>
+                    <p className="text-sm text-zinc-600">{section.body}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+          <Reveal delay={150} className="md:sticky md:top-24">
+            <div className="rounded-2xl bg-zinc-900 p-6 text-white shadow-xl shadow-indigo-950/20">
+              <h3 className="text-sm font-semibold tracking-wide text-indigo-300 uppercase">
+                {L.readinessLabel}
+              </h3>
+              <ul className="mt-4 flex flex-col gap-3">
+                {L.readinessItems.map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm">
+                    <span
+                      aria-hidden="true"
+                      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-xs text-emerald-300"
+                    >
+                      ✓
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-6 border-t border-zinc-700 pt-4 font-mono text-xs text-zinc-400">
+                {L.readinessLabels}
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section aria-labelledby="how-it-works" className="mx-auto max-w-6xl px-4 py-20 md:px-8">
+        <Reveal>
+          <h2 id="how-it-works" className="text-2xl font-bold md:text-3xl">
             {L.howTitle}
           </h2>
         </Reveal>
-        <ol className="relative mt-10 grid gap-8 md:grid-cols-3 md:gap-6">
+        <ol className="relative mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {L.steps.map((step, i) => (
             <Reveal
               as="li"
@@ -302,7 +382,7 @@ export function LandingPage() {
               {i < L.steps.length - 1 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-5 left-14 hidden h-px w-[calc(100%-2.5rem)] bg-gradient-to-r from-indigo-400 to-indigo-100 md:block"
+                  className="absolute top-5 left-14 hidden h-px w-[calc(100%-2.5rem)] bg-gradient-to-r from-indigo-400 to-indigo-100 lg:block"
                 />
               )}
               <span
@@ -318,10 +398,10 @@ export function LandingPage() {
         </ol>
       </section>
 
-      <section aria-labelledby="recursos" className="border-y border-zinc-200 bg-white">
+      <section aria-labelledby="features" className="border-y border-zinc-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-20 md:px-8">
           <Reveal>
-            <h2 id="recursos" className="text-2xl font-bold md:text-3xl">
+            <h2 id="features" className="text-2xl font-bold md:text-3xl">
               {L.featuresTitle}
             </h2>
           </Reveal>
@@ -358,7 +438,7 @@ export function LandingPage() {
               />
               <h2 className="text-xl font-bold">{L.closingTitle}</h2>
               <p className="text-zinc-300">{L.closingBody}</p>
-              <Link to="/cadastro" className={ctaPrimary}>
+              <Link to="/signup" className={ctaPrimary}>
                 {L.signUp}
                 <Arrow />
               </Link>
@@ -373,7 +453,7 @@ export function LandingPage() {
             <Mark />
             {t.app.name}
           </span>
-          <Link to="/sobre" className="transition-colors hover:text-zinc-900 hover:underline">
+          <Link to="/about" className="transition-colors hover:text-zinc-900 hover:underline">
             {L.about}
           </Link>
           <a

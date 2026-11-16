@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 import { useAuth } from '../auth/context'
 import { Alert, Button, Card, Field } from '../components/ui'
-import { errorMessage, t } from '../i18n/pt-BR'
+import { errorMessage, t } from '../i18n/en'
 
 export function ResetPasswordPage() {
   const { client } = useAuth()

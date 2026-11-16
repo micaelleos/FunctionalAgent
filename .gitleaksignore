@@ -1,0 +1,4 @@
+# Falsos positivos revisados: valores de teste inventados (não são credenciais), já trocados por
+# valores montados em tempo de execução no commit seguinte. Formato: <commit>:<arquivo>:<regra>:<linha>
+5f4045d8041bceb5dbdaf161d14c5bbbd9013009:backend/tests/unit/test_crypto.py:generic-api-key:12
+5f4045d8041bceb5dbdaf161d14c5bbbd9013009:backend/tests/unit/test_crypto.py:generic-api-key:49

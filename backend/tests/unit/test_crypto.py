@@ -9,7 +9,8 @@ from pydantic import ValidationError
 from app.core.config import Settings
 from app.core.crypto import CipherError, KmsCipher, LocalFernetCipher, build_cipher
 
-SECRET = "ATATT-segredo-de-teste-1234"
+# Valor inventado, montado em tempo de execução para não parecer credencial ao gitleaks.
+SECRET = "-".join(["token", "de", "teste", "1234"])
 
 
 def test_cifra_local_vai_e_volta_sem_texto_em_claro() -> None:
@@ -46,7 +47,7 @@ def test_cifra_local_em_local_e_test(env: str) -> None:
 
 
 def test_chave_local_configuravel() -> None:
-    key = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    key = base64.urlsafe_b64encode(b"0123456789abcdef" * 2).decode()
     encrypted = build_cipher("local", None, key).encrypt(SECRET)
 
     assert LocalFernetCipher(key.encode()).decrypt(encrypted.ciphertext) == SECRET

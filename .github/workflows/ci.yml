@@ -138,7 +138,7 @@ jobs:
           docker build --build-arg APP_VERSION=${{ github.sha }} -t api:ci .
           size=$(docker image inspect api:ci --format '{{.Size}}')
           echo "Tamanho da imagem: $((size / 1024 / 1024)) MB"
-          test "$size" -lt $((300 * 1024 * 1024))
+          test "$size" -lt $((400 * 1024 * 1024))  # F01-RT-05, ADR-008
           user=$(docker image inspect api:ci --format '{{.Config.User}}')
           test "$user" = "app"
       - name: Smoke test da imagem

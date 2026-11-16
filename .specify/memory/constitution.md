@@ -131,8 +131,8 @@ errado, e o custo recai sobre o time que revisa.
 
 ## Restrições de Stack e Plataforma
 
-- **Backend:** Python 3.12, uv (`uv.lock`), FastAPI + Pydantic v2, agente com loop próprio sobre o SDK
-  `google-genai` (Gemini no Vertex AI, ADR-008), httpx
+- **Backend:** Python 3.12, uv (`uv.lock`), FastAPI + Pydantic v2, LangGraph para o agente com Gemini no
+  Vertex AI (ADR-008), httpx
   para o Jira (API v3 com ADF). Qualidade: Ruff, mypy strict, import-linter.
 - **Camadas do backend:** `api → services → agent | integrations | repositories → core`, verificadas
   pelo `import-linter`; importações no sentido inverso MUST falhar o lint.

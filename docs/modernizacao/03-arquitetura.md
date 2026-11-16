@@ -8,7 +8,7 @@ flowchart TB
     subgraph Google["Google Cloud / Firebase"]
         HOST[Firebase Hosting<br/>SPA React]
         AUTH[Firebase Authentication]
-        API[Cloud Run<br/>functional-agent-api<br/>FastAPI + loop do agente]
+        API[Cloud Run<br/>functional-agent-api<br/>FastAPI + LangGraph]
         FS[(Firestore<br/>dados por usuário)]
         SM[Secret Manager<br/>segredos do sistema]
         VTX[Vertex AI<br/>Gemini]
@@ -55,7 +55,7 @@ flowchart LR
     subgraph BE["backend/ (FastAPI)"]
         RT[api/ routers<br/>validação + authz]
         SV[services/<br/>casos de uso]
-        AG[agent/<br/>loop próprio, Gemini,<br/>ferramentas, prompts]
+        AG[agent/<br/>grafo LangGraph,<br/>ferramentas, prompts]
         JI[integrations/jira/<br/>cliente httpx, ADF]
         RP[repositories/<br/>Firestore]
         CR[core/<br/>config, segurança,<br/>logging, crypto KMS]
@@ -85,16 +85,15 @@ api  →  services  →  agent, integrations, repositories  →  core
 
 ### 3.1 Desenho
 
-- **Loop próprio** sobre o SDK `google-genai`, com Gemini no Vertex AI ([ADR-008](adr/ADR-008-llm-gemini-vertex.md)),
-  substitui o `AgentExecutor` descontinuado; o padrão "ação proposta" vem do [ADR-003](adr/ADR-003-agente-langgraph-acoes-propostas.md).
-- Ciclo `modelo ⇄ ferramentas`, máximo de **8 iterações** por turno; a chamada ao modelo fica atrás da interface
-  `ModelClient`, substituída por um modelo roteirizado nos testes.
+- **LangGraph** substitui o `AgentExecutor` descontinuado ([ADR-003](adr/ADR-003-agente-langgraph-acoes-propostas.md)),
+  com Gemini no Vertex AI como modelo ([ADR-008](adr/ADR-008-llm-gemini-vertex.md)).
+- Grafo ReAct: `modelo ⇄ ferramentas`, máximo de **8 iterações** por turno.
 - O agente é **sem estado no processo**: a cada requisição o backend carrega o histórico da conversa do
   Firestore, aplica janela/sumarização por orçamento de tokens e executa o grafo.
-- O cliente Jira **do usuário** vai para as ferramentas num `ToolContext` passado explicitamente por requisição,
-  nunca em variável global.
-- Modelo configurável por variável de ambiente (`LLM_MODEL`, padrão `gemini-3.5-flash-lite`; `LLM_LOCATION`),
-  autenticado pela conta de serviço do Cloud Run, sem chave de LLM.
+- O cliente Jira **do usuário** é injetado no contexto da execução (`RunnableConfig`), nunca em variável global.
+- Modelo configurável por variável de ambiente (`LLM_PROVIDER=google_vertexai`, `LLM_MODEL`, padrão
+  `gemini-3.5-flash-lite`; `LLM_LOCATION`), criado por uma fábrica (`ChatGoogleGenerativeAI` com `vertexai=True`)
+  e autenticado pela conta de serviço do Cloud Run, sem chave de LLM.
 
 ### 3.2 Ferramentas
 

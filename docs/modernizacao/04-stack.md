@@ -29,7 +29,7 @@
 | **uv** | Dependências/lockfile | Instalação rápida e reprodutível (`uv.lock`) |
 | **FastAPI + Uvicorn** | API HTTP/SSE | Async, OpenAPI automático, Pydantic nativo |
 | **Pydantic v2 + pydantic-settings** | Modelos e config | Validação e configuração tipadas |
-| **google-genai** (Gemini no Vertex AI) | Agente | SDK oficial; loop próprio com streaming e chamadas de função, sem chave de LLM ([ADR-008](adr/ADR-008-llm-gemini-vertex.md)) |
+| **LangGraph + langchain-core + langchain-google-genai** | Agente | Substitui `AgentExecutor`; streaming real, controle do loop; Gemini no Vertex AI sem chave de LLM ([ADR-008](adr/ADR-008-llm-gemini-vertex.md)) |
 | **httpx** | Cliente Jira | Async, timeouts, fácil de mockar (`respx`); substitui `atlassian-python-api` (síncrono) |
 | **google-cloud-firestore** (async) / **firebase-admin** | Dados e verificação de token | SDKs oficiais |
 | **google-cloud-kms**, **google-cloud-secret-manager** | Criptografia/segredos | Artigo III |
@@ -66,7 +66,7 @@
 | Sai | Substituído por |
 |---|---|
 | Streamlit | React + Vite |
-| `AgentExecutor`, `ConversationBufferMemory`, `format_tool_to_openai_function` | Loop próprio com `google-genai` + histórico no Firestore (ADR-008) |
+| `AgentExecutor`, `ConversationBufferMemory`, `format_tool_to_openai_function` | LangGraph + histórico no Firestore |
 | `atlassian-python-api` | Cliente httpx próprio, API v3 com ADF |
 | `.env` com chaves reais | Secret Manager (prd) / `.env.local` só com emuladores (dev) |
 | `requirements.txt` sem versões | `pyproject.toml` + `uv.lock` |

@@ -14,7 +14,7 @@
 | F02 | Infraestrutura base GCP/Firebase (Terraform) e deploy por `make deploy` | 0 | Em implementação | F01 | 5 d | 4 / 8 | [spec](002-infraestrutura-base/spec.md) · [plano](002-infraestrutura-base/plan.md) · [tarefas](002-infraestrutura-base/tasks.md) |
 | F03 | Autenticação e conta do usuário | 1 | Em produção | F02 | 6,5 d | 8 / 6 | [spec](003-autenticacao/spec.md) · [plano](003-autenticacao/plan.md) · [tarefas](003-autenticacao/tasks.md) |
 | F04 | Conexão Jira por usuário | 1 | Em produção | F03 | 5 d | 7 / 6 | [spec](004-conexao-jira/spec.md) · [plano](004-conexao-jira/plan.md) · [tarefas](004-conexao-jira/tasks.md) |
-| F05 | API de chat com agente (Gemini no Vertex AI + streaming), escrevendo specs prontas para agentes de código | 1 | Rascunho (revisado em 2026-11-16, ADR-007 e ADR-008) | F04 | 12,5 d | 12 / 15 | [spec](005-agente-chat-api/spec.md) · [plano](005-agente-chat-api/plan.md) · [tarefas](005-agente-chat-api/tasks.md) |
+| F05 | API de chat com agente (LangGraph + Gemini no Vertex AI + streaming), escrevendo specs prontas para agentes de código | 1 | Rascunho (revisado em 2026-11-16, ADR-007 e ADR-008) | F04 | 12,5 d | 12 / 15 | [spec](005-agente-chat-api/spec.md) · [plano](005-agente-chat-api/plan.md) · [tarefas](005-agente-chat-api/tasks.md) |
 | F06 | Confirmação humana antes de escrever no Jira (com prontidão para agente) | 1 | Rascunho (revisado em 2026-11-16) | F05 | 5,5 d | 9 / 7 | [spec](006-confirmacao-humana/spec.md) · [plano](006-confirmacao-humana/plan.md) · [tarefas](006-confirmacao-humana/tasks.md) |
 | F07 | Conversas persistentes | 2 | Rascunho | F05, F06 | 5 d | 6 / 5 | [spec](007-conversas-persistentes/spec.md) · [plano](007-conversas-persistentes/plan.md) · [tarefas](007-conversas-persistentes/tasks.md) |
 | F08 | Interface de chat em React | 2 | Em implementação (telas principais com dados de demonstração) | F03 (mocks), F05, F06, F07 | 9.5 d | 11 / 8 | [spec](008-interface-chat/spec.md) · [plano](008-interface-chat/plan.md) · [tarefas](008-interface-chat/tasks.md) |
@@ -38,8 +38,8 @@ Status, dependências e estimativas vêm do cabeçalho de cada `spec.md` — atu
 > [ADR-007](../docs/modernizacao/adr/ADR-007-spec-pronta-para-agente.md), Artigo XII da Constituição (v2.1.0).
 > Mudaram F05 (+2 d), F06 (+0,5 d), F10 (+0,5 d), F14 e F15 (+1 d); entraram F17 e F18 na Fase 4.
 >
-> **Revisão de 2026-11-16 — LLM do agente.** Gemini no Vertex AI (modelo padrão `gemini-3.5-flash-lite`) com loop
-> próprio sobre o SDK `google-genai`, no lugar de LangGraph + OpenAI
+> **Revisão de 2026-11-16 — LLM do agente.** Gemini no Vertex AI (modelo padrão `gemini-3.5-flash-lite`) no lugar
+> de OpenAI, mantendo LangGraph; limite da imagem do backend sobe para 400 MiB
 > ([ADR-008](../docs/modernizacao/adr/ADR-008-llm-gemini-vertex.md), Constituição v2.2.0). F05 ganha a T010 (+0,5 d).
 
 Nova feature: `/speckit-specify <descrição>` cria `specs/019-…/spec.md` a partir do template do
@@ -152,7 +152,7 @@ flowchart LR
 
 | Risco | Prob. | Impacto | Mitigação |
 |---|---|---|---|
-| Comportamento do agente muda ao migrar para Gemini e loop próprio (ADR-008) | Média | Alto | Evals de baseline gravadas **antes** da migração (F05) com o prompt atual |
+| Comportamento do agente muda ao migrar para LangGraph e Gemini (ADR-008) | Média | Alto | Evals de baseline gravadas **antes** da migração (F05) com o prompt atual |
 | Conversão Markdown → ADF incompleta | Média | Médio | Suportar subconjunto (títulos, listas, negrito, código, tabelas); fallback para parágrafo; testes com fixtures |
 | Rate limit/timeout do Jira | Média | Médio | Retries com backoff, limites nas ferramentas, cache curto de projetos |
 | Custo de LLM acima do esperado | Média | Médio | Cotas por usuário, sumarização do histórico, alerta de orçamento |

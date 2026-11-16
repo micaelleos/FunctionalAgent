@@ -42,7 +42,7 @@
 | F01-RT-02 | `.gitignore` cobre `__pycache__`, `.env*`, `node_modules`, `dist`; nenhum `.pyc` no repo | `git ls-files` no CI |
 | F01-RT-03 | mypy `strict` e TypeScript `strict` habilitados | config + CI |
 | F01-RT-04 | `import-linter` com as regras de camadas da arquitetura | CI |
-| F01-RT-05 | Imagem Docker do backend multi-stage, usuário não-root, < 300 MB | `docker inspect` no CI |
+| F01-RT-05 | Imagem Docker do backend multi-stage, usuário não-root, < 400 MiB (era 300 MB até o ADR-008, 2026-11-16) | `docker inspect` no CI |
 | F01-RT-06 | gitleaks em pre-commit e CI | CI |
 | F01-RT-07 | `scripts/trace_requirements.py` falha se um RF de spec com status ≥ "Em validação" não tiver teste marcado | CI |
 

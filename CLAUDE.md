@@ -74,9 +74,9 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   stores the token encrypted with `kms.encrypt` (`KMS_KEY_NAME`); `LocalFernetCipher` only with `ENV`
   local/test. The token is never returned or logged; `JiraConnectionService.client_for(uid, id)` decrypts
   per request and is the entry point for F05/F09/F10. Only `https://<site>.atlassian.net` URLs (SSRF).
-- **Agent LLM (ADR-008)**: Gemini on Vertex AI through the `google-genai` SDK, authenticated by the Cloud Run
-  service account (no LLM key); default model `gemini-3.5-flash-lite` via `LLM_MODEL`. The agent loop is our own
-  (`app/agent/loop.py`, `ModelClient` interface, scripted model in tests); no LangGraph/LangChain.
+- **Agent LLM (ADR-008)**: LangGraph (ADR-003) with Gemini on Vertex AI via `ChatGoogleGenerativeAI`
+  (`langchain-google-genai`, `vertexai=True`), authenticated by the Cloud Run service account (no LLM key); provider
+  and model from `LLM_PROVIDER`/`LLM_MODEL` (default `gemini-3.5-flash-lite`).
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 
@@ -128,6 +128,6 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
 
 - Branches `feat/Fxx-slug` from `master`; PRs use `.github/pull_request_template.md` (constitution
   checklist). CI also runs gitleaks, pip-audit/npm audit, a check that no `__pycache__`/`.pyc`/
-  `node_modules` is committed, and a Docker image check (< 300 MB, runs as user `app`, `/healthz` smoke).
+  `node_modules` is committed, and a Docker image check (< 400 MiB since ADR-008, runs as user `app`, `/healthz` smoke).
 - Python: 3.12, ruff line length 100, mypy `strict` over `app` and `tests`.
 - New infrastructure components (queue, cache, extra DB) or stack changes require an ADR.

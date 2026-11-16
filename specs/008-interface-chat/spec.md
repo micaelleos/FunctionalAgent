@@ -6,7 +6,7 @@
 | **Fase** | 2 — Produto |
 | **Dependências** | F03 (pode iniciar com mocks), F05, F06, F07 |
 | **ADRs** | ADR-002 |
-| **Estimativa** | 9 dias |
+| **Estimativa** | 9,5 dias |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
@@ -44,6 +44,7 @@
 | F08-RF-08 | Uma conversa vazia mostra sugestões iniciais clicáveis | Could |
 | F08-RF-09 | A interface funciona em celular (sidebar vira menu) | Must |
 | F08-RF-10 | Um menu lateral leva às telas principais (Chat, Projetos Jira, Issues criadas, Configurações, Minha conta); enquanto a feature de uma tela não está no ar, ela mostra um estado vazio que explica o que vem | Must |
+| F08-RF-11 | A raiz do site (`/`) é uma página inicial pública que apresenta o produto, o fluxo (conectar, conversar, confirmar) e o estágio do projeto, com chamadas para cadastro e login; quem já entrou vai direto para o chat. Exemplos de conversa são estáticos e marcados como ilustrativos | Should |
 
 ### 4. Requisitos técnicos
 | ID | Requisito | Verificação |
@@ -122,6 +123,7 @@ Funcionalidade: Interface de chat
 | F08-RF-08 | `screens.test.tsx` (sugestões) | 🟡 sem agente real |
 | F08-RF-09 | AT-F08-06 (`e2e/f08-telas.spec.ts`, menu em celular), `screens.test.tsx` | 🟡 menu pronto |
 | F08-RF-10 | AT-F08-07 (`e2e/f08-telas.spec.ts`), `screens.test.tsx` | ✅ |
+| F08-RF-11 | `LandingPage.test.tsx`, `e2e/f08-telas.spec.ts` (axe na página inicial) | ✅ |
 | F08-RT-08 | `screens.test.tsx` (F08-RT-08), `scripts/check-no-demo.mjs` no build | ✅ |
 
 ### 11. Evidências

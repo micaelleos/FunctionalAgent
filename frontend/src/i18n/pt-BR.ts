@@ -217,6 +217,80 @@ export const t = {
     'jira-invalid-credentials':
       'O Jira recusou o e-mail ou o token. Confira os dois e tente de novo.',
   } as Record<string, string>,
+  landing: {
+    nav: 'Site',
+    signIn: 'Entrar',
+    signUp: 'Criar conta',
+    badge: 'Projeto de portfólio · em desenvolvimento',
+    title: 'Da ideia ao backlog no Jira, conversando.',
+    lead: 'O SpecFlow AI é um agente para Product Owners: você descreve a necessidade e ele escreve épicos, user stories em BDD e tarefas, prontos para revisar e criar no seu Jira.',
+    ctaPrimary: 'Começar agora',
+    ctaSecondary: 'Já tenho conta',
+    exampleCaption: 'Exemplo ilustrativo de conversa',
+    exampleUser: 'Preciso permitir que o cliente pague com Pix no checkout.',
+    exampleHeading: 'História: Pagar com Pix',
+    exampleStory: [
+      'Como cliente,',
+      'quero pagar meu pedido com Pix,',
+      'para concluir a compra sem cartão.',
+    ],
+    exampleGherkin: [
+      'Dado que estou no checkout',
+      'Quando escolho "Pix"',
+      'Então vejo o QR Code e o prazo de pagamento',
+    ],
+    exampleAction: 'Criar História em PAG?',
+    exampleConfirm: 'Confirmar e criar',
+    howTitle: 'Como funciona',
+    steps: [
+      {
+        title: 'Conecte o Jira',
+        body: 'Informe o site, o e-mail e um token de API. O token fica cifrado e nunca volta para o navegador.',
+      },
+      {
+        title: 'Converse sobre a necessidade',
+        body: 'Escolha o projeto e explique o problema com as suas palavras. O agente pergunta o que faltar.',
+      },
+      {
+        title: 'Revise e confirme',
+        body: 'O agente propõe as issues; nada é escrito no Jira até você clicar em "Confirmar e criar".',
+      },
+    ],
+    featuresTitle: 'O que você recebe',
+    features: [
+      {
+        title: 'Épicos, histórias e tarefas',
+        body: 'Documentação funcional no formato que o time já usa, com hierarquia entre as issues.',
+      },
+      {
+        title: 'Critérios de aceite em BDD',
+        body: 'Cenários Dado/Quando/Então que servem de base para os testes.',
+      },
+      {
+        title: 'Você no controle',
+        body: 'Toda escrita no Jira é uma proposta que você confirma ou rejeita.',
+      },
+      {
+        title: 'Contexto dos seus projetos',
+        body: 'O agente consulta projetos e issues existentes para não duplicar trabalho.',
+      },
+      {
+        title: 'Histórico de conversas',
+        body: 'Volte a uma conversa e veja quais issues saíram dela.',
+      },
+      {
+        title: 'Funciona no celular',
+        body: 'Revise e confirme propostas de onde estiver.',
+      },
+    ],
+    statusTitle: 'Onde o projeto está',
+    status:
+      'Login, conta e as telas principais já estão no ar. A conexão com o Jira e o agente chegam nas próximas versões; até lá, as telas mostram o que vem.',
+    closingTitle: 'Quer acompanhar?',
+    closingBody: 'Crie uma conta gratuita e veja as novidades chegarem.',
+    source: 'Código no GitHub',
+    about: 'Sobre e status da API',
+  },
 } as const
 
 export function errorMessage(error: unknown): string {

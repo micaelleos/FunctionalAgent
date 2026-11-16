@@ -17,7 +17,7 @@
 | F05 | API de chat com agente (LangGraph + streaming) | 1 | Rascunho | F04 | 10 d | 8 / 12 | [spec](005-agente-chat-api/spec.md) · [plano](005-agente-chat-api/plan.md) · [tarefas](005-agente-chat-api/tasks.md) |
 | F06 | Confirmação humana antes de escrever no Jira | 1 | Rascunho | F05 | 5 d | 7 / 6 | [spec](006-confirmacao-humana/spec.md) · [plano](006-confirmacao-humana/plan.md) · [tarefas](006-confirmacao-humana/tasks.md) |
 | F07 | Conversas persistentes | 2 | Rascunho | F05, F06 | 5 d | 6 / 5 | [spec](007-conversas-persistentes/spec.md) · [plano](007-conversas-persistentes/plan.md) · [tarefas](007-conversas-persistentes/tasks.md) |
-| F08 | Interface de chat em React | 2 | Em implementação (telas principais com dados de demonstração) | F03 (mocks), F05, F06, F07 | 9 d | 10 / 8 | [spec](008-interface-chat/spec.md) · [plano](008-interface-chat/plan.md) · [tarefas](008-interface-chat/tasks.md) |
+| F08 | Interface de chat em React | 2 | Em implementação (telas principais com dados de demonstração) | F03 (mocks), F05, F06, F07 | 9.5 d | 11 / 8 | [spec](008-interface-chat/spec.md) · [plano](008-interface-chat/plan.md) · [tarefas](008-interface-chat/tasks.md) |
 | F09 | Projetos Jira | 2 | Rascunho | F04, F08 | 3 d | 6 / 4 | [spec](009-projetos-jira/spec.md) · [plano](009-projetos-jira/plan.md) · [tarefas](009-projetos-jira/tasks.md) |
 | F10 | Histórico de issues criados | 2 | Rascunho | F06, F08 | 3 d | 5 / 4 | [spec](010-historico-issues/spec.md) · [plano](010-historico-issues/plan.md) · [tarefas](010-historico-issues/tasks.md) |
 | F11 | Observabilidade, limites de uso e proteção | 3 | Rascunho | F05–F10 | 5 d | 4 / 10 | [spec](011-observabilidade-e-limites/spec.md) · [plano](011-observabilidade-e-limites/plan.md) · [tarefas](011-observabilidade-e-limites/tasks.md) |
@@ -27,7 +27,7 @@
 | F15 | Suíte contínua de avaliação do agente (evals) | 4 (baseline na 1) | Rascunho · plano após GA | F05 | 5 d | 3 / — | [spec](015-evals-agente/spec.md) · [plano](015-evals-agente/plan.md) |
 | F16 | Google Analytics (consentimento LGPD, CSP, eventos) | 4 | A especificar (aprovado pelo PO em 2026-11-14) | F02, F08 | — | — | — |
 
-**Totais:** 15 features · 85 requisitos funcionais · 86 técnicos · ~84 dias de estimativa.
+**Totais:** 15 features · 86 requisitos funcionais · 86 técnicos · ~84,5 dias de estimativa.
 Status, dependências e estimativas vêm do cabeçalho de cada `spec.md` — atualize lá e reflita aqui.
 
 Nova feature: `/speckit-specify <descrição>` cria `specs/016-…/spec.md` a partir do template do

@@ -8,6 +8,7 @@ import { AboutPage } from './pages/AboutPage'
 import { AccountPage } from './pages/AccountPage'
 import { ChatPage } from './pages/ChatPage'
 import { IssuesPage } from './pages/IssuesPage'
+import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
@@ -18,10 +19,11 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage'
 const guest = (page: ReactNode) => <GuestRoute>{page}</GuestRoute>
 
 export const routes: RouteObject[] = [
+  // Página inicial pública (F08-RF-11), com cabeçalho próprio; quem já entrou vai para o chat.
+  { path: '/', element: <LandingPage /> },
   {
     element: <PublicLayout />,
     children: [
-      { path: '/', element: <Navigate to="/chat" replace /> },
       { path: '/sobre', element: <AboutPage /> },
       { path: '/login', element: guest(<LoginPage />) },
       { path: '/cadastro', element: guest(<SignupPage />) },

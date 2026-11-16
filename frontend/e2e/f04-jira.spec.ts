@@ -27,7 +27,7 @@ async function signIn(page: Page, request: Parameters<typeof createAccount>[0]) 
 async function fill(page: Page, site: string, token: string) {
   await page.getByLabel('Site URL').fill(site)
   await page.getByLabel('Atlassian account email').fill(EMAIL)
-  await page.getByLabel('API token').fill(token)
+  await page.getByLabel('API token', { exact: true }).fill(token)
   await page.getByRole('button', { name: 'Validate and save' }).click()
 }
 

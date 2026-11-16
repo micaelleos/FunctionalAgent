@@ -41,5 +41,5 @@ cliente entram com F05/F09/F10.
 
 **Aceitação:** AT-F04-01..05
 
-- [ ] T005 E2E AT-F04-01/02/03/05 contra `make dev` + Jira sandbox — teste: `e2e/f04-jira.spec.ts` (Playwright; escrito, aguardando `JIRA_SANDBOX_URL`/`_EMAIL` no `.env.local`) — 0,5 d
+- [x] T005 E2E AT-F04-01/02/03/05 contra `make dev` + Jira sandbox — teste: `e2e/f04-jira.spec.ts` (Playwright; 2/2 passando em 2026-11-16 no sandbox do PO) — 0,5 d
 - [ ] T006 Deploy, roteiro manual M-F04-01 (conectar em produção, revogar token, ver "Reconectar") e evidências — teste: manual — 1 d

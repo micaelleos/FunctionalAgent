@@ -97,14 +97,15 @@ backend, Vitest no front) e conferido à mão no roteiro M-F04-01 (revogar um to
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F04-RF-01 | AT-F04-01, `test_jira_connections_api.py` | 🟡 automatizado com Jira simulado; falta AT-F04-01 no sandbox |
-| F04-RF-02 | AT-F04-01, `test_jira_connections_api.py` | 🟡 automatizado com Jira simulado; falta AT-F04-01 no sandbox |
-| F04-RF-03 | AT-F04-02, AT-F04-03, `test_jira_connections_api.py`, `test_jira_urls.py` | 🟡 automatizado com Jira simulado; falta AT-F04-02/03 no sandbox |
-| F04-RF-04 | AT-F04-01, `test_jira_connections_api.py` | 🟡 automatizado com Jira simulado; falta AT-F04-01 no sandbox |
-| F04-RF-05 | AT-F04-05, `test_jira_connections_api.py` | 🟡 automatizado com Jira simulado; falta AT-F04-05 no sandbox |
+| F04-RF-01 | AT-F04-01, `test_jira_connections_api.py` | ✅ (AT no sandbox em 2026-11-16) |
+| F04-RF-02 | AT-F04-01, `test_jira_connections_api.py` | ✅ (AT no sandbox em 2026-11-16) |
+| F04-RF-03 | AT-F04-02, AT-F04-03, `test_jira_connections_api.py`, `test_jira_urls.py` | ✅ (AT no sandbox em 2026-11-16) |
+| F04-RF-04 | AT-F04-01, `test_jira_connections_api.py` | ✅ (AT no sandbox em 2026-11-16) |
+| F04-RF-05 | AT-F04-05, `test_jira_connections_api.py` | ✅ (AT no sandbox em 2026-11-16) |
 | F04-RF-06 | AT-F04-04 (`test_jira_connections_api.py`, `jira.test.tsx`), M-F04-01 | 🟡 automatizado; falta M-F04-01 |
 | F04-RF-07 | `jira.test.tsx` (painel "Como criar o token") | ✅ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-16 | `b779943` (master) | `make dev` (emuladores + API local) + Jira sandbox do PO, projeto SCRUM | `E2E_EMULATORS=1 npx playwright test f04-jira.spec.ts` (AT-F04-01, 02, 03, 05) | 2 passed | pendente (PO) |

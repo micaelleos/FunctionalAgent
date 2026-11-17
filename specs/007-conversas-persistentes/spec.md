@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Aceita |
+| **Status** | Em produção |
 | **Revisão** | 2026-11-17: alinhada à F05/F06 já em produção — ações reidratadas pela rota da F06, título pelo mesmo modelo em paralelo ao turno, exclusão sem apagar o que já está no Jira, aceitação pela API (a tela é da F08) |
 | **Fase** | 2 — Produto |
 | **Dependências** | F05, F06 |
@@ -102,3 +102,4 @@ Funcionalidade: Conversas persistentes
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
 | 2026-11-17 | PR #19 (`feat/F07-conversas-persistentes`) | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` | `pytest tests/acceptance` AT-F07-01..05 em 2 execuções (a 2ª junto com AT-F05); evals 33 casos | 5/5 e 14/14; issues mantidas a pedido do PO (SCRUM-30..33); evals sem métrica abaixo do baseline, `pinned_project` 100% (`evals/results/2026-11-17-new-gemini-3.5-flash-lite-f07.json`); integração: p95 da listagem com 500 conversas < 300 ms | PO (aceite com as evidências locais) |
+| 2026-11-17 | `7ca3c7a` (merge do PR #19) | prd (pcb-inspect) | `make deploy`: revisão `specflow-api-00011-l2t` com 100% do tráfego, smoke `/health` na versão do commit e smoke do modelo; `GET /api/v1/conversations` sem token → 401; SPA publicado. A 1ª tentativa recebeu 500 da API do Cloud Run ao criar a revisão (nada mudou em produção); a 2ª passou | ok, sem erros nos logs da revisão. Rotas de conversas e título automático em produção não exercitados (a tela é da F08) | PO (aceite com as evidências locais) |

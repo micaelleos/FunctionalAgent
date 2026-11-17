@@ -49,8 +49,8 @@ export const routes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
-      { path: '/chat', element: <ChatPage /> },
-      { path: '/chat/:conversationId', element: <ChatPage /> },
+      // Uma rota só: ir de /chat para /chat/:id no 1º envio mantém o turno em andamento.
+      { path: '/chat/:conversationId?', element: <ChatPage /> },
       { path: '/projects', element: <ProjectsPage /> },
       { path: '/issues', element: <IssuesPage /> },
       { path: '/settings', element: <SettingsPage /> },

@@ -9,7 +9,7 @@ import asyncio
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, AsyncIterator, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol, cast
@@ -290,7 +290,7 @@ class ChatService:
 
     async def open_turn(
         self, uid: str, conversation_id: str, text: str
-    ) -> tuple[str, AsyncIterator[BaseModel]]:
+    ) -> tuple[str, AsyncGenerator[BaseModel]]:
         """Valida a conversa e grava a mensagem do usuário antes de começar o streaming, para que
         404 e erros de validação saiam como Problem Details, não como evento."""
         now = self._clock()
@@ -395,7 +395,7 @@ class ChatService:
         user_seq: int,
         *,
         needs_title: bool = False,
-    ) -> AsyncIterator[BaseModel]:
+    ) -> AsyncGenerator[BaseModel]:
         conversation_id = str(conversation["id"])
         started = time.monotonic()
         turn = _Turn()
@@ -409,108 +409,149 @@ class ChatService:
         sink = FirestoreActionSink(self._store, uid, conversation_id, self._clock)
         ctx = ToolContext(uid=uid, conversation_id=conversation_id, jira=None, actions=sink)
         reported = 0
+        interrupted, saved = False, False
         try:
-            async with asyncio.timeout(self._settings.agent_turn_timeout_s):
-                reader, client = await self._jira_reader(uid, sink)
-                ctx.jira = reader
-                window = history_window(
-                    docs,
-                    self._settings.history_token_budget,
-                    int(conversation.get("summarizedThrough", 0)),
-                )
-                summary = str(conversation.get("summary") or "")
-                if window.to_summarize:
-                    summary = await self._summarize(uid, conversation, window.to_summarize, turn)
-                instructions = [
-                    system_prompt(
-                        self._settings.prompt_version,
-                        today=self._clock().date(),
-                        jira_connected=reader is not None,
+            try:
+                async with asyncio.timeout(self._settings.agent_turn_timeout_s):
+                    reader, client = await self._jira_reader(uid, sink)
+                    ctx.jira = reader
+                    window = history_window(
+                        docs,
+                        self._settings.history_token_budget,
+                        int(conversation.get("summarizedThrough", 0)),
                     )
-                ]
-                if summary:
-                    instructions.append(f"## Resumo das mensagens anteriores\n{summary}")
-                actions = await self._run_sync(self._store.list_actions, uid, conversation_id)
-                if note := actions_note(actions, self._clock()):
-                    instructions.append(note)
-                if project_key := conversation.get("projectKey"):
-                    instructions.append(project_note(str(project_key)))
-                # Uma única instrução de sistema: o Gemini só aceita uma, no início.
-                messages: list[BaseMessage] = [
-                    SystemMessage("\n\n".join(instructions)),
-                    *window.messages,
-                    HumanMessage(with_events(text, window.pending_events)),
-                ]
-                agent = build_agent(
-                    self._llm, self._tools, max_iterations=self._settings.agent_max_iterations
-                )
-                state: AgentState = {
-                    "messages": cast(list[AnyMessage], messages),
-                    "iterations": 0,
-                    "limit_reached": False,
-                }
-                config: RunnableConfig = {"configurable": {"ctx": ctx}, "recursion_limit": 100}
-                parts: AsyncIterator[Any] = cast(
-                    AsyncIterator[Any],
-                    agent.astream(state, config, stream_mode=["messages", "updates"]),
-                )
-                async for mode, chunk in parts:
-                    if mode == "messages":
-                        message, meta = chunk
-                        # Chunks do streaming; sem streaming, vem a mensagem inteira.
-                        if meta.get("langgraph_node") == "model" and isinstance(
-                            message, AIMessageChunk | AIMessage
-                        ):
-                            piece = message_text(message.content)
-                            if piece:
-                                turn.text.append(piece)
-                                yield TokenEvent(text=piece)
-                        continue
-                    for node, update in (chunk or {}).items():
-                        if not update:
+                    summary = str(conversation.get("summary") or "")
+                    if window.to_summarize:
+                        summary = await self._summarize(
+                            uid, conversation, window.to_summarize, turn
+                        )
+                    instructions = [
+                        system_prompt(
+                            self._settings.prompt_version,
+                            today=self._clock().date(),
+                            jira_connected=reader is not None,
+                        )
+                    ]
+                    if summary:
+                        instructions.append(f"## Resumo das mensagens anteriores\n{summary}")
+                    actions = await self._run_sync(self._store.list_actions, uid, conversation_id)
+                    if note := actions_note(actions, self._clock()):
+                        instructions.append(note)
+                    if project_key := conversation.get("projectKey"):
+                        instructions.append(project_note(str(project_key)))
+                    # Uma única instrução de sistema: o Gemini só aceita uma, no início.
+                    messages: list[BaseMessage] = [
+                        SystemMessage("\n\n".join(instructions)),
+                        *window.messages,
+                        HumanMessage(with_events(text, window.pending_events)),
+                    ]
+                    agent = build_agent(
+                        self._llm, self._tools, max_iterations=self._settings.agent_max_iterations
+                    )
+                    state: AgentState = {
+                        "messages": cast(list[AnyMessage], messages),
+                        "iterations": 0,
+                        "limit_reached": False,
+                    }
+                    config: RunnableConfig = {"configurable": {"ctx": ctx}, "recursion_limit": 100}
+                    parts: AsyncIterator[Any] = cast(
+                        AsyncIterator[Any],
+                        agent.astream(state, config, stream_mode=["messages", "updates"]),
+                    )
+                    async for mode, chunk in parts:
+                        if mode == "messages":
+                            message, meta = chunk
+                            # Chunks do streaming; sem streaming, vem a mensagem inteira.
+                            if meta.get("langgraph_node") == "model" and isinstance(
+                                message, AIMessageChunk | AIMessage
+                            ):
+                                piece = message_text(message.content)
+                                if piece:
+                                    turn.text.append(piece)
+                                    yield TokenEvent(text=piece)
                             continue
-                        if update.get("limit_reached"):
-                            error = "tool-limit"
-                        for msg in update.get("messages", []):
-                            if node == "model" and isinstance(msg, AIMessage):
-                                turn.add_usage(msg)
-                                for call in msg.tool_calls:
-                                    summary_text = PROGRESS.get(call["name"], "Consultando…")
-                                    yield ToolStartEvent(name=call["name"], summary=summary_text)
-                            elif isinstance(msg, ToolMessage):
-                                turn.tool_messages.append(msg)
-                                done = "Falhou" if msg.status == "error" else "Concluído"
-                                yield ToolEndEvent(name=str(msg.name), summary=done)
-                        for action in ctx.proposed[reported:]:
-                            yield ActionProposedEvent(
-                                action_id=action.id, kind=action.kind, preview=action.preview
-                            )
-                        reported = len(ctx.proposed)
-        except TimeoutError:
-            error = "turn-timeout"
-        except Exception:
-            log.exception("falha no turno do agente", extra={"conversation_id": conversation_id})
-            error = "llm-unavailable"
-        finally:
-            if client is not None:
-                await client.aclose()
-            if titling is not None:
-                # O título fica pronto antes do `done` (o front relê a lista nesse momento).
-                try:
-                    await asyncio.wait_for(titling, TITLE_TIMEOUT_S)
-                except TimeoutError:
-                    log.warning(
-                        "título não gerado a tempo", extra={"conversation_id": conversation_id}
-                    )
+                        for node, update in (chunk or {}).items():
+                            if not update:
+                                continue
+                            if update.get("limit_reached"):
+                                error = "tool-limit"
+                            for msg in update.get("messages", []):
+                                if node == "model" and isinstance(msg, AIMessage):
+                                    turn.add_usage(msg)
+                                    for call in msg.tool_calls:
+                                        summary_text = PROGRESS.get(call["name"], "Consultando…")
+                                        yield ToolStartEvent(
+                                            name=call["name"], summary=summary_text
+                                        )
+                                elif isinstance(msg, ToolMessage):
+                                    turn.tool_messages.append(msg)
+                                    done = "Falhou" if msg.status == "error" else "Concluído"
+                                    yield ToolEndEvent(name=str(msg.name), summary=done)
+                            for action in ctx.proposed[reported:]:
+                                yield ActionProposedEvent(
+                                    action_id=action.id, kind=action.kind, preview=action.preview
+                                )
+                            reported = len(ctx.proposed)
+            except (asyncio.CancelledError, GeneratorExit):
+                interrupted = True
+                raise
+            except TimeoutError:
+                error = "turn-timeout"
+            except Exception:
+                log.exception(
+                    "falha no turno do agente", extra={"conversation_id": conversation_id}
+                )
+                error = "llm-unavailable"
+            finally:
+                if client is not None:
+                    await client.aclose()
+                if titling is not None and interrupted:
+                    titling.cancel()
+                elif titling is not None:
+                    # O título fica pronto antes do `done` (o front relê a lista nesse momento).
+                    try:
+                        await asyncio.wait_for(titling, TITLE_TIMEOUT_S)
+                    except TimeoutError:
+                        log.warning(
+                            "título não gerado a tempo", extra={"conversation_id": conversation_id}
+                        )
 
-        if error:
-            yield ErrorEvent.model_validate({"code": error, "message": ERRORS[error]})
-        message_id = await self._persist(uid, conversation_id, user_seq, turn, ctx.proposed)
-        yield MessageSavedEvent(
-            message_id=message_id, conversation_id=conversation_id, user_message_id=user_message_id
-        )
-        usage = await self._record_usage(uid, conversation_id, turn, started, error)
-        yield DoneEvent(usage=usage)
+            if error:
+                yield ErrorEvent.model_validate({"code": error, "message": ERRORS[error]})
+            message_id = await self._persist(uid, conversation_id, user_seq, turn, ctx.proposed)
+            saved = True
+            yield MessageSavedEvent(
+                message_id=message_id,
+                conversation_id=conversation_id,
+                user_message_id=user_message_id,
+            )
+            usage = await self._record_usage(uid, conversation_id, turn, started, error)
+            yield DoneEvent(usage=usage)
+        except (asyncio.CancelledError, GeneratorExit):
+            # F08-RT-09: o cliente desconectou ("Parar", aba fechada). Grava o que já saiu,
+            # marcado, e o uso; o shield impede que o cancelamento corte a gravação.
+            if not saved:
+                await asyncio.shield(
+                    self._save_interrupted(uid, conversation_id, user_seq, turn, ctx, started)
+                )
+            raise
+
+    async def _save_interrupted(
+        self,
+        uid: str,
+        conversation_id: str,
+        user_seq: int,
+        turn: _Turn,
+        ctx: ToolContext,
+        started: float,
+    ) -> None:
+        try:
+            await self._persist(
+                uid, conversation_id, user_seq, turn, ctx.proposed, interrupted=True
+            )
+            await self._record_usage(uid, conversation_id, turn, started, "interrupted")
+        except Exception:
+            log.exception("falha ao gravar a resposta interrompida")
 
     async def _persist(
         self,
@@ -519,6 +560,8 @@ class ChatService:
         user_seq: int,
         turn: _Turn,
         actions: list[ProposedAction],
+        *,
+        interrupted: bool = False,
     ) -> str:
         seq = user_seq
         for tool_msg in turn.tool_messages:
@@ -544,6 +587,7 @@ class ChatService:
                 "role": "assistant",
                 "content": content,
                 "text": "".join(turn.text),  # o que o usuário viu (histórico da F07)
+                "interrupted": interrupted,
                 "seq": seq + 1,
                 "actions": [{"id": a.id, "kind": a.kind} for a in actions],
                 "usage": {"inputTokens": turn.input_tokens, "outputTokens": turn.output_tokens},

@@ -213,3 +213,15 @@ async def test_acao_em_execucao_impede_a_exclusao() -> None:
 
     assert (problem.status, problem.code) == (409, "conversation-busy")
     assert cid in store.conversations[UID]
+
+
+@pytest.mark.req("F08-RT-09")
+async def test_historico_marca_a_resposta_interrompida() -> None:
+    service, store = _service()
+    cid = _conversation(store, "a", 0)
+    _message(store, cid, "user", 1)
+    _message(store, cid, "assistant", 2, text="Parcial", interrupted=True)
+
+    [user, assistant] = (await service.messages(UID, cid, None, 10)).items
+
+    assert (user.interrupted, assistant.interrupted, assistant.text) == (False, True, "Parcial")

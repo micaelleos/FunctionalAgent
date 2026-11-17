@@ -1,16 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type FormEvent, type KeyboardEvent, useState } from 'react'
-import { Link, NavLink, useNavigate, useParams, useSearchParams } from 'react-router'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 
+import { ChatMarkdown, StreamingMarkdown } from '../chat/ChatMarkdown'
+import { ConversationSidebar } from '../chat/ConversationSidebar'
+import { type Turn, useChatStream } from '../chat/useChatStream'
 import { ActionCard } from '../components/ActionCard'
 import { Alert, Button } from '../components/ui'
 import { errorMessage, t } from '../i18n/en'
 import { useProduct } from '../product/context'
-import type { ChatMessage, MessagePart } from '../product/types'
+import type { ChatMessage, ConversationSummary, ProposedAction } from '../product/types'
 
 /**
- * Tela inicial do app (F08): conversas à esquerda, mensagens, cartões de ação e o campo de
- * mensagem. Sem o agente no ar (F05), mostra as sugestões e avisa que o envio chega em breve.
+ * Chat (F08): conversas na lateral, histórico paginado, a resposta em streaming com o indicador de
+ * ferramenta e os cartões de ação no fluxo, e o campo de mensagem com "Parar".
  */
 export function ChatPage() {
   const product = useProduct()
@@ -19,94 +22,113 @@ export function ChatPage() {
   const { conversationId = null } = useParams()
   const [search] = useSearchParams()
   const [draft, setDraft] = useState('')
+  const bottom = useRef<HTMLDivElement>(null)
 
   const conversations = useQuery({
     queryKey: ['conversations'],
     queryFn: product.listConversations,
   })
-  const messages = useQuery({
+  const history = useInfiniteQuery({
     queryKey: ['messages', conversationId],
-    queryFn: () => product.getMessages(conversationId ?? ''),
+    queryFn: ({ pageParam }) => product.getMessages(conversationId ?? '', pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (page) => page.nextCursor,
     enabled: conversationId !== null,
   })
 
-  const current = conversations.data?.find((c) => c.id === conversationId)
-  const projectKey = current?.projectKey ?? search.get('projeto')
-
-  const send = useMutation({
-    mutationFn: (text: string) => product.sendMessage(conversationId, text, projectKey),
-    onSuccess: async ({ conversationId: id }) => {
-      // O texto só sai do campo quando o envio dá certo (F08-RF-07).
-      setDraft('')
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['conversations'] }),
-        queryClient.invalidateQueries({ queryKey: ['messages', id] }),
-        queryClient.invalidateQueries({ queryKey: ['usage'] }),
-      ])
-      if (id !== conversationId) void navigate(`/chat/${id}`)
-    },
+  const onConversation = useCallback(
+    (id: string) => void navigate(`/chat/${id}`, { replace: true }),
+    [navigate],
+  )
+  const { turn, send, stop, retry, dismiss, busy } = useChatStream({
+    onConversation,
+    onRestore: setDraft,
   })
+
+  const current = conversations.data?.find((c) => c.id === conversationId)
+  const projectKey = conversationId ? (current?.projectKey ?? null) : search.get('projeto')
+
+  const unpin = useMutation({
+    mutationFn: (id: string) => product.pinProject(id, null),
+    onSuccess: (updated) =>
+      queryClient.setQueryData<ConversationSummary[]>(['conversations'], (list) =>
+        list?.map((c) => (c.id === updated.id ? updated : c)),
+      ),
+  })
+
+  // As páginas vêm da mais recente para a mais antiga; na tela, a mais antiga fica em cima.
+  const messages = [...(history.data?.pages ?? [])].reverse().flatMap((p) => p.items)
+  const visibleTurn =
+    turn &&
+    turn.conversationId === conversationId &&
+    !(turn.messageId && messages.some((m) => m.id === turn.messageId))
+      ? turn
+      : null
+  const empty = messages.length === 0 && !visibleTurn && !history.isLoading
+
+  useEffect(() => {
+    bottom.current?.scrollIntoView?.({ block: 'end' })
+  }, [messages.length, visibleTurn?.text, visibleTurn?.actions.length])
 
   const submit = (event?: FormEvent) => {
     event?.preventDefault()
     const text = draft.trim()
-    if (text && product.features.chat && !send.isPending) send.mutate(text)
+    if (!text || !product.features.chat || busy) return
+    setDraft('')
+    void send(conversationId, text, conversationId ? null : projectKey)
   }
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     // Enter envia; Shift+Enter quebra a linha (F08-RF-01).
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault()
       submit()
     }
   }
 
-  const list = messages.data ?? []
-  const empty = conversationId === null || (messages.isSuccess && list.length === 0)
-
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <aside
-        aria-label={t.chat.conversations}
-        className="flex max-h-60 shrink-0 flex-col gap-2 overflow-y-auto border-b border-zinc-200 bg-white p-3 lg:max-h-none lg:w-72 lg:border-r lg:border-b-0"
-      >
-        <Link
-          to="/chat"
-          className="flex min-h-11 items-center justify-center rounded-lg bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          + {t.chat.newConversation}
-        </Link>
-        {conversations.isSuccess && conversations.data.length === 0 && (
-          <p className="px-2 py-3 text-sm text-zinc-600">{t.chat.noConversations}</p>
-        )}
-        <ul className="flex flex-col gap-1">
-          {conversations.data?.map((c) => (
-            <li key={c.id}>
-              <NavLink
-                to={`/chat/${c.id}`}
-                className={({ isActive }) =>
-                  `flex min-h-11 flex-col justify-center rounded-lg px-3 py-2 ${isActive ? 'bg-indigo-50' : 'hover:bg-zinc-50'}`
-                }
-              >
-                <span className="text-sm font-medium">{c.title}</span>
-                <span className="text-xs text-zinc-600">{c.projectKey ?? '—'}</span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      <ConversationSidebar currentId={conversationId} />
 
       <main className="flex min-w-0 flex-1 flex-col bg-zinc-50">
         <header className="flex flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-4 py-4 md:px-8">
-          <h1 className="min-w-0 flex-1 text-xl font-semibold">{current?.title ?? t.chat.title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-xl font-semibold">
+            {current?.title ?? t.chat.title}
+          </h1>
           {projectKey && (
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-900">
+            <span className="flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-900">
               {t.chat.pinned(projectKey)}
+              {conversationId && (
+                <button
+                  type="button"
+                  onClick={() => unpin.mutate(conversationId)}
+                  className="rounded-full px-1 text-indigo-900 hover:bg-indigo-100"
+                  aria-label={t.chat.unpin}
+                  title={t.chat.unpin}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
             </span>
           )}
         </header>
 
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 md:px-8">
-          {messages.isError && <Alert kind="error">{errorMessage(messages.error)}</Alert>}
+          {history.isError && <Alert kind="error">{errorMessage(history.error)}</Alert>}
+          {history.hasNextPage && (
+            <button
+              type="button"
+              onClick={() => void history.fetchNextPage()}
+              disabled={history.isFetchingNextPage}
+              className="min-h-11 self-center rounded-full border border-zinc-300 bg-white px-4 text-sm hover:bg-zinc-100 disabled:opacity-50"
+            >
+              {t.chat.loadEarlier}
+            </button>
+          )}
+          {history.isLoading && conversationId && (
+            <p role="status" className="text-sm text-zinc-600">
+              {t.chat.loadingHistory}
+            </p>
+          )}
           {empty ? (
             <section className="flex flex-col gap-4 py-8">
               <h2 className="text-2xl font-semibold">{t.chat.emptyTitle}</h2>
@@ -126,19 +148,27 @@ export function ChatPage() {
               </ul>
             </section>
           ) : (
-            list.map((m) => (
+            messages.map((m) => (
               <Message key={m.id} message={m} conversationId={conversationId ?? ''} />
             ))
           )}
+          {visibleTurn && (
+            <TurnView
+              turn={visibleTurn}
+              conversationId={conversationId ?? ''}
+              onRetry={visibleTurn.started ? retry : () => submit()}
+              onDismiss={dismiss}
+            />
+          )}
+          <div ref={bottom} />
         </div>
 
         <form
           onSubmit={submit}
-          className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 pb-6 md:px-8"
+          className="sticky bottom-0 mx-auto flex w-full max-w-3xl flex-col gap-2 bg-zinc-50 px-4 pt-2 pb-6 md:px-8"
         >
           {!product.features.chat && <Alert kind="info">{t.chat.soon}</Alert>}
-          {send.isError && <Alert kind="error">{errorMessage(send.error)}</Alert>}
-          <div className="flex items-end gap-2 rounded-xl border border-zinc-300 bg-white p-2">
+          <div className="flex items-end gap-2 rounded-xl border border-zinc-300 bg-white p-2 focus-within:ring-2 focus-within:ring-indigo-500">
             <label htmlFor="mensagem" className="sr-only">
               {t.chat.messageLabel}
             </label>
@@ -151,12 +181,15 @@ export function ChatPage() {
               placeholder={t.chat.placeholder}
               className="flex-1 resize-none border-0 p-2 outline-none"
             />
-            <Button
-              type="submit"
-              disabled={!product.features.chat || !draft.trim() || send.isPending}
-            >
-              {t.chat.send}
-            </Button>
+            {busy ? (
+              <Button type="button" variant="secondary" onClick={stop}>
+                {t.chat.stop}
+              </Button>
+            ) : (
+              <Button type="submit" disabled={!product.features.chat || !draft.trim()}>
+                {t.chat.send}
+              </Button>
+            )}
           </div>
           <p className="text-xs text-zinc-600">{t.chat.guard}</p>
         </form>
@@ -165,66 +198,116 @@ export function ChatPage() {
   )
 }
 
-function Message({ message, conversationId }: { message: ChatMessage; conversationId: string }) {
-  if (message.role === 'user') {
-    return (
-      <div className="max-w-[80%] self-end rounded-xl rounded-br-sm bg-indigo-600 px-4 py-3 whitespace-pre-wrap text-white">
-        <span className="sr-only">{t.chat.you}: </span>
-        {message.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('\n')}
-      </div>
-    )
-  }
-  const actions = message.parts.filter((p) => p.kind === 'action')
-  const tools = message.parts.filter((p) => p.kind === 'tool')
-  const body = message.parts.filter((p) => p.kind !== 'action' && p.kind !== 'tool')
+function UserBubble({ text }: { text: string }) {
+  return (
+    <div className="max-w-[80%] self-end rounded-xl rounded-br-sm bg-indigo-600 px-4 py-3 whitespace-pre-wrap text-white">
+      <span className="sr-only">{t.chat.you}: </span>
+      {text}
+    </div>
+  )
+}
+
+function AssistantBubble({
+  text,
+  actions,
+  conversationId,
+  interrupted,
+  streaming = false,
+}: {
+  text: string
+  actions: ProposedAction[]
+  conversationId: string
+  interrupted: boolean
+  streaming?: boolean
+}) {
   return (
     <div className="flex flex-col gap-3">
-      {tools.map((p) => (
-        <p
-          key={p.label}
-          className="self-start rounded-md bg-zinc-200/60 px-3 py-1.5 text-sm text-zinc-700"
-        >
-          <span aria-hidden="true">✓</span> {p.label}
-        </p>
-      ))}
-      {body.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-6 py-5 leading-relaxed">
+      {text && (
+        <div className="rounded-xl border border-zinc-200 bg-white px-6 py-5">
           <span className="sr-only">{t.chat.assistant}: </span>
-          {body.map((p, i) => (
-            <Part key={i} part={p} />
-          ))}
+          {streaming ? <StreamingMarkdown text={text} /> : <ChatMarkdown text={text} />}
+          {interrupted && <p className="mt-3 text-sm text-zinc-600 italic">{t.chat.interrupted}</p>}
         </div>
       )}
-      {actions.map((p) => (
-        <ActionCard key={p.action.id} action={p.action} conversationId={conversationId} />
+      {!text && interrupted && <p className="text-sm text-zinc-600 italic">{t.chat.interrupted}</p>}
+      {actions.map((a) => (
+        <ActionCard key={a.id} action={a} conversationId={conversationId} />
       ))}
     </div>
   )
 }
 
-function Part({ part }: { part: MessagePart }) {
-  const [copied, setCopied] = useState(false)
-  if (part.kind === 'heading') return <h2 className="text-base font-semibold">{part.text}</h2>
-  if (part.kind === 'code') {
-    const copy = async () => {
-      await navigator.clipboard.writeText(part.text)
-      setCopied(true)
-    }
-    return (
-      <div className="flex flex-col gap-2">
-        <pre className="overflow-x-auto rounded-lg bg-zinc-900 p-4 font-mono text-sm whitespace-pre-wrap text-zinc-100">
-          {part.text}
-        </pre>
-        <button
-          type="button"
-          onClick={() => void copy()}
-          className="min-h-9 self-start rounded-md border border-zinc-300 px-3 text-sm hover:bg-zinc-50"
+function Message({ message, conversationId }: { message: ChatMessage; conversationId: string }) {
+  if (message.role === 'user') return <UserBubble text={message.text} />
+  return (
+    <AssistantBubble
+      text={message.text}
+      actions={message.actions}
+      conversationId={conversationId}
+      interrupted={message.interrupted}
+    />
+  )
+}
+
+function TurnView({
+  turn,
+  conversationId,
+  onRetry,
+  onDismiss,
+}: {
+  turn: Turn
+  conversationId: string
+  onRetry: () => void
+  onDismiss: () => void
+}) {
+  // Falhou antes de chegar ao servidor: o texto voltou para o campo, não há balão a mostrar.
+  const reachedServer = turn.started || turn.status === 'streaming' || turn.status === 'stopped'
+  const failure =
+    turn.status === 'failed' || turn.error
+      ? turn.error?.code === 'network'
+        ? t.chat.networkError
+        : (t.errors[turn.error?.code ?? ''] ?? turn.error?.message ?? t.chat.agentError)
+      : null
+  return (
+    <>
+      {reachedServer && <UserBubble text={turn.userText} />}
+      {turn.status === 'streaming' && (
+        <p role="status" aria-live="polite" className="self-start text-sm text-zinc-600">
+          <span aria-hidden="true" className="mr-2 inline-block animate-pulse">
+            ●
+          </span>
+          {turn.tool ?? (turn.text ? '' : t.chat.thinking)}
+        </p>
+      )}
+      <AssistantBubble
+        text={turn.text}
+        actions={turn.actions}
+        conversationId={conversationId}
+        interrupted={turn.status === 'stopped'}
+        streaming
+      />
+      {failure && turn.status !== 'streaming' && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
         >
-          {copied ? t.chat.copied : t.chat.copy}
-        </button>
-      </div>
-    )
-  }
-  if (part.kind === 'text') return <p>{part.text}</p>
-  return null
+          <span className="flex-1">{failure}</span>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="min-h-9 rounded-md bg-red-700 px-3 font-medium text-white hover:bg-red-800"
+          >
+            {t.chat.retry}
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="min-h-9 rounded-md border border-red-300 px-3 hover:bg-red-100"
+          >
+            {t.chat.cancel}
+          </button>
+        </div>
+      )}
+    </>
+  )
 }

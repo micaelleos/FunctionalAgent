@@ -1,12 +1,44 @@
 import { apiFetch, type TokenGetter } from '../lib/api'
 import type { components } from '../lib/api-schema'
-import type { JiraConnection, JiraConnectionInput, ProductApi } from './types'
+import { streamPost } from '../lib/sse'
+import type {
+  ChatMessage,
+  ConversationSummary,
+  JiraConnection,
+  JiraConnectionInput,
+  ProductApi,
+} from './types'
 import { type ApiAction, fromApiAction, toActionProblem } from './actions'
 import { unavailableProductApi } from './unavailable'
 
 type ApiConnection = components['schemas']['JiraConnection']
+type ApiConversation = components['schemas']['ConversationOut']
+type ApiConversationPage = components['schemas']['ConversationPage']
+type ApiMessagePage = components['schemas']['MessagePage']
+type ApiMessage = components['schemas']['MessageOut']
 
 const BASE = '/api/v1/jira/connections'
+const CONVERSATIONS = '/api/v1/conversations'
+/** A lateral mostra as conversas mais recentes (F08-RF-05); paginar a lista fica para depois. */
+const SIDEBAR_LIMIT = 50
+
+/** `VITE_FEATURE_CHAT=false` no build desliga o envio (rollback da F08). */
+const CHAT_ENABLED = import.meta.env.VITE_FEATURE_CHAT !== 'false'
+
+const conversationFromApi = (c: ApiConversation): ConversationSummary => ({
+  id: c.id,
+  title: c.title,
+  projectKey: c.project_key ?? null,
+  updatedAt: c.updated_at,
+})
+
+const messageFromApi = (m: ApiMessage): ChatMessage => ({
+  id: m.id,
+  role: m.role,
+  text: m.text,
+  actions: m.actions.map(fromApiAction),
+  interrupted: m.interrupted ?? false,
+})
 
 const fromApi = (c: ApiConnection): JiraConnection => ({
   id: c.id,
@@ -49,9 +81,11 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
     return first ? fromApi(first) : null
   }
 
+  const conversation = (id: string) => `${CONVERSATIONS}/${encodeURIComponent(id)}`
+
   return {
     ...unavailableProductApi,
-    features: { ...unavailableProductApi.features, jira: true },
+    features: { ...unavailableProductApi.features, jira: true, chat: CHAT_ENABLED },
     getJiraConnection: current,
     connectJira: async ({ site, email, token }: JiraConnectionInput) => {
       const body = { site_url: site, email, api_token: token }
@@ -73,6 +107,37 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
         await json<ApiConnection>(`${BASE}/${existing.id}/validate`, { method: 'POST' }),
       )
     },
+    // F07: conversas; F05: o envio em streaming.
+    listConversations: async () =>
+      (await json<ApiConversationPage>(`${CONVERSATIONS}?limit=${SIDEBAR_LIMIT}`)).items.map(
+        conversationFromApi,
+      ),
+    createConversation: async (projectKey) =>
+      conversationFromApi(
+        await json<ApiConversation>(CONVERSATIONS, send('POST', { project_key: projectKey })),
+      ),
+    renameConversation: async (id, title) =>
+      conversationFromApi(await json<ApiConversation>(conversation(id), send('PATCH', { title }))),
+    pinProject: async (id, projectKey) =>
+      conversationFromApi(
+        await json<ApiConversation>(conversation(id), send('PATCH', { project_key: projectKey })),
+      ),
+    deleteConversation: async (id) => {
+      await apiFetch(conversation(id), getToken, { method: 'DELETE' })
+    },
+    getMessages: async (id, cursor) => {
+      const query = cursor ? `?limit=50&cursor=${encodeURIComponent(cursor)}` : '?limit=50'
+      const page = await json<ApiMessagePage>(`${conversation(id)}/messages${query}`)
+      return { items: page.items.map(messageFromApi), nextCursor: page.next_cursor ?? null }
+    },
+    streamMessage: (id, text, onEvent, signal) =>
+      streamPost(
+        `${conversation(id ?? 'new')}/messages`,
+        { content: text },
+        getToken,
+        onEvent,
+        signal,
+      ),
     // F06: confirmar executa no Jira exatamente o que o cartão mostra; recusar não envia nada.
     confirmAction: (id: string) => decide(id, 'confirm'),
     rejectAction: (id: string) => decide(id, 'reject'),

@@ -91,43 +91,34 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
       {
         id: 'm1',
         role: 'user',
-        parts: [
-          {
-            kind: 'text',
-            text: 'I need a story for Pix payments at checkout. The order is confirmed when the bank notifies us.',
-          },
-        ],
+        text: 'I need a story for Pix payments at checkout. The order is confirmed when the bank notifies us.',
+        actions: [],
+        interrupted: false,
       },
       {
         id: 'm2',
         role: 'assistant',
-        parts: [
-          { kind: 'tool', label: 'Looked up project PAG in Jira' },
-          {
-            kind: 'text',
-            text: 'I found epic PAG-120 · New payment methods. I propose this story as its child:',
-          },
-          { kind: 'heading', text: 'Pay for the order with Pix' },
-          {
-            kind: 'text',
-            text: 'As a store customer, I want to pay with Pix using the QR code, so I can finish checkout without a card.',
-          },
-          {
-            kind: 'code',
-            text: [
-              'Scenario: AC-01 payment confirmed by the bank',
-              '  Given I chose Pix at checkout',
-              '  When the QR code is shown and I pay',
-              '  Then the order changes to "Paid" within 10 seconds',
-              '',
-              'Scenario: AC-02 expired QR code (error)',
-              '  Given the QR code was generated 30 minutes ago',
-              '  When I try to pay',
-              '  Then I see "Code expired" and can generate a new one',
-            ].join('\n'),
-          },
-          { kind: 'action', action },
-        ],
+        text: [
+          'I found epic **PAG-120 · New payment methods**. I propose this story as its child:',
+          '',
+          '### Pay for the order with Pix',
+          '',
+          'As a store customer, I want to pay with Pix using the QR code, so I can finish checkout without a card.',
+          '',
+          '```gherkin',
+          'Scenario: AC-01 payment confirmed by the bank',
+          '  Given I chose Pix at checkout',
+          '  When the QR code is shown and I pay',
+          '  Then the order changes to "Paid" within 10 seconds',
+          '```',
+          '',
+          '| Criterion | Kind |',
+          '|---|---|',
+          '| AC-01 | main |',
+          '| AC-02 | error |',
+        ].join('\n'),
+        actions: [action],
+        interrupted: false,
       },
     ],
     c2: [],
@@ -168,6 +159,12 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
   }
 
   let nextId = 4
+
+  const conversationOf = (id: string): ConversationSummary => {
+    const summary = conversations.find((c) => c.id === id)
+    if (!summary) throw Object.assign(new Error('not found'), { code: 'conversation-not-found' })
+    return summary
+  }
   let usedToday = 18
 
   return {
@@ -206,35 +203,82 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
     },
     listConversations: async () =>
       [...conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-    getMessages: async (id) => messages[id] ?? [],
-    sendMessage: async (conversationId, text, projectKey) => {
+    createConversation: async (projectKey) => {
+      const summary = {
+        id: `c${nextId++}`,
+        title: 'New conversation',
+        projectKey,
+        updatedAt: new Date(now()).toISOString(),
+      }
+      conversations.push(summary)
+      messages[summary.id] = []
+      return { ...summary }
+    },
+    renameConversation: async (id, title) => {
+      const summary = conversationOf(id)
+      summary.title = title
+      return { ...summary }
+    },
+    pinProject: async (id, projectKey) => {
+      const summary = conversationOf(id)
+      summary.projectKey = projectKey
+      return { ...summary }
+    },
+    deleteConversation: async (id) => {
+      const index = conversations.findIndex((c) => c.id === id)
+      if (index >= 0) conversations.splice(index, 1)
+      delete messages[id]
+    },
+    getMessages: async (id) => ({ items: [...(messages[id] ?? [])], nextCursor: null }),
+    streamMessage: async (conversationId, text, onEvent, signal) => {
       let id = conversationId
       if (!id) {
         id = `c${nextId++}`
         conversations.push({
           id,
           title: text.slice(0, 40),
-          projectKey,
+          projectKey: null,
           updatedAt: new Date(now()).toISOString(),
         })
         messages[id] = []
       }
       usedToday += 1
-      messages[id].push(
-        { id: `m${nextId++}`, role: 'user', parts: [{ kind: 'text', text }] },
-        {
-          id: `m${nextId++}`,
-          role: 'assistant',
-          parts: [
-            {
-              kind: 'text',
-              text: 'This is a demo: the real agent arrives in F05. Replies will stream in here.',
-            },
-          ],
-        },
-      )
-      const summary = conversations.find((c) => c.id === id)
-      if (summary) summary.updatedAt = new Date(now()).toISOString()
+      const reply = 'This is a **demo** reply: the real agent streams its answer here.'
+      const user = {
+        id: `m${nextId++}`,
+        role: 'user' as const,
+        text,
+        actions: [],
+        interrupted: false,
+      }
+      messages[id].push(user)
+      onEvent({ event: 'open', conversation_id: id })
+      onEvent({ event: 'tool_start', name: 'listar_projetos', summary: 'Checking Jira projects…' })
+      onEvent({ event: 'tool_end', name: 'listar_projetos', summary: 'Done' })
+      let sent = ''
+      for (const word of reply.split(/(?<= )/)) {
+        if (signal?.aborted) break
+        sent += word
+        onEvent({ event: 'token', text: word })
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+      const assistant = {
+        id: `m${nextId++}`,
+        role: 'assistant' as const,
+        text: sent,
+        actions: [],
+        interrupted: sent !== reply,
+      }
+      messages[id].push(assistant)
+      conversationOf(id).updatedAt = new Date(now()).toISOString()
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+      onEvent({
+        event: 'message_saved',
+        message_id: assistant.id,
+        conversation_id: id,
+        user_message_id: user.id,
+      })
+      onEvent({ event: 'done', usage: { input_tokens: 0, output_tokens: 0, cost_usd: 0 } })
       return { conversationId: id }
     },
     confirmAction: async (id) => {

@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_AUTH_EMULATOR_HOST?: string
   // Dados de demonstração nas telas (F08-RT-08); só vale em `npm run dev`, nunca no build.
   readonly VITE_DEMO_DATA?: string
+  /** `false` desliga o envio de mensagens (rollback da F08). */
+  readonly VITE_FEATURE_CHAT?: string
 }
 
 interface ImportMeta {

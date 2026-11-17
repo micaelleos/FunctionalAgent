@@ -4,7 +4,14 @@ import asyncio
 from typing import Any, cast
 
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+)
+from langchain_core.outputs import ChatGenerationChunk
 from pydantic import BaseModel
 
 from app.agent.fake_llm import ScriptedChatModel
@@ -324,3 +331,88 @@ async def test_resposta_guarda_o_texto_visivel_sem_as_notas_do_modelo() -> None:
     [assistant] = [m for m in store.messages[("uid-alice", cid)] if m["role"] == "assistant"]
     assert assistant["text"] == "Confirme no cartão."
     assert "[Ação proposta" in assistant["content"]
+
+
+class _SlowModel(ScriptedChatModel):
+    """Entrega cada pedaço da resposta com uma pausa, como o streaming real."""
+
+    async def _astream(self, messages: Any, *args: Any, **kwargs: Any) -> Any:
+        for word in ["Primeira ", "parte ", "da ", "resposta."]:
+            await asyncio.sleep(0.05)
+            yield ChatGenerationChunk(message=AIMessageChunk(content=word))
+
+
+def _assistant(store: MemoryChatStore, cid: str) -> dict[str, Any]:
+    [doc] = [m for m in store.messages[("uid-alice", cid)] if m["role"] == "assistant"]
+    return doc
+
+
+@pytest.mark.req("F08-RF-06")
+@pytest.mark.req("F08-RT-09")
+async def test_parar_grava_a_resposta_parcial_marcada() -> None:
+    llm = ScriptedChatModel(responses=[AIMessage("Uma resposta longa em quatro pedaços.")])
+    service, store, _ = _service(llm)
+    cid, events = await service.open_turn("uid-alice", "new", "Explique")
+
+    received = [await anext(events), await anext(events)]
+    await events.aclose()  # o que a rota faz quando o cliente desconecta
+
+    saved = _assistant(store, cid)
+    assert saved["interrupted"] is True
+    assert saved["text"] == "".join(str(getattr(e, "text")) for e in received)  # noqa: B009
+    assert store.usage[("uid-alice", NOW.date().isoformat())]["messages"] == 1
+
+
+@pytest.mark.req("F08-RT-09")
+async def test_cancelamento_no_meio_do_modelo_tambem_grava() -> None:
+    service, store, _ = _service(_SlowModel(responses=[]))
+    cid, events = await service.open_turn("uid-alice", "new", "Explique")
+    first = asyncio.Event()
+
+    async def consume() -> None:
+        async for event in events:
+            if getattr(event, "event") == "token":  # noqa: B009
+                first.set()
+
+    task = asyncio.create_task(consume())
+    await first.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    saved = _assistant(store, cid)
+    assert saved["interrupted"] is True
+    assert saved["text"].startswith("Primeira")
+    assert saved["text"] != "Primeira parte da resposta."
+
+
+@pytest.mark.req("F08-RT-09")
+async def test_acao_proposta_antes_de_parar_continua_valida() -> None:
+    llm = ScriptedChatModel(
+        responses=[
+            call("propor_criacao_issue", {"project_key": "ABC", "spec": pix_story_data()}),
+            AIMessage("Confirme no cartão quando quiser."),
+        ]
+    )
+    service, store, _ = _service(llm)
+    cid, events = await service.open_turn("uid-alice", "new", "Crie a story do Pix no ABC")
+
+    async for event in events:
+        if getattr(event, "event") == "action_proposed":  # noqa: B009
+            break
+    await events.aclose()
+
+    [action] = store.actions["uid-alice"]
+    assert action["status"] == "pending"
+    saved = _assistant(store, cid)
+    assert (saved["interrupted"], saved["actions"]) == (
+        True,
+        [{"id": action["id"], "kind": "create_issue"}],
+    )
+
+
+@pytest.mark.req("F05-RF-01")
+async def test_turno_completo_nao_e_interrompido() -> None:
+    service, store, _ = _service(ScriptedChatModel(responses=[AIMessage("Pronto.")]))
+    cid, _ = await _turn(service, "Oi")
+    assert _assistant(store, cid)["interrupted"] is False

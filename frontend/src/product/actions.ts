@@ -121,3 +121,24 @@ export function toActionProblem(error: unknown): unknown {
   }
   return error
 }
+
+/** Cartão a partir do evento `action_proposed` do streaming (antes de o histórico ser relido). */
+export function fromProposedEvent(
+  event: { action_id: string; kind: ApiAction['kind']; preview: Record<string, unknown> },
+  conversationId: string,
+  now: Date = new Date(),
+): ProposedAction {
+  const preview = event.preview
+  const readinessRaw = (preview.readiness ?? {}) as ApiAction['readiness']
+  return fromApiAction({
+    id: event.action_id,
+    kind: event.kind,
+    status: 'pending',
+    conversation_id: conversationId,
+    preview,
+    readiness: readinessRaw,
+    labels: strings(preview.labels),
+    created_at: now.toISOString(),
+    expires_at: new Date(now.getTime() + 24 * 3_600_000).toISOString(),
+  })
+}

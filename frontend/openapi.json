@@ -424,6 +424,11 @@
             "title": "Id",
             "type": "string"
           },
+          "interrupted": {
+            "default": false,
+            "title": "Interrupted",
+            "type": "boolean"
+          },
           "role": {
             "enum": [
               "user",

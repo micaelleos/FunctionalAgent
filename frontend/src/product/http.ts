@@ -1,6 +1,7 @@
 import { apiFetch, type TokenGetter } from '../lib/api'
 import type { components } from '../lib/api-schema'
 import type { JiraConnection, JiraConnectionInput, ProductApi } from './types'
+import { type ApiAction, fromApiAction, toActionProblem } from './actions'
 import { unavailableProductApi } from './unavailable'
 
 type ApiConnection = components['schemas']['JiraConnection']
@@ -29,6 +30,18 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+
+  const decide = async (id: string, verb: 'confirm' | 'reject') => {
+    try {
+      return fromApiAction(
+        await json<ApiAction>(`/api/v1/actions/${encodeURIComponent(id)}/${verb}`, {
+          method: 'POST',
+        }),
+      )
+    } catch (error) {
+      throw toActionProblem(error)
+    }
+  }
 
   // MVP: uma conexão por usuário (F04); a API já devolve lista para o futuro.
   const current = async (): Promise<JiraConnection | null> => {
@@ -60,5 +73,8 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
         await json<ApiConnection>(`${BASE}/${existing.id}/validate`, { method: 'POST' }),
       )
     },
+    // F06: confirmar executa no Jira exatamente o que o cartão mostra; recusar não envia nada.
+    confirmAction: (id: string) => decide(id, 'confirm'),
+    rejectAction: (id: string) => decide(id, 'reject'),
   }
 }

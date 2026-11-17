@@ -2,6 +2,7 @@
 
 import copy
 import json
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -114,7 +115,9 @@ class MemoryChatStore:
         self.messages: dict[tuple[str, str], list[dict[str, Any]]] = {}
         self.actions: dict[str, list[dict[str, Any]]] = {}
         self.usage: dict[tuple[str, str], dict[str, int]] = {}
+        self.issues: dict[str, dict[str, dict[str, Any]]] = {}
         self._next = 0
+        self._lock = threading.Lock()
 
     def _id(self, prefix: str) -> str:
         self._next += 1
@@ -148,6 +151,45 @@ class MemoryChatStore:
         self.actions.setdefault(uid, []).append({"id": aid, **copy.deepcopy(data)})
         return aid
 
+    # ---- ActionStore (F06): mesma interface do ActionRepository
+    def _action(self, uid: str, action_id: str) -> dict[str, Any] | None:
+        return next((a for a in self.actions.get(uid, []) if a["id"] == action_id), None)
+
+    def get_action(self, uid: str, action_id: str) -> dict[str, Any] | None:
+        return copy.deepcopy(self._action(uid, action_id))
+
+    def list_actions(self, uid: str, conversation_id: str) -> list[dict[str, Any]]:
+        docs = [a for a in self.actions.get(uid, []) if a["conversationId"] == conversation_id]
+        return copy.deepcopy(sorted(docs, key=lambda d: d["createdAt"]))
+
+    def transition(
+        self,
+        uid: str,
+        action_id: str,
+        decide: Callable[[dict[str, Any] | None], dict[str, Any] | None],
+    ) -> dict[str, Any] | None:
+        with self._lock:  # o equivalente à transação do Firestore
+            doc = self._action(uid, action_id)
+            change = decide(copy.deepcopy(doc))
+            if doc is None:
+                return None
+            if change:
+                doc.update(copy.deepcopy(change))
+            return copy.deepcopy(doc)
+
+    def update_action(self, uid: str, action_id: str, data: dict[str, Any]) -> None:
+        doc = self._action(uid, action_id)
+        assert doc is not None
+        doc.update(copy.deepcopy(data))
+
+    def save_issue(self, uid: str, key: str, data: dict[str, Any]) -> None:
+        self.issues.setdefault(uid, {}).setdefault(key, {}).update(copy.deepcopy(data))
+
+    def add_system_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str:
+        conv = self.conversations[uid][conversation_id]
+        seq = conv.get("messageCount", 0) + 1
+        return self.add_message(uid, conversation_id, {**data, "role": "system", "seq": seq})
+
     def add_usage(self, uid: str, day: str, input_tokens: int, output_tokens: int) -> None:
         doc = self.usage.setdefault(
             (uid, day), {"inputTokens": 0, "outputTokens": 0, "messages": 0}
@@ -158,6 +200,22 @@ class MemoryChatStore:
 
 
 JiraHandler = Callable[[httpx.Request], httpx.Response]
+
+ISSUE_TYPES_EN = [
+    {"id": "10001", "name": "Epic", "hierarchyLevel": 1, "subtask": False},
+    {"id": "10003", "name": "Task", "hierarchyLevel": 0, "subtask": False},
+    {"id": "10004", "name": "Story", "hierarchyLevel": 0, "subtask": False},
+    {"id": "10005", "name": "Subtask", "hierarchyLevel": -1, "subtask": True},
+]
+
+
+def issue_types_response(
+    request: httpx.Request, types: list[dict[str, Any]]
+) -> httpx.Response | None:
+    """Responde `createmeta/{projeto}/issuetypes`, que a execução consulta antes de criar."""
+    if request.method == "GET" and request.url.path.endswith("/issuetypes"):
+        return httpx.Response(200, json={"issueTypes": types})
+    return None
 
 
 def jira_handler(projects: list[dict[str, Any]] | None = None) -> JiraHandler:

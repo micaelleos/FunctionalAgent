@@ -73,21 +73,59 @@ export interface ConversationSummary {
   updatedAt: string
 }
 
-export type ActionStatus = 'pending' | 'confirmed' | 'rejected' | 'expired'
+/** Estados da ação na API (F06): `executing` dura o tempo da chamada ao Jira. */
+export type ActionStatus = 'pending' | 'executing' | 'done' | 'failed' | 'rejected' | 'expired'
+
+export interface SpecSection {
+  title: string
+  markdown: string
+}
+
+export interface ReadinessRule {
+  id: string
+  label: string
+  /** `obrigatória` tira a label `agent-ready`; `aviso` só informa. */
+  severity: string
+  passed: boolean
+  detail: string
+}
+
+export interface Readiness {
+  ready: boolean
+  rules: ReadinessRule[]
+}
+
+/** Antes/depois de um campo numa atualização (F06-RF-06). */
+export interface FieldChange {
+  field: 'summary' | 'description' | 'priority' | 'labels'
+  before: string
+  after: string
+}
 
 /** Ação proposta pelo agente; só vira escrita no Jira depois de confirmada (ADR-003, F06). */
 export interface ProposedAction {
   id: string
-  projectKey: string
+  kind: 'create_issue' | 'update_issue'
+  /** Criação: projeto de destino. Atualização: `null` (vale `issueKey`). */
+  projectKey: string | null
   projectName: string
-  issueType: IssueType
+  issueKey: string | null
+  issueType: IssueType | null
   title: string
-  priority: string
+  /** `null`: sem prioridade na proposta (vale o padrão do projeto). */
+  priority: string | null
   parentKey: string | null
+  labels: string[]
+  /** A spec por seção, na ordem fixa (F06-RF-01). */
+  sections: SpecSection[]
+  readiness: Readiness | null
+  changes: FieldChange[]
   expiresAt: string
   status: ActionStatus
   resultKey: string | null
   resultUrl: string | null
+  /** Erro do Jira já traduzido pela API (F06-RF-07). */
+  error: string | null
 }
 
 export type MessagePart =

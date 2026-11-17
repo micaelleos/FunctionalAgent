@@ -9,10 +9,16 @@ from pydantic import BaseModel
 
 from app.agent.fake_llm import ScriptedChatModel
 from app.core.config import Settings
-from app.services.chat import ChatService, ConversationNotFoundError, history_window
+from app.services.actions import ActionService
+from app.services.chat import (
+    EVENTS_HEADER,
+    ChatService,
+    ConversationNotFoundError,
+    history_window,
+)
 from app.services.chat_events import CHAT_EVENT
 from app.services.jira_connections import JiraConnectionService
-from tests.chat_fakes import NOW, FakeJiraService, MemoryChatStore, call
+from tests.chat_fakes import NOW, SITE, FakeJiraService, MemoryChatStore, call
 from tests.spec_fixtures import pix_story_data
 
 
@@ -132,6 +138,7 @@ async def test_eventos_de_ferramenta_e_acao_proposta_sem_escrever_no_jira() -> N
     assert action["conversationId"] == cid
     assert (action["expiresAt"] - action["createdAt"]).total_seconds() == 24 * 3600
     assert len(action["payloadHash"]) == 64
+    assert (action["connectionId"], action["siteUrl"]) == ("conn-1", SITE)  # F06: onde escrever
     assert {r.method for r in jira.requests} == {"GET"}
     roles = [m["role"] for m in store.messages[("uid-alice", cid)]]
     assert roles == ["user", "tool", "tool", "assistant"]
@@ -251,3 +258,34 @@ async def test_acima_do_orcamento_resume_e_persiste_o_resumo() -> None:
     final = llm.calls[-1]
     assert any("Resumo das mensagens anteriores" in str(m.content) for m in final)
     assert any("Resuma a conversa" in str(c[0].content) for c in llm.calls)
+
+
+@pytest.mark.req("F06-RF-03")
+async def test_proximo_turno_sabe_que_o_usuario_recusou_a_acao() -> None:
+    llm = ScriptedChatModel(
+        responses=[
+            call("propor_criacao_issue", {"project_key": "ABC", "spec": pix_story_data()}),
+            AIMessage("Confirme no cartão."),
+            AIMessage("Você recusou a criação."),
+        ]
+    )
+    service, store, jira = _service(llm)
+    cid, _ = await _turn(service, "Crie a story do Pix no ABC")
+    [action] = store.actions["uid-alice"]
+    actions = ActionService(
+        store, cast(JiraConnectionService, jira), _settings(), clock=lambda: NOW
+    )
+    await actions.reject("uid-alice", action["id"])
+
+    await _turn(service, "Por que não foi criado?", conversation=cid)
+
+    [system, *_, last] = llm.calls[-1]
+    assert isinstance(last, HumanMessage)
+    assert str(last.content).startswith(EVENTS_HEADER)
+    assert "- O usuário recusou a ação: criar Story" in str(last.content)
+    assert str(last.content).endswith("Por que não foi criado?")
+    assert isinstance(system, SystemMessage)
+    assert "## Ações propostas nesta conversa (estado atual)" in str(system.content)
+    assert f"- {action['id']}: criar Story" in str(system.content)
+    assert "RECUSADA pelo usuário" in str(system.content)
+    assert sum(isinstance(m, SystemMessage) for m in llm.calls[-1]) == 1

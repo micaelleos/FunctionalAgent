@@ -53,7 +53,7 @@
 |---|---|---|
 | F05-RT-01 | Nenhum estado de conversa em memória global; agente montado por requisição com o `JiraClient` do usuário injetado | teste de concorrência: 2 usuários paralelos sem cruzamento |
 | F05-RT-02 | Primeiro token p75 ≤ 3 s (excluindo latência do provedor acima do SLA) | métrica + teste de carga |
-| F05-RT-03 | Limite de 8 iterações de ferramenta por turno; timeout de turno 240 s; erro amigável ao exceder | unit |
+| F05-RT-03 | Limite de 8 iterações de ferramenta por turno; timeout de turno 240 s; erro amigável ao exceder. Rodadas em que a ferramenta só devolve a proposta para correção (Gherkin, prontidão, termo sensível) contam à parte, com o mesmo teto (revisão F06, 2026-11-16) | unit |
 | F05-RT-04 | `buscar_issues_jql` limitado a 50 resultados com campos resumidos; descrições truncadas a 2 mil caracteres | unit |
 | F05-RT-05 | Descrições enviadas ao Jira em ADF (API v3), convertidas de Markdown: títulos, listas, negrito/itálico, código, tabelas, links | unit com fixtures |
 | F05-RT-06 | `parent` só é enviado quando informado (corrige D07); update só aceita `summary/description/priority/labels` (corrige D06) | unit |

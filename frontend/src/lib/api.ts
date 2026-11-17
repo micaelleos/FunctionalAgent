@@ -24,6 +24,8 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** Corpo inteiro do problema (ex.: `action` nos erros da confirmação, F06). */
+    readonly body: Record<string, unknown> = {},
   ) {
     super(message)
     this.name = 'ApiError'
@@ -32,11 +34,16 @@ export class ApiError extends Error {
 
 async function toApiError(response: Response): Promise<ApiError> {
   try {
-    const problem = (await response.json()) as { code?: string; title?: string; detail?: string }
+    const problem = (await response.json()) as {
+      code?: string
+      title?: string
+      detail?: string
+    } & Record<string, unknown>
     return new ApiError(
       response.status,
       problem.code ?? `http-${response.status}`,
       problem.detail ?? problem.title ?? `API respondeu ${response.status}`,
+      problem,
     )
   } catch {
     return new ApiError(

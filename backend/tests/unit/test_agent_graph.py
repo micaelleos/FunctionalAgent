@@ -131,3 +131,31 @@ def test_prompt_vai_como_mensagem_de_sistema() -> None:
         )
     )
     assert isinstance(seen[0][0], SystemMessage)
+
+
+@pytest.mark.req("F05-RT-03")
+async def test_rodadas_de_correcao_nao_gastam_o_limite_mas_tem_teto() -> None:
+    # Cenário sem "Dado": a ferramenta devolve para correção (REVIEW_PREFIX) sem criar a ação.
+    broken = dict(pix_story_data()["acceptance_criteria"][0], given=[])
+    bad = pix_story_data(acceptance_criteria=[broken])
+    sink = MemorySink()
+    fixes = [
+        call("propor_criacao_issue", {"project_key": "ABC", "spec": bad}, f"r{i}") for i in range(3)
+    ]
+    reads = [call("listar_projetos", {}, f"c{i}") for i in range(7)]
+    llm = ScriptedChatModel(responses=[*fixes, *reads, AIMessage("Pronto.")])
+
+    result = await _run(llm, tool_config(FakeJiraReader(), sink))
+
+    assert (result["iterations"], result["reviews"]) == (7, 3)
+    assert result["limit_reached"] is False  # 7 + 3 rodadas passariam de 8 se contassem juntas
+
+    endless = ScriptedChatModel(
+        responses=[
+            call("propor_criacao_issue", {"project_key": "ABC", "spec": bad}, f"x{i}")
+            for i in range(20)
+        ]
+    )
+    looped = await _run(endless, tool_config(FakeJiraReader(), MemorySink()))
+    assert (looped["reviews"], looped["limit_reached"]) == (8, True)
+    assert sink.actions == []

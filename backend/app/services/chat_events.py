@@ -38,7 +38,11 @@ class ActionProposedEvent(_Event):
     action_id: str
     kind: Literal["create_issue", "update_issue"]
     preview: dict[str, Any] = Field(
-        description="project_key/issue_key, issue_type, summary, markdown, readiness, labels"
+        description=(
+            "project_key, project_name ou issue_key/url, issue_type, summary, priority, "
+            "parent_key, markdown, sections [{title, markdown}], readiness, labels; em "
+            "atualizações, before (valores atuais dos campos que mudam)"
+        )
     )
 
 

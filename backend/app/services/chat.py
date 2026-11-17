@@ -33,6 +33,7 @@ from app.agent.spec.jira_payload import payload_hash
 from app.agent.tools.context import ActionKind, ProposedAction, ToolContext
 from app.agent.tools.jira_tools import PROGRESS, TOOLS
 from app.core.errors import ApiProblemError
+from app.services.actions import describe, to_out
 from app.services.chat_events import (
     ActionProposedEvent,
     DoneEvent,
@@ -74,6 +75,7 @@ class ChatStore(Protocol):
     def add_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str: ...
     def list_messages(self, uid: str, conversation_id: str, limit: int) -> list[dict[str, Any]]: ...
     def create_action(self, uid: str, data: dict[str, Any]) -> str: ...
+    def list_actions(self, uid: str, conversation_id: str) -> list[dict[str, Any]]: ...
     def add_usage(self, uid: str, day: str, input_tokens: int, output_tokens: int) -> None: ...
 
 
@@ -116,12 +118,24 @@ def message_text(content: Any) -> str:
 class Window:
     messages: list[BaseMessage]
     to_summarize: list[dict[str, Any]]
+    # Avisos do SpecFlow depois da última resposta (ex.: "o usuário recusou a ação"): vão junto
+    # da mensagem atual do usuário, para o modelo vê-los na ordem em que aconteceram (F06-RF-03).
+    pending_events: list[str]
+
+
+EVENTS_HEADER = "[Avisos do SpecFlow desde a sua última resposta; não foram escritos pelo usuário]"
+
+
+def with_events(text: str, events: list[str]) -> str:
+    if not events:
+        return text
+    return "\n".join([EVENTS_HEADER, *(f"- {e}" for e in events), "", text])
 
 
 def history_window(docs: list[dict[str, Any]], budget: int, summarized_through: int) -> Window:
     """Mensagens mais recentes que cabem no orçamento; as que saíram e ainda não estão no resumo
     vão para `to_summarize` (F05-RT-07)."""
-    chat = [d for d in docs if d.get("role") in ("user", "assistant")]
+    chat = [d for d in docs if d.get("role") in ("user", "assistant", "system")]
     kept: list[dict[str, Any]] = []
     used = 0
     for doc in reversed(chat):
@@ -133,10 +147,17 @@ def history_window(docs: list[dict[str, Any]], budget: int, summarized_through: 
     kept.reverse()
     first_kept = kept[0]["seq"] if kept else 1 << 30
     dropped = [d for d in chat if d["seq"] < first_kept and d["seq"] > summarized_through]
-    messages: list[BaseMessage] = [
-        HumanMessage(d["content"]) if d["role"] == "user" else AIMessage(d["content"]) for d in kept
-    ]
-    return Window(messages, dropped)
+    messages: list[BaseMessage] = []
+    events: list[str] = []
+    for doc in kept:
+        if doc["role"] == "system":
+            events.append(str(doc["content"]))
+        elif doc["role"] == "user":
+            messages.append(HumanMessage(with_events(doc["content"], events)))
+            events = []
+        else:
+            messages.append(AIMessage(doc["content"]))
+    return Window(messages, dropped, events)
 
 
 def _assistant_content(text: str, actions: list[ProposedAction]) -> str:
@@ -149,6 +170,43 @@ def _assistant_content(text: str, actions: list[ProposedAction]) -> str:
     return "\n".join([text, *notes]).strip()
 
 
+_ACTION_STATE = {
+    "pending": "aguardando a confirmação do usuário no cartão",
+    "executing": "em execução no Jira",
+    "expired": "expirou sem confirmação (nada foi escrito)",
+    "rejected": "RECUSADA pelo usuário (nada foi escrito no Jira)",
+}
+MAX_ACTIONS_NOTE = 20
+
+
+def actions_note(docs: list[dict[str, Any]], now: datetime) -> str:
+    """Estado das ações desta conversa, para o agente responder sobre elas (F06-RF-03)."""
+    lines = []
+    for doc in docs[-MAX_ACTIONS_NOTE:]:
+        action = to_out(doc, now)
+        if action.status == "done" and action.result:
+            verb = "criada" if action.kind == "create_issue" else "atualizada"
+            state = (
+                f"confirmada pelo usuário; {action.result.issue_key} {verb} ({action.result.url})"
+            )
+        elif action.status == "failed" and action.error:
+            state = f"confirmada, mas falhou no Jira: {action.error.message}"
+        else:
+            state = _ACTION_STATE[action.status]
+        lines.append(f"- {action.id}: {describe(doc)} — {state}")
+    if not lines:
+        return ""
+    return "\n".join(
+        [
+            "## Ações propostas nesta conversa (estado atual)",
+            "Use este estado para responder sobre os cartões (recusada: diga que o usuário "
+            "recusou; criada: dê a chave e o link; falhou: explique o erro). Não proponha de novo "
+            "uma ação recusada sem o usuário pedir.",
+            *lines,
+        ]
+    )
+
+
 class FirestoreActionSink:
     """Grava `users/{uid}/pending_actions/{id}` (ADR-003); a execução no Jira é da F06."""
 
@@ -159,6 +217,9 @@ class FirestoreActionSink:
         self._uid = uid
         self._conversation_id = conversation_id
         self._clock = clock
+        # Conexão do Jira em uso no turno: a execução (F06) só escreve nela, no mesmo site.
+        self.connection_id: str | None = None
+        self.site_url: str | None = None
 
     async def propose(
         self,
@@ -178,6 +239,8 @@ class FirestoreActionSink:
             "preview": preview,
             "status": "pending",
             "conversationId": self._conversation_id,
+            "connectionId": self.connection_id,
+            "siteUrl": self.site_url,
             "createdAt": now,
             "expiresAt": now + ACTION_TTL,
         }
@@ -252,12 +315,15 @@ class ChatService:
         events = self._stream(uid, conversation, docs, text, user_message_id, seq + 1)
         return conversation_id, events
 
-    async def _jira_reader(self, uid: str) -> tuple[JiraReaderAdapter | None, Any]:
+    async def _jira_reader(
+        self, uid: str, sink: FirestoreActionSink
+    ) -> tuple[JiraReaderAdapter | None, Any]:
         connections = await self._jira.list(uid)
         usable = next((c for c in connections if c.status == "ok"), None)
         if usable is None:
             return None, None
         client = await self._jira.client_for(uid, usable.id)
+        sink.connection_id, sink.site_url = usable.id, client.site_url
 
         async def on_auth_error() -> None:
             await self._jira.mark_invalid(uid, usable.id)
@@ -296,16 +362,12 @@ class ChatService:
         turn = _Turn()
         error: str | None = None
         reader, client = None, None
-        ctx = ToolContext(
-            uid=uid,
-            conversation_id=conversation_id,
-            jira=None,
-            actions=FirestoreActionSink(self._store, uid, conversation_id, self._clock),
-        )
+        sink = FirestoreActionSink(self._store, uid, conversation_id, self._clock)
+        ctx = ToolContext(uid=uid, conversation_id=conversation_id, jira=None, actions=sink)
         reported = 0
         try:
             async with asyncio.timeout(self._settings.agent_turn_timeout_s):
-                reader, client = await self._jira_reader(uid)
+                reader, client = await self._jira_reader(uid, sink)
                 ctx.jira = reader
                 window = history_window(
                     docs,
@@ -315,18 +377,24 @@ class ChatService:
                 summary = str(conversation.get("summary") or "")
                 if window.to_summarize:
                     summary = await self._summarize(uid, conversation, window.to_summarize, turn)
-                messages: list[BaseMessage] = [
-                    SystemMessage(
-                        system_prompt(
-                            self._settings.prompt_version,
-                            today=self._clock().date(),
-                            jira_connected=reader is not None,
-                        )
+                instructions = [
+                    system_prompt(
+                        self._settings.prompt_version,
+                        today=self._clock().date(),
+                        jira_connected=reader is not None,
                     )
                 ]
                 if summary:
-                    messages.append(SystemMessage(f"Resumo das mensagens anteriores:\n{summary}"))
-                messages += [*window.messages, HumanMessage(text)]
+                    instructions.append(f"## Resumo das mensagens anteriores\n{summary}")
+                actions = await self._run_sync(self._store.list_actions, uid, conversation_id)
+                if note := actions_note(actions, self._clock()):
+                    instructions.append(note)
+                # Uma única instrução de sistema: o Gemini só aceita uma, no início.
+                messages: list[BaseMessage] = [
+                    SystemMessage("\n\n".join(instructions)),
+                    *window.messages,
+                    HumanMessage(with_events(text, window.pending_events)),
+                ]
                 agent = build_agent(
                     self._llm, self._tools, max_iterations=self._settings.agent_max_iterations
                 )

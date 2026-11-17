@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useInfiniteQuery } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -56,7 +56,68 @@ describe('F08-RF-01 turno em streaming', () => {
     })
     expect(seen).toEqual(['c9'])
     await act(async () => release())
-    await waitFor(() => expect(result.current.turn).toBeNull())
+    // Fica na tela (`done`) até o histórico trazer a resposta `m2`; a página o esconde então.
+    await waitFor(() => expect(result.current.turn?.status).toBe('done'))
+    expect(result.current.busy).toBe(false)
+  })
+
+  it('relê o histórico se a 1ª busca da conversa nova voltou sem a resposta', async () => {
+    const api = createDemoProductApi(() => 0)
+    const user = { id: 'm1', role: 'user' as const, text: 'Oi', actions: [], interrupted: false }
+    const reply = { ...user, id: 'm2', role: 'assistant' as const, text: 'Olá' }
+    let finishFirst: () => void = () => undefined
+    const getMessages = vi
+      .fn<ProductApi['getMessages']>()
+      // 1ª busca: começou no `open` e só volta depois do fim do turno, sem a resposta.
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFirst = () => resolve({ items: [user], nextCursor: null })
+          }),
+      )
+      .mockResolvedValue({ items: [user, reply], nextCursor: null })
+    api.getMessages = getMessages
+    api.streamMessage = async (_id, _text, onEvent) => {
+      onEvent({ event: 'open', conversation_id: 'c9' })
+      // A página já pediu o histórico da conversa nova; a busca está em andamento.
+      while (getMessages.mock.calls.length === 0) await new Promise((r) => setTimeout(r, 5))
+      onEvent({ event: 'token', text: 'Olá' })
+      onEvent({
+        event: 'message_saved',
+        message_id: 'm2',
+        conversation_id: 'c9',
+        user_message_id: 'm1',
+      })
+      setTimeout(() => finishFirst(), 20)
+      return { conversationId: 'c9' }
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>
+        <ProductContext.Provider value={api}>{children}</ProductContext.Provider>
+      </QueryClientProvider>
+    )
+    const { result } = renderHook(
+      () => {
+        const stream = useChatStream()
+        const id = stream.turn?.conversationId ?? null
+        const history = useInfiniteQuery({
+          queryKey: ['messages', id],
+          queryFn: ({ pageParam }) => api.getMessages(id ?? '', pageParam),
+          initialPageParam: null as string | null,
+          getNextPageParam: (page) => page.nextCursor,
+          enabled: id !== null,
+        })
+        return { stream, ids: history.data?.pages.flatMap((p) => p.items.map((m) => m.id)) }
+      },
+      { wrapper },
+    )
+
+    act(() => void result.current.stream.send(null, 'Oi'))
+
+    await waitFor(() => expect(result.current.ids).toEqual(['m1', 'm2']))
+    expect(getMessages.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(result.current.stream.turn).toMatchObject({ status: 'done', messageId: 'm2' })
   })
 
   it('não envia dois turnos ao mesmo tempo', async () => {

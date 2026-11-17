@@ -20,9 +20,9 @@
 
 **Aceitação:** AT-F09-01..03
 
-- [ ] T001 [F09-RF-01][F09-RF-04] Cliente: paginação de `project/search` com `insight` e `approximate_count` — teste: `test_jira_client.py` — 0,5 d
-- [ ] T004 [F09-RF-02][F09-RF-06][F09-RF-07] Serviço + cache no Firestore + `GET /api/v1/jira/projects` — teste: `test_jira_projects.py` — 1 d
-- [ ] T002 [P] [F09-RF-03][F09-RF-04][F09-RF-05][F09-RF-06] Página ligada à API: avatar, "—", filtro, ações, "Refresh", erro de credencial — teste: `ProjectsPage.test.tsx`, `http.test.ts` — 0,5 d
+- [x] T001 [F09-RF-01][F09-RF-04] Cliente: paginação de `project/search` com `insight` e `approximate_count` — teste: `test_jira_client.py` — 0,5 d
+- [x] T004 [F09-RF-02][F09-RF-06][F09-RF-07] Serviço + cache no Firestore + `GET /api/v1/jira/projects` — teste: `test_jira_projects.py` — 1 d
+- [x] T002 [P] [F09-RF-03][F09-RF-04][F09-RF-05][F09-RF-06] Página ligada à API: avatar, "—", filtro, ações, "Refresh", erro de credencial — teste: `ProjectsPage.test.tsx`, `http.test.ts` — 0,5 d
 
 ---
 
@@ -32,5 +32,5 @@
 
 **Aceitação:** AT-F09-01..03
 
-- [ ] T005 [P] p95 com Jira falso (F09-RT-06) — teste: `test_jira_projects_perf.py` — 0,25 d
-- [ ] T003 AT-F09-01..03 — teste: `e2e/f09-projetos.spec.ts` — 0,75 d
+- [x] T005 [P] p95 com Jira falso (F09-RT-06) — teste: `test_jira_projects_perf.py` — 0,25 d
+- [x] T003 AT-F09-01..03 — teste: `e2e/f09-projetos.spec.ts` — 0,75 d

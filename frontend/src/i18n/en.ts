@@ -189,6 +189,14 @@ export const t = {
     connectTitle: 'Connect your Jira account',
     connectBody: 'With Jira connected, you see your projects here and create issues from the chat.',
     connect: 'Connect Jira',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing…',
+    unknownCount: 'not available',
+    types: {
+      software: 'Software',
+      business: 'Business',
+      service_desk: 'Service management',
+    } as Record<string, string>,
     soonTitle: 'The project list arrives in the next release',
     soonBody: (site: string) =>
       `Your Jira (${site}) is already connected. In the next release, the projects your account can see show up here.`,
@@ -287,6 +295,8 @@ export const t = {
       'You already have a Jira connection. Replace the credential or remove the current one.',
     'jira-connection-not-found': 'This connection no longer exists. Reload the page.',
     'conversation-not-found': 'This conversation no longer exists.',
+    'jira-not-connected': 'Connect your Jira account in Settings.',
+    'jira-credential-rejected': 'Jira rejected your saved token. Replace it in Settings.',
     'conversation-busy':
       'A proposal of this conversation is being sent to Jira. Try again in a moment.',
     'turn-timeout': 'The answer took too long. Try again.',

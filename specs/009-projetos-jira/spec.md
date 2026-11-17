@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em validação |
 | **Fase** | 2 — Produto |
 | **Dependências** | F04, F08 |
 | **Estimativa** | 3 dias |
@@ -82,14 +82,22 @@ Funcionalidade: Projetos Jira
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F09-RF-01 | AT-F09-01, `test_jira_projects.py`, `ProjectsPage.test.tsx` | ⬜ |
-| F09-RF-02 | AT-F09-01, `test_jira_projects.py`, `ProjectsPage.test.tsx` | ⬜ |
-| F09-RF-03 | AT-F09-01, `ProjectsPage.test.tsx` | ⬜ |
-| F09-RF-04 | AT-F09-02, `test_jira_projects.py`, `ProjectsPage.test.tsx` | ⬜ |
-| F09-RF-05 | AT-F09-02, `ProjectsPage.test.tsx` | ⬜ |
-| F09-RF-06 | AT-F09-03, `test_jira_projects.py`, `ProjectsPage.test.tsx` | ⬜ |
-| F09-RF-07 | `test_jira_projects.py`, `ProjectsPage.test.tsx` | ⬜ |
+| F09-RF-01 | AT-F09-01, `test_jira_projects.py`, `ProjectsPage.test.tsx`, `http.test.ts` | ✅ |
+| F09-RF-02 | AT-F09-01, `test_jira_projects.py`, `ProjectsPage.test.tsx` | ✅ |
+| F09-RF-03 | AT-F09-01, `ProjectsPage.test.tsx` | ✅ |
+| F09-RF-04 | AT-F09-02, `test_jira_projects.py`, `ProjectsPage.test.tsx` | ✅ |
+| F09-RF-05 | AT-F09-02, `ProjectsPage.test.tsx` | ✅ |
+| F09-RF-06 | AT-F09-03, `test_jira_projects.py`, `ProjectsPage.test.tsx` | ✅ |
+| F09-RF-07 | `test_jira_projects.py`, `ProjectsPage.test.tsx`, `http.test.ts` | ✅ |
+| F09-RT-01 | `test_jira_projects.py` (concorrência ≤ 5, cache de 5 min, outra conexão) | ✅ |
+| F09-RT-02 | `test_jira_projects.py` (`/browse/KEY`) | ✅ |
+| F09-RT-03 | `test_jira_projects.py` (paginação até `isLast`, teto de páginas) | ✅ |
+| F09-RT-04 | `test_jira_projects.py`, `ProjectsPage.test.tsx` ("—") | ✅ |
+| F09-RT-05 | `test_jira_projects.py`, `jira.test.tsx` (aviso de reconectar) | ✅ |
+| F09-RT-06 | `test_jira_projects_perf.py` | ✅ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-17 | `feat/F09-projetos-jira` | Local: Vite + API + emuladores, Jira sandbox `SCRUM` só leitura | `E2E_EMULATORS=1 npx playwright test e2e/f09-projetos.spec.ts` (e a suíte local inteira) | AT-F09-01..03 2/2 (o projeto do sandbox com abertas e total, filtro, sem resultado, `/browse/SCRUM` em nova aba, Refresh, chat com o projeto fixado; sem conexão orienta a conectar); suíte local 19/19 | — |
+| 2026-11-17 | `feat/F09-projetos-jira` | Unit, Jira falso com 150 ms por chamada, 20 projetos | `test_jira_projects_perf.py` | p95 < 1,5 s (cache frio ≈ 6 × 150 ms; com cache, sem chamadas ao Jira) | — |

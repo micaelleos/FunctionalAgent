@@ -166,6 +166,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jira/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Projetos visíveis para a conta do Jira, com issues abertas e total (cache de 5 min) */
+        get: operations["list_projects_api_v1_jira_projects_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -397,6 +414,35 @@ export interface components {
              * @example https://sua-empresa.atlassian.net
              */
             site_url: string;
+        };
+        /** JiraProjectList */
+        JiraProjectList: {
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /** Items */
+            items: components["schemas"]["JiraProjectOut"][];
+        };
+        /** JiraProjectOut */
+        JiraProjectOut: {
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Id */
+            id: string;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Open Issues */
+            open_issues: number | null;
+            /** Total Issues */
+            total_issues: number | null;
+            /** Type */
+            type: string;
+            /** Url */
+            url: string;
         };
         /** MessageInput */
         MessageInput: {
@@ -1065,6 +1111,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JiraConnection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_projects_api_v1_jira_projects_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraProjectList"];
                 };
             };
             /** @description Validation Error */

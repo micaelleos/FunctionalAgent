@@ -6,6 +6,7 @@ import type {
   ConversationSummary,
   JiraConnection,
   JiraConnectionInput,
+  JiraProject,
   ProductApi,
 } from './types'
 import { type ApiAction, fromApiAction, toActionProblem } from './actions'
@@ -16,6 +17,7 @@ type ApiConversation = components['schemas']['ConversationOut']
 type ApiConversationPage = components['schemas']['ConversationPage']
 type ApiMessagePage = components['schemas']['MessagePage']
 type ApiMessage = components['schemas']['MessageOut']
+type ApiProjectList = components['schemas']['JiraProjectList']
 
 const BASE = '/api/v1/jira/connections'
 const CONVERSATIONS = '/api/v1/conversations'
@@ -81,12 +83,28 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
     return first ? fromApi(first) : null
   }
 
+  const listProjects = async (refresh = false): Promise<JiraProject[]> => {
+    const page = await json<ApiProjectList>(
+      `/api/v1/jira/projects${refresh ? '?refresh=true' : ''}`,
+    )
+    return page.items.map((p) => ({
+      key: p.key,
+      name: p.name,
+      type: p.type,
+      avatarUrl: p.avatar_url ?? null,
+      openIssues: p.open_issues ?? null,
+      totalIssues: p.total_issues ?? null,
+      url: p.url,
+    }))
+  }
+
   const conversation = (id: string) => `${CONVERSATIONS}/${encodeURIComponent(id)}`
 
   return {
     ...unavailableProductApi,
-    features: { ...unavailableProductApi.features, jira: true, chat: CHAT_ENABLED },
+    features: { ...unavailableProductApi.features, jira: true, projects: true, chat: CHAT_ENABLED },
     getJiraConnection: current,
+    listProjects,
     connectJira: async ({ site, email, token }: JiraConnectionInput) => {
       const body = { site_url: site, email, api_token: token }
       const existing = await current()

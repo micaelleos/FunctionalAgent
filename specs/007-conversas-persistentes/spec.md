@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em validação |
+| **Status** | Aceita |
 | **Revisão** | 2026-11-17: alinhada à F05/F06 já em produção — ações reidratadas pela rota da F06, título pelo mesmo modelo em paralelo ao turno, exclusão sem apagar o que já está no Jira, aceitação pela API (a tela é da F08) |
 | **Fase** | 2 — Produto |
 | **Dependências** | F05, F06 |
@@ -101,4 +101,4 @@ Funcionalidade: Conversas persistentes
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
-| 2026-11-17 | PR #19 (`feat/F07-conversas-persistentes`) | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` | `pytest tests/acceptance` AT-F07-01..05 em 2 execuções (a 2ª junto com AT-F05); evals 33 casos | 5/5 e 14/14; issues mantidas a pedido do PO (SCRUM-30..33); evals sem métrica abaixo do baseline, `pinned_project` 100% (`evals/results/2026-11-17-new-gemini-3.5-flash-lite-f07.json`); integração: p95 da listagem com 500 conversas < 300 ms | Pendente (PO) |
+| 2026-11-17 | PR #19 (`feat/F07-conversas-persistentes`) | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` | `pytest tests/acceptance` AT-F07-01..05 em 2 execuções (a 2ª junto com AT-F05); evals 33 casos | 5/5 e 14/14; issues mantidas a pedido do PO (SCRUM-30..33); evals sem métrica abaixo do baseline, `pinned_project` 100% (`evals/results/2026-11-17-new-gemini-3.5-flash-lite-f07.json`); integração: p95 da listagem com 500 conversas < 300 ms | PO (aceite com as evidências locais) |

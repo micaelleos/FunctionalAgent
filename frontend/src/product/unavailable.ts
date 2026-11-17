@@ -28,8 +28,11 @@ export const unavailableProductApi: ProductApi = {
     throw new NotAvailableError('The Jira connection')
   },
   listProjects: async () => [],
-  listIssues: async () => [],
-  refreshIssueStatuses: async () => [],
+  listIssues: async () => ({ items: [], nextCursor: null }),
+  issueStatuses: async () => ({}),
+  agentPrompt: async () => {
+    throw new NotAvailableError('The issue history')
+  },
   listConversations: async () => [],
   createConversation: async () => {
     throw new NotAvailableError('Conversations')

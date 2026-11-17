@@ -189,7 +189,7 @@ async def test_excluir_apaga_mensagens_e_acoes_e_e_idempotente() -> None:
     base = {"kind": "create_issue", "createdAt": NOW, "expiresAt": NOW}
     store.create_action(UID, {**base, "conversationId": cid, "status": "pending"})
     keep = store.create_action(UID, {**base, "conversationId": other, "status": "pending"})
-    store.save_issue(UID, "ABC-1", {"conversationId": cid})
+    store.issues[UID] = {"ABC-1": {"conversationId": cid, "createdAt": NOW}}
 
     await service.delete(UID, cid)
     await service.delete(UID, cid)
@@ -197,7 +197,8 @@ async def test_excluir_apaga_mensagens_e_acoes_e_e_idempotente() -> None:
     assert cid not in store.conversations[UID]
     assert (UID, cid) not in store.messages
     assert [a["id"] for a in store.actions[UID]] == [keep]
-    assert "ABC-1" in store.issues[UID]  # a issue existe no Jira; o histórico (F10) mantém
+    # A issue existe no Jira: o histórico (F10) a mantém, sem o vínculo (F10-RT-03).
+    assert store.issues[UID]["ABC-1"]["conversationId"] is None
 
 
 @pytest.mark.req("F07-RT-03")

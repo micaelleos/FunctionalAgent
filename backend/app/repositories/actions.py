@@ -2,7 +2,7 @@
 
 `users/{uid}/pending_actions/{id}`: as transições de estado rodam numa transação do Firestore, o
 que garante uma única execução mesmo com várias confirmações em paralelo (F06-RT-01).
-`users/{uid}/jira_issues/{key}`: issues criadas pelo SpecFlow (base da F10).
+`users/{uid}/jira_issues/{key}`: issues criadas ou atualizadas pelo SpecFlow (F10).
 """
 
 from collections.abc import Callable
@@ -59,8 +59,68 @@ class ActionRepository(ConversationRepository):
     def update_action(self, uid: str, action_id: str, data: dict[str, Any]) -> None:
         self._actions(uid).document(action_id).update(data)
 
-    def save_issue(self, uid: str, key: str, data: dict[str, Any]) -> None:
-        self._user(uid).collection("jira_issues").document(key).set(data, merge=True)
+    def _issues(self, uid: str) -> firestore.CollectionReference:
+        return cast(firestore.CollectionReference, self._user(uid).collection("jira_issues"))
+
+    def complete_action(
+        self,
+        uid: str,
+        action_id: str,
+        change: dict[str, Any],
+        issue_key: str,
+        issue: dict[str, Any],
+        first_time: dict[str, Any],
+    ) -> None:
+        """Conclui a ação e grava o registro da issue na mesma transação (F10-RT-01).
+
+        `first_time` só entra se a issue ainda não está no histórico (a data da 1ª gravação não
+        muda numa atualização)."""
+        action = self._actions(uid).document(action_id)
+        record = self._issues(uid).document(issue_key)
+
+        @firestore.transactional
+        def run(transaction: firestore.Transaction) -> None:
+            exists = record.get(transaction=transaction).exists
+            transaction.update(action, change)
+            transaction.set(record, issue if exists else {**first_time, **issue}, merge=True)
+
+        run(self._db.transaction(max_attempts=MAX_ATTEMPTS))
+
+    def get_issue(self, uid: str, key: str) -> dict[str, Any] | None:
+        snapshot = self._issues(uid).document(key).get()
+        return {"key": snapshot.id, **(snapshot.to_dict() or {})} if snapshot.exists else None
+
+    def list_issues(
+        self,
+        uid: str,
+        limit: int,
+        after: tuple[Any, str] | None,
+        since: Any | None,
+        until: Any | None,
+    ) -> list[dict[str, Any]]:
+        """Do mais recente ao mais antigo (`createdAt`, depois a chave); período na consulta."""
+        query: Any = self._issues(uid)
+        if since is not None:
+            query = query.where(filter=firestore.FieldFilter("createdAt", ">=", since))
+        if until is not None:
+            query = query.where(filter=firestore.FieldFilter("createdAt", "<", until))
+        query = query.order_by("createdAt", direction=firestore.Query.DESCENDING).order_by(
+            "__name__", direction=firestore.Query.DESCENDING
+        )
+        if after is not None:
+            created, key = after
+            query = query.start_after(
+                {"createdAt": created, "__name__": self._issues(uid).document(key)}
+            )
+        return [{"key": d.id, **(d.to_dict() or {})} for d in query.limit(limit).stream()]
+
+    def conversation_titles(self, uid: str, ids: list[str]) -> dict[str, str]:
+        refs = [self._conversations(uid).document(i) for i in ids]
+        return {
+            s.id: str((s.to_dict() or {}).get("title") or "")
+            for s in self._db.get_all(refs)
+            if s.exists
+        }
 
     def add_system_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str:
         """Mensagem `role=system` no fim da conversa, com `seq` e `messageCount` na mesma

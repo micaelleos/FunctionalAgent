@@ -155,3 +155,73 @@ describe('F09-RF-01 F09-RF-07 projetos pela API', () => {
     expect(p.features.projects).toBe(true)
   })
 })
+
+describe('F10-RF-01 F10-RF-05 F10-RF-06 histórico pela API', () => {
+  it('lista com filtros e cursor, status por chave e texto para o agente', async () => {
+    const searches: string[] = []
+    let statusBody: unknown = null
+    server.use(
+      http.get(api('/api/v1/jira/issues'), ({ request }) => {
+        searches.push(new URL(request.url).search)
+        return HttpResponse.json({
+          items: [
+            {
+              key: 'ABC-1',
+              url: 'https://x.atlassian.net/browse/ABC-1',
+              project_key: 'ABC',
+              issue_type: 'Story',
+              summary: 'Pix',
+              readiness: 'agent_ready',
+              operation: 'created',
+              created_at: '2026-11-17T12:00:00Z',
+              updated_at: null,
+              conversation_id: null,
+              conversation_title: null,
+              has_spec: true,
+            },
+          ],
+          next_cursor: 'c2',
+        })
+      }),
+      http.post(api('/api/v1/jira/issues/status'), async ({ request }) => {
+        statusBody = await request.json()
+        return HttpResponse.json({
+          statuses: { 'ABC-1': { name: 'A fazer', category: 'new' }, 'ABC-9': null },
+        })
+      }),
+      http.get(api('/api/v1/jira/issues/ABC-1/agent-prompt'), () =>
+        HttpResponse.json({ key: 'ABC-1', text: 'Implemente a issue ABC-1' }),
+      ),
+    )
+    const p = product()
+
+    const page = await p.listIssues(
+      { projectKey: 'ABC', type: 'Story', readiness: 'agent_ready', from: '2026-11-10T00:00:00Z' },
+      'c1',
+    )
+
+    expect(page.nextCursor).toBe('c2')
+    expect(page.items[0]).toMatchObject({
+      key: 'ABC-1',
+      type: 'Story',
+      title: 'Pix',
+      conversationId: null,
+      hasSpec: true,
+    })
+    const params = new URLSearchParams(searches[0])
+    expect(Object.fromEntries(params)).toEqual({
+      limit: '25',
+      project: 'ABC',
+      type: 'Story',
+      readiness: 'agent_ready',
+      from: '2026-11-10T00:00:00Z',
+      cursor: 'c1',
+    })
+    expect(await p.issueStatuses(['ABC-1', 'ABC-9'])).toEqual({
+      'ABC-1': { name: 'A fazer', category: 'new' },
+      'ABC-9': null,
+    })
+    expect(statusBody).toEqual({ keys: ['ABC-1', 'ABC-9'] })
+    expect(await p.agentPrompt('ABC-1')).toBe('Implemente a issue ABC-1')
+  })
+})

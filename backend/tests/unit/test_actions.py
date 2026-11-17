@@ -182,7 +182,14 @@ async def test_atualizacao_so_envia_os_campos_permitidos() -> None:
     }
     assert out.result is not None
     assert out.result.issue_key == "ABC-7"
-    assert "ABC-7" not in store.issues.get(UID, {})  # jira_issues guarda só as criadas
+    # F10: a atualização também entra no histórico, marcada como só atualizada.
+    record = store.issues[UID]["ABC-7"]
+    assert (record["operation"], record["projectKey"], record["labels"]) == (
+        "updated",
+        "ABC",
+        ["specflow", "time-a"],
+    )
+    assert "specActionId" not in record  # sem spec: nada para copiar ao agente
 
 
 @pytest.mark.req("F06-RT-01")

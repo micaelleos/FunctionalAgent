@@ -156,6 +156,9 @@ class MemoryChatStore:
         return True
 
     def delete_conversation(self, uid: str, conversation_id: str) -> None:
+        for record in self.issues.get(uid, {}).values():
+            if record.get("conversationId") == conversation_id:
+                record["conversationId"] = None  # F10-RT-03
         self.conversations.get(uid, {}).pop(conversation_id, None)
         self.messages.pop((uid, conversation_id), None)
         self.actions[uid] = [
@@ -220,8 +223,51 @@ class MemoryChatStore:
         assert doc is not None
         doc.update(copy.deepcopy(data))
 
-    def save_issue(self, uid: str, key: str, data: dict[str, Any]) -> None:
-        self.issues.setdefault(uid, {}).setdefault(key, {}).update(copy.deepcopy(data))
+    def complete_action(
+        self,
+        uid: str,
+        action_id: str,
+        change: dict[str, Any],
+        issue_key: str,
+        issue: dict[str, Any],
+        first_time: dict[str, Any],
+    ) -> None:
+        with self._lock:  # uma transação no Firestore
+            self.update_action(uid, action_id, change)
+            issues = self.issues.setdefault(uid, {})
+            record = issues.get(issue_key)
+            if record is None:
+                issues[issue_key] = copy.deepcopy({**first_time, **issue})
+            else:
+                record.update(copy.deepcopy(issue))
+
+    # ---- F10: histórico de issues
+    def get_issue(self, uid: str, key: str) -> dict[str, Any] | None:
+        doc = self.issues.get(uid, {}).get(key)
+        return None if doc is None else {"key": key, **copy.deepcopy(doc)}
+
+    def list_issues(
+        self,
+        uid: str,
+        limit: int,
+        after: tuple[Any, str] | None,
+        since: Any | None,
+        until: Any | None,
+    ) -> list[dict[str, Any]]:
+        items = sorted(
+            self.issues.get(uid, {}).items(), key=lambda i: (i[1]["createdAt"], i[0]), reverse=True
+        )
+        if since is not None:
+            items = [i for i in items if i[1]["createdAt"] >= since]
+        if until is not None:
+            items = [i for i in items if i[1]["createdAt"] < until]
+        if after is not None:
+            items = [i for i in items if (i[1]["createdAt"], i[0]) < after]
+        return [{"key": k, **copy.deepcopy(d)} for k, d in items[:limit]]
+
+    def conversation_titles(self, uid: str, ids: list[str]) -> dict[str, str]:
+        convs = self.conversations.get(uid, {})
+        return {i: str(convs[i].get("title") or "") for i in ids if i in convs}
 
     def add_system_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str:
         conv = self.conversations.get(uid, {}).get(conversation_id)

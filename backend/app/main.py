@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import health
-from app.api.v1 import actions, chat, conversations, jira, jira_projects, me
+from app.api.v1 import actions, chat, conversations, jira, jira_issues, jira_projects, me
 from app.core.config import get_settings
 from app.core.errors import install_problem_handlers
 
@@ -29,6 +29,7 @@ def create_app() -> FastAPI:
     app.include_router(me.router)
     app.include_router(jira.router)
     app.include_router(jira_projects.router)
+    app.include_router(jira_issues.router)
     app.include_router(chat.router)
     app.include_router(actions.router)
     app.include_router(conversations.router)

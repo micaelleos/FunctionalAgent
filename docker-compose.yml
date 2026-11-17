@@ -23,6 +23,8 @@ services:
       GCP_PROJECT: demo-functional-agent
       FIRESTORE_EMULATOR_HOST: emulators:8081
       FIREBASE_AUTH_EMULATOR_HOST: emulators:9099
+      # Sem credenciais do GCP no container: o modelo de eco responde o chat (E2E da F08 no CI).
+      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
     volumes:
       - ./backend/app:/app/app

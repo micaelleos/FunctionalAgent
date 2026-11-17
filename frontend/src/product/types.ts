@@ -1,3 +1,5 @@
+import type { ChatEvent } from '../lib/sse'
+
 /**
  * Dados das telas principais (F08-RF-10).
  *
@@ -128,17 +130,20 @@ export interface ProposedAction {
   error: string | null
 }
 
-export type MessagePart =
-  | { kind: 'text'; text: string }
-  | { kind: 'heading'; text: string }
-  | { kind: 'code'; text: string }
-  | { kind: 'tool'; label: string }
-  | { kind: 'action'; action: ProposedAction }
-
+/** Mensagem do histórico (F07): o texto em Markdown e os cartões das ações propostas nela. */
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
-  parts: MessagePart[]
+  text: string
+  actions: ProposedAction[]
+  /** O usuário parou a resposta no meio (F08-RF-06): o texto é parcial. */
+  interrupted: boolean
+}
+
+/** Uma página do histórico, da mais antiga para a mais nova; `nextCursor` leva às anteriores. */
+export interface MessagePage {
+  items: ChatMessage[]
+  nextCursor: string | null
 }
 
 export interface Usage {
@@ -160,14 +165,22 @@ export interface ProductApi {
   listIssues(): Promise<CreatedIssue[]>
   refreshIssueStatuses(): Promise<CreatedIssue[]>
   listConversations(): Promise<ConversationSummary[]>
-  getMessages(conversationId: string): Promise<ChatMessage[]>
-  sendMessage(
+  /** Conversa vazia com o projeto fixado (F07-RF-06); sem projeto, o 1º envio já cria. */
+  createConversation(projectKey: string | null): Promise<ConversationSummary>
+  renameConversation(conversationId: string, title: string): Promise<ConversationSummary>
+  pinProject(conversationId: string, projectKey: string | null): Promise<ConversationSummary>
+  deleteConversation(conversationId: string): Promise<void>
+  getMessages(conversationId: string, cursor?: string | null): Promise<MessagePage>
+  /**
+   * Envia e acompanha a resposta em streaming (F08-RF-01). `conversationId: null` cria a conversa.
+   * `signal` interrompe ("Parar"); erros antes do stream são lançados.
+   */
+  streamMessage(
     conversationId: string | null,
     text: string,
-    projectKey: string | null,
-  ): Promise<{
-    conversationId: string
-  }>
+    onEvent: (event: ChatEvent) => void,
+    signal?: AbortSignal,
+  ): Promise<{ conversationId: string }>
   confirmAction(actionId: string): Promise<ProposedAction>
   rejectAction(actionId: string): Promise<ProposedAction>
   getUsage(): Promise<Usage | null>

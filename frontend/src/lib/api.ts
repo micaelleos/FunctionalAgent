@@ -32,7 +32,7 @@ export class ApiError extends Error {
   }
 }
 
-async function toApiError(response: Response): Promise<ApiError> {
+export async function toApiError(response: Response): Promise<ApiError> {
   try {
     const problem = (await response.json()) as {
       code?: string

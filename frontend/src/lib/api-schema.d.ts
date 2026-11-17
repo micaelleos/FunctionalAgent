@@ -418,6 +418,11 @@ export interface components {
             /** Id */
             id: string;
             /**
+             * Interrupted
+             * @default false
+             */
+            interrupted: boolean;
+            /**
              * Role
              * @enum {string}
              */

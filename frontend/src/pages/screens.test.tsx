@@ -67,11 +67,11 @@ describe('F08-RT-08 produção sem dados inventados', () => {
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
   })
 
-  it('o chat avisa que o agente chega em breve e não deixa enviar', async () => {
+  it('com o envio desligado, o chat avisa e não deixa enviar', async () => {
     renderApp('/chat', unavailableProductApi)
     const user = userEvent.setup()
 
-    expect(await screen.findByText(/The agent is coming soon/)).toBeInTheDocument()
+    expect(await screen.findByText(/Sending messages is turned off/)).toBeInTheDocument()
     await user.type(screen.getByLabelText('Message'), 'Olá')
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
   })
@@ -233,7 +233,7 @@ describe('F08-RF-08 conversa vazia e envio', () => {
     expect(screen.getByLabelText('Message')).toHaveValue('Write an epic for Pix checkout')
 
     await user.type(screen.getByLabelText('Message'), '{Enter}')
-    expect(await screen.findByText(/This is a demo/)).toBeInTheDocument()
+    expect(await screen.findByText(/streams its answer here/)).toBeInTheDocument()
     expect(screen.getByLabelText('Message')).toHaveValue('')
     expect(
       await screen.findByRole('heading', { level: 1, name: /^Write an epic/ }),
@@ -242,19 +242,19 @@ describe('F08-RF-08 conversa vazia e envio', () => {
 
   it('F08-RF-07 falha no envio mantém o texto', async () => {
     const api = createDemoProductApi(() => NOW)
-    api.sendMessage = vi.fn().mockRejectedValue(new Error('rede'))
+    api.streamMessage = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
     renderApp('/chat', api)
     const user = userEvent.setup()
 
     await user.type(await screen.findByLabelText('Message'), 'Olá{Enter}')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
+    expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't reach the server")
     expect(screen.getByLabelText('Message')).toHaveValue('Olá')
   })
 
   it('Shift+Enter quebra a linha sem enviar', async () => {
     const api = createDemoProductApi(() => NOW)
-    const send = vi.spyOn(api, 'sendMessage')
+    const send = vi.spyOn(api, 'streamMessage')
     renderApp('/chat', api)
     const user = userEvent.setup()
 
@@ -273,7 +273,7 @@ describe('F08-RF-08 conversa vazia e envio', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     renderApp('/chat/c1')
 
-    await user.click(await screen.findByRole('button', { name: 'Copy' }))
+    await user.click(await screen.findByRole('button', { name: 'Copy code' }))
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Scenario')))
     expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument()

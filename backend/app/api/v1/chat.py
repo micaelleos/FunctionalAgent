@@ -33,8 +33,13 @@ async def send_message(
     conversation, events = await chat.open_turn(user.uid, conversation_id, body.content)
 
     async def stream() -> AsyncIterator[dict[str, str]]:
-        async for event in events:
-            yield to_sse(event)
+        try:
+            async for event in events:
+                yield to_sse(event)
+        finally:
+            # Cliente desconectou ("Parar"): fecha o turno já, para gravar a resposta parcial
+            # (F08-RT-09) em vez de esperar o coletor de lixo.
+            await events.aclose()
 
     return EventSourceResponse(
         stream(),

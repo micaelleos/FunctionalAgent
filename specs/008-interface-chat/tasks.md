@@ -10,8 +10,8 @@
 - **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
   acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
 
-**Total:** 10 tarefas · 9.5 d. Incremento 0 (T007–T010) incluído em 2026-11-14 a 2026-11-16 a pedido do PO.
-**Dividir antes de implementar** (> 1 d, Art. I/VI): T002 (2 d), T006 (1,5 d).
+**Total:** 13 tarefas · 9.5 d. Incremento 0 (T007–T010) incluído em 2026-11-14 a 2026-11-16 a pedido do PO;
+revisado em 2026-11-17 (T002 e T006 divididas; T011–T013).
 
 ## 8. Tarefas
 
@@ -28,13 +28,13 @@
 
 ---
 
-### Fase 1: Incremento 1 — estrutura da interface
+### Fase 1: Incremento 1 — conversas na lateral
 
-**Objetivo:** Layout, navegação e barra lateral responsiva.
+**Objetivo:** Lateral ligada à API de F07.
 
 **Aceitação:** AT-F08-03, AT-F08-06
 
-- [ ] T001 [F08-RF-05] Barra de conversas ligada à API de F07: criar, renomear e excluir com mutações otimistas (layout e menu responsivo já feitos em T007) — teste: Vitest — 0,5 d
+- [x] T001 [F08-RF-05] `ConversationSidebar` ligada à F07: criar, renomear e excluir com mutações otimistas (layout e menu responsivo já feitos em T007) — teste: `ConversationSidebar.test.tsx` — 0,5 d
 
 ---
 
@@ -44,10 +44,12 @@
 
 **Aceitação:** AT-F08-01, AT-F08-02, AT-F08-04, AT-F08-05
 
-- [ ] T002 [F08-RF-01][F08-RF-06][F08-RF-07] `useChatStream` + Composer + streaming + abort/retry — teste: unit com SSE mock — 2 d
-- [ ] T003 [P] [F08-RF-02] Markdown seguro + copiar código — teste: unit de XSS — 0,5 d
-- [ ] T004 [F08-RF-03][F08-RF-04] Integração ActionCard + ToolIndicator — teste: Vitest — 1 d
-- [ ] T005 [P] [F08-RF-07][F08-RF-08] Estados vazio/erro, sugestões, página Sobre — teste: Vitest — 0,5 d
+- [x] T002 [F08-RF-01] Cliente SSE (`lib/sse.ts`) e `ProductApi` do chat ligada às rotas da F05/F07 — teste: `sse.test.ts`, `http.test.ts` — 1 d
+- [x] T011 [F08-RF-06][F08-RF-07] `useChatStream`: turno em andamento, parar, erro com texto preservado, tentar de novo — teste: `useChatStream.test.tsx` — 1 d
+- [x] T012 [F08-RF-06] Backend grava a resposta parcial ao desconectar (`interrupted`) — teste: `test_chat_service.py` — 0,5 d
+- [x] T003 [P] [F08-RF-02] `ChatMarkdown` seguro + copiar código — teste: `ChatMarkdown.test.tsx` (XSS) — 0,5 d
+- [x] T004 [F08-RF-03][F08-RF-04] Tela do chat: histórico paginado, indicador de ferramenta, cartões no fluxo — teste: `ChatPage.test.tsx` — 1 d
+- [x] T005 [P] [F08-RF-07][F08-RF-08] Estados vazio/erro e sugestões ligados ao envio real — teste: `ChatPage.test.tsx` — 0,5 d
 
 ---
 
@@ -57,4 +59,5 @@
 
 **Aceitação:** AT-F08-01..06
 
-- [ ] T006 E2E AT-F08-01..06, Lighthouse CI, size-limit — teste: Playwright — 1,5 d
+- [x] T013 [P] Tamanho do bundle no `postbuild` e teste de 5 mil tokens — teste: `check-bundle-size.mjs`, perfil manual — 0,5 d
+- [x] T006 E2E AT-F08-01..06 contra a pilha local e Lighthouse local — teste: `e2e/f08-chat.spec.ts`, `e2e/f08-chat-agente.spec.ts` — 1 d

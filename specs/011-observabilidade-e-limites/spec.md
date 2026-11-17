@@ -44,6 +44,7 @@
 | F11-RT-08 | Teste de carga: 50 usuários simultâneos com LLM fake, erro < 1%, p95 do overhead do backend < 500 ms | k6 |
 | F11-RT-09 | Runbooks: rollback, restauração Firestore, chave LLM vazada, Jira fora do ar, custo disparado | revisão |
 | F11-RT-10 | ZAP baseline scan sem achados altos | CI pré-GA |
+| F11-RT-11 | Erros de front reportados (vindo da F08-RT-07 em 2026-11-17): endpoint de log do backend → Error Reporting, sem conteúdo das mensagens | integração |
 
 ### 5. Teste final de aceitação
 ```gherkin

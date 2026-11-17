@@ -31,9 +31,21 @@ export const unavailableProductApi: ProductApi = {
   listIssues: async () => [],
   refreshIssueStatuses: async () => [],
   listConversations: async () => [],
-  getMessages: async () => [],
-  sendMessage: async () => {
-    throw new NotAvailableError('O agente')
+  createConversation: async () => {
+    throw new NotAvailableError('Conversations')
+  },
+  renameConversation: async () => {
+    throw new NotAvailableError('Conversations')
+  },
+  pinProject: async () => {
+    throw new NotAvailableError('Conversations')
+  },
+  deleteConversation: async () => {
+    throw new NotAvailableError('Conversations')
+  },
+  getMessages: async () => ({ items: [], nextCursor: null }),
+  streamMessage: async () => {
+    throw new NotAvailableError('The agent')
   },
   confirmAction: async () => {
     throw new NotAvailableError('Action confirmation')

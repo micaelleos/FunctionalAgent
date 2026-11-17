@@ -60,6 +60,8 @@ class MessageOut(BaseModel):
     text: str
     created_at: datetime
     actions: list[ActionOut]
+    # O usuário parou a resposta (ou fechou a aba) no meio: o texto é parcial (F08-RT-09).
+    interrupted: bool = False
 
 
 class MessagePage(BaseModel):
@@ -236,6 +238,7 @@ class ConversationService:
                 role=d["role"],
                 text=display_text(d),
                 created_at=d["createdAt"],
+                interrupted=bool(d.get("interrupted")),
                 actions=[actions[a["id"]] for a in d.get("actions") or [] if a["id"] in actions],
             )
             for d in reversed(visible)

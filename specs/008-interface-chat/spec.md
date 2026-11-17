@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Aceita |
+| **Status** | Em produção |
 | **Fase** | 2 — Produto |
 | **Dependências** | F03 (pode iniciar com mocks), F05, F06, F07 |
 | **ADRs** | ADR-002 |
@@ -144,3 +144,4 @@ Funcionalidade: Interface de chat
 | 2026-11-17 | `feat/F08-interface-chat` | Local: `npm run build` + `vite preview`, Lighthouse 12.8.2 mobile em `/chat/{id}` com histórico (Markdown, tabela, código) | `scripts/perf/lighthouse-chat.mjs`, 2 execuções | performance 92 e 93, acessibilidade 100, boas práticas 100; LCP 2,6–3,0 s, TBT 160–260 ms, CLS 0 | PO (aceite com as evidências locais) |
 | 2026-11-17 | `feat/F08-interface-chat` | Local: build de produção, Chromium headless, 5000 tokens em ~11 s | `scripts/perf/stream-fps.mjs` | texto com parágrafos e listas: 60,1 fps, p95 do quadro 16,8 ms, 0 long tasks; pior caso (uma tabela única de ~625 linhas): 57,7 fps, p95 16,8 ms. Antes da divisão em blocos: 28,2 fps (corrigido) | PO (aceite com as evidências locais) |
 | 2026-11-17 | `feat/F08-interface-chat` | Build de produção | `postbuild` | bundle inicial 218 kB gzip (limite 250 kB); sem dados de demonstração | PO (aceite com as evidências locais) |
+| 2026-11-17 | `d5ae58c` (merge do PR #21) | prd (pcb-inspect) | `make deploy`: revisão `specflow-api-00012-wvf` com 100% do tráfego (rollback: `specflow-api-00011-l2t`), smoke `/health` na versão `d5ae58c76a63`; `GET /api/v1/conversations` e `POST …/new/messages` sem token → 401; SPA publicado em https://specsflow-ai.web.app (bundle 218 kB gzip) | ok, sem erros nos logs da revisão. Chat logado em produção (Cloud Run SA → Vertex) ainda não exercitado | PO (aceite com as evidências locais) |

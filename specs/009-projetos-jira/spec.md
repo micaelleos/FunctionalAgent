@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Aceita |
+| **Status** | Em produção |
 | **Fase** | 2 — Produto |
 | **Dependências** | F04, F08 |
 | **Estimativa** | 3 dias |
@@ -101,3 +101,4 @@ Funcionalidade: Projetos Jira
 |---|---|---|---|---|---|
 | 2026-11-17 | `feat/F09-projetos-jira` | Local: Vite + API + emuladores, Jira sandbox `SCRUM` só leitura | `E2E_EMULATORS=1 npx playwright test e2e/f09-projetos.spec.ts` (e a suíte local inteira) | AT-F09-01..03 2/2 (o projeto do sandbox com abertas e total, filtro, sem resultado, `/browse/SCRUM` em nova aba, Refresh, chat com o projeto fixado; sem conexão orienta a conectar); suíte local 19/19 | PO (aceite com as evidências locais) |
 | 2026-11-17 | `feat/F09-projetos-jira` | Unit, Jira falso com 150 ms por chamada, 20 projetos | `test_jira_projects_perf.py` | p95 < 1,5 s (cache frio ≈ 6 × 150 ms; com cache, sem chamadas ao Jira) | PO (aceite com as evidências locais) |
+| 2026-11-17 | `a2241ed` (merge do PR #23) | prd (pcb-inspect) | `make deploy`: revisão `specflow-api-00013-vrs` com 100% do tráfego (rollback: `specflow-api-00012-wvf`), smoke `/health` na versão `a2241edcd5ed` e smoke do modelo; `GET /api/v1/jira/projects` sem token → 401; SPA publicado (bundle 219 kB gzip) | ok, sem erros nos logs da revisão. Listagem com o Jira real em produção ainda não exercitada | PO (aceite com as evidências locais) |

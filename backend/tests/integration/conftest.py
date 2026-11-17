@@ -130,7 +130,10 @@ def _clean(auth_emulator: AuthEmulator) -> Iterator[None]:
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     app = create_app()
-    settings = Settings(env="test", gcp_project=PROJECT, firestore_database=DATABASE)
+    # Sem título automático: os testes roteirizam cada chamada ao LLM (o título é unit).
+    settings = Settings(
+        env="test", gcp_project=PROJECT, firestore_database=DATABASE, auto_title_enabled=False
+    )
     app.dependency_overrides[get_settings] = lambda: settings
     with TestClient(app) as c:
         yield c

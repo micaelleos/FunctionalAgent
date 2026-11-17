@@ -28,7 +28,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel
 
-from app.agent.graph import AgentState, build_agent, system_prompt
+from app.agent.graph import AgentState, build_agent, project_note, system_prompt
 from app.agent.spec.jira_payload import payload_hash
 from app.agent.tools.context import ActionKind, ProposedAction, ToolContext
 from app.agent.tools.jira_tools import PROGRESS, TOOLS
@@ -44,6 +44,7 @@ from app.services.chat_events import (
     ToolStartEvent,
     Usage,
 )
+from app.services.conversation_title import generate_title, provisional_title
 from app.services.jira_connections import JiraConnectionService
 from app.services.jira_reader import JiraReaderAdapter
 
@@ -53,6 +54,7 @@ NEW = "new"
 HISTORY_FETCH = 100
 ACTION_TTL = timedelta(hours=24)
 TOOL_CONTENT_MAX = 4000
+TITLE_TIMEOUT_S = 15
 SUMMARY_PROMPT = (
     "Resuma a conversa abaixo entre um Product Owner e o assistente SpecFlow em até 12 itens: "
     "decisões, nomes, projetos do Jira, specs em andamento e perguntas pendentes. Só fatos ditos "
@@ -76,6 +78,7 @@ class ChatStore(Protocol):
     def list_messages(self, uid: str, conversation_id: str, limit: int) -> list[dict[str, Any]]: ...
     def create_action(self, uid: str, data: dict[str, Any]) -> str: ...
     def list_actions(self, uid: str, conversation_id: str) -> list[dict[str, Any]]: ...
+    def set_title_if_auto(self, uid: str, conversation_id: str, title: str) -> bool: ...
     def add_usage(self, uid: str, day: str, input_tokens: int, output_tokens: int) -> None: ...
 
 
@@ -271,8 +274,11 @@ class ChatService:
         *,
         tools: list[BaseTool] | None = None,
         clock: Callable[[], datetime] | None = None,
+        title_llm: BaseChatModel | None = None,
     ) -> None:
         self._store = store
+        # Título automático (F07-RT-05); `None` desliga (testes com LLM roteirizado).
+        self._title_llm = title_llm
         self._jira = jira
         self._llm = llm
         self._settings = settings
@@ -290,7 +296,9 @@ class ChatService:
         now = self._clock()
         if conversation_id == NEW:
             conversation: dict[str, Any] = {
-                "title": text[:60],
+                "title": provisional_title(text),
+                "titleSource": "auto",
+                "projectKey": None,
                 "createdAt": now,
                 "updatedAt": now,
                 "messageCount": 0,
@@ -306,14 +314,43 @@ class ChatService:
             if found is None:
                 raise ConversationNotFoundError()
             conversation = found
+            if self._is_untitled(conversation):  # criada vazia por POST /conversations (F07)
+                title = provisional_title(text)
+                await self._run_sync(
+                    self._store.update_conversation, uid, conversation_id, {"title": title}
+                )
+                conversation["title"] = title
         docs = await self._run_sync(self._store.list_messages, uid, conversation_id, HISTORY_FETCH)
         seq = max([int(conversation.get("messageCount", 0)), *(int(d["seq"]) for d in docs)])
         user_doc = {"role": "user", "content": text, "seq": seq + 1, "createdAt": now}
         user_message_id = await self._run_sync(
             self._store.add_message, uid, conversation_id, user_doc
         )
-        events = self._stream(uid, conversation, docs, text, user_message_id, seq + 1)
+        needs_title = self._title_llm is not None and self._is_untitled(conversation)
+        events = self._stream(
+            uid, conversation, docs, text, user_message_id, seq + 1, needs_title=needs_title
+        )
         return conversation_id, events
+
+    @staticmethod
+    def _is_untitled(conversation: dict[str, Any]) -> bool:
+        """Sem mensagens e sem título dado pelo usuário: o 1º turno gera o título."""
+        return (
+            conversation.get("titleSource", "auto") == "auto"
+            and int(conversation.get("messageCount", 0)) == 0
+        )
+
+    async def _title(
+        self, llm: BaseChatModel, uid: str, conversation_id: str, text: str, turn: "_Turn"
+    ) -> None:
+        """Em paralelo ao agente; erro aqui nunca derruba o turno (fica o título provisório)."""
+        try:
+            title, response = await generate_title(llm, text)
+            turn.add_usage(response)
+            if title:
+                await self._run_sync(self._store.set_title_if_auto, uid, conversation_id, title)
+        except Exception:  # o título é acessório
+            log.warning("falha ao gerar o título", extra={"conversation_id": conversation_id})
 
     async def _jira_reader(
         self, uid: str, sink: FirestoreActionSink
@@ -356,10 +393,17 @@ class ChatService:
         text: str,
         user_message_id: str,
         user_seq: int,
+        *,
+        needs_title: bool = False,
     ) -> AsyncIterator[BaseModel]:
         conversation_id = str(conversation["id"])
         started = time.monotonic()
         turn = _Turn()
+        titling = (
+            asyncio.create_task(self._title(self._title_llm, uid, conversation_id, text, turn))
+            if needs_title and self._title_llm is not None
+            else None
+        )
         error: str | None = None
         reader, client = None, None
         sink = FirestoreActionSink(self._store, uid, conversation_id, self._clock)
@@ -389,6 +433,8 @@ class ChatService:
                 actions = await self._run_sync(self._store.list_actions, uid, conversation_id)
                 if note := actions_note(actions, self._clock()):
                     instructions.append(note)
+                if project_key := conversation.get("projectKey"):
+                    instructions.append(project_note(str(project_key)))
                 # Uma única instrução de sistema: o Gemini só aceita uma, no início.
                 messages: list[BaseMessage] = [
                     SystemMessage("\n\n".join(instructions)),
@@ -448,6 +494,14 @@ class ChatService:
         finally:
             if client is not None:
                 await client.aclose()
+            if titling is not None:
+                # O título fica pronto antes do `done` (o front relê a lista nesse momento).
+                try:
+                    await asyncio.wait_for(titling, TITLE_TIMEOUT_S)
+                except TimeoutError:
+                    log.warning(
+                        "título não gerado a tempo", extra={"conversation_id": conversation_id}
+                    )
 
         if error:
             yield ErrorEvent.model_validate({"code": error, "message": ERRORS[error]})
@@ -489,6 +543,7 @@ class ChatService:
             {
                 "role": "assistant",
                 "content": content,
+                "text": "".join(turn.text),  # o que o usuário viu (histórico da F07)
                 "seq": seq + 1,
                 "actions": [{"id": a.id, "kind": a.kind} for a in actions],
                 "usage": {"inputTokens": turn.input_tokens, "outputTokens": turn.output_tokens},

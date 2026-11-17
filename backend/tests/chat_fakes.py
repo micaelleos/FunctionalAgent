@@ -135,11 +135,49 @@ class MemoryChatStore:
     def update_conversation(self, uid: str, conversation_id: str, data: dict[str, Any]) -> None:
         self.conversations[uid][conversation_id].update(copy.deepcopy(data))
 
+    # ---- F07: gestão de conversas
+    def list_conversations(
+        self, uid: str, limit: int, after: tuple[datetime, str] | None
+    ) -> list[dict[str, Any]]:
+        def key(item: tuple[str, dict[str, Any]]) -> tuple[datetime, str]:
+            cid, doc = item
+            return doc.get("updatedAt") or doc["createdAt"], cid
+
+        ordered = sorted(self.conversations.get(uid, {}).items(), key=key, reverse=True)
+        if after is not None:
+            ordered = [i for i in ordered if key(i) < after]
+        return [{"id": cid, **copy.deepcopy(doc)} for cid, doc in ordered[:limit]]
+
+    def set_title_if_auto(self, uid: str, conversation_id: str, title: str) -> bool:
+        doc = self.conversations.get(uid, {}).get(conversation_id)
+        if doc is None or doc.get("titleSource") == "user":
+            return False
+        doc.update({"title": title, "titleSource": "auto"})
+        return True
+
+    def delete_conversation(self, uid: str, conversation_id: str) -> None:
+        self.conversations.get(uid, {}).pop(conversation_id, None)
+        self.messages.pop((uid, conversation_id), None)
+        self.actions[uid] = [
+            a for a in self.actions.get(uid, []) if a["conversationId"] != conversation_id
+        ]
+
+    def list_messages_before(
+        self, uid: str, conversation_id: str, before_seq: int | None, limit: int
+    ) -> list[dict[str, Any]]:
+        docs = sorted(
+            self.messages.get((uid, conversation_id), []), key=lambda d: d["seq"], reverse=True
+        )
+        if before_seq is not None:
+            docs = [d for d in docs if d["seq"] < before_seq]
+        return copy.deepcopy(docs[:limit])
+
     def add_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str:
         mid = self._id("msg")
         self.messages.setdefault((uid, conversation_id), []).append({"id": mid, **data})
         conv = self.conversations[uid][conversation_id]
         conv["messageCount"] = conv.get("messageCount", 0) + 1
+        conv["updatedAt"] = data["createdAt"]  # mesmo lote no Firestore (F07-RT-04)
         return mid
 
     def list_messages(self, uid: str, conversation_id: str, limit: int) -> list[dict[str, Any]]:
@@ -186,7 +224,9 @@ class MemoryChatStore:
         self.issues.setdefault(uid, {}).setdefault(key, {}).update(copy.deepcopy(data))
 
     def add_system_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str:
-        conv = self.conversations[uid][conversation_id]
+        conv = self.conversations.get(uid, {}).get(conversation_id)
+        if conv is None:  # conversa excluída enquanto o Jira gravava
+            return ""
         seq = conv.get("messageCount", 0) + 1
         return self.add_message(uid, conversation_id, {**data, "role": "system", "seq": seq})
 

@@ -227,7 +227,8 @@ erDiagram
     CONVERSATION {
         string id PK
         string title
-        string projectKey
+        string titleSource "auto | user"
+        string projectKey "fixado pelo usuário (F07)"
         timestamp createdAt
         timestamp updatedAt
         int messageCount
@@ -236,7 +237,8 @@ erDiagram
     MESSAGE {
         string id PK
         string role "user | assistant | tool | system"
-        string content
+        string content "o que o modelo vê"
+        string text "o que o usuário viu (assistente, F07)"
         map toolCalls
         map usage
         timestamp createdAt
@@ -286,7 +288,7 @@ users/{uid}/usage/{yyyy-mm-dd}
 - **Isolamento por caminho:** um bug de query não consegue atravessar usuários, pois toda leitura parte de `users/{uid}`.
 - **Mensagens em subcoleção:** evita o limite de 1 MiB por documento.
 - **TTL:** `pending_actions.expiresAt` (24 h). Conversas não expiram (o usuário exclui).
-- **Índices compostos** (em `firestore.indexes.json`): `conversations(updatedAt desc)`, `jira_issues(projectKey, createdAt desc)`.
+- **Índices:** `conversations` por `updatedAt desc` usa o índice de campo único automático (F07); composto (em `firestore.indexes.json`) só `jira_issues(projectKey, createdAt desc)` (F10).
 - **Regras de segurança:** `allow read, write: if false;` para clientes — só o backend (Admin SDK, IAM) acessa.
 - **Exclusão de conta:** `recursiveDelete(users/{uid})` + exclusão no Firebase Auth.
 
@@ -320,8 +322,8 @@ users/{uid}/usage/{yyyy-mm-dd}
 | POST | `/api/v1/jira/connections/{id}/validate` | Testa a conexão | F04 |
 | GET | `/api/v1/jira/projects` | Lista projetos (com contagem) | F09 |
 | GET/POST | `/api/v1/conversations` | Lista/cria conversas | F07 |
-| GET/PATCH/DELETE | `/api/v1/conversations/{id}` | Detalhe, renomear, excluir | F07 |
-| GET | `/api/v1/conversations/{id}/messages` | Histórico paginado | F07 |
+| GET/PATCH/DELETE | `/api/v1/conversations/{id}` | Detalhe, renomear/fixar projeto, excluir (204 idempotente; 409 com ação em execução) | F07 |
+| GET | `/api/v1/conversations/{id}/messages` | Histórico paginado por cursor, com as ações embutidas | F07 |
 | POST | `/api/v1/conversations/{id}/messages` | Envia mensagem (SSE) | F05 |
 | POST | `/api/v1/actions/{id}/confirm` | Executa ação proposta | F06 |
 | POST | `/api/v1/actions/{id}/reject` | Recusa ação proposta | F06 |

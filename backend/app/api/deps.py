@@ -18,6 +18,7 @@ from app.repositories.users import UserRepository
 from app.services.account import AccountService
 from app.services.actions import ActionService
 from app.services.chat import ChatService
+from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
 
 
@@ -74,7 +75,16 @@ def get_chat_service(
     jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
 ) -> ChatService:
     db = _firestore(settings.gcp_project, settings.firestore_database)
-    return ChatService(ActionRepository(db), jira, _chat_model(settings), settings)
+    llm = _chat_model(settings)
+    title_llm = llm if settings.auto_title_enabled else None
+    return ChatService(ActionRepository(db), jira, llm, settings, title_llm=title_llm)
+
+
+def get_conversation_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ConversationService:
+    db = _firestore(settings.gcp_project, settings.firestore_database)
+    return ConversationService(ActionRepository(db))
 
 
 def get_action_service(
@@ -127,3 +137,4 @@ Account = Annotated[AccountService, Depends(get_account_service)]
 JiraConnections = Annotated[JiraConnectionService, Depends(get_jira_service)]
 Chat = Annotated[ChatService, Depends(get_chat_service)]
 Actions = Annotated[ActionService, Depends(get_action_service)]
+Conversations = Annotated[ConversationService, Depends(get_conversation_service)]

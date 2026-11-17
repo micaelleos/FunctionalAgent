@@ -13,6 +13,7 @@ from app.api.deps import (
     get_account_service,
     get_action_service,
     get_chat_service,
+    get_conversation_service,
     get_jira_service,
     get_verifier,
 )
@@ -22,6 +23,7 @@ from app.main import create_app
 from app.services.account import AccountService
 from app.services.actions import ActionService
 from app.services.chat import ChatService
+from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
 from tests.chat_fakes import MemoryChatStore
 from tests.fakes import FakeVerifier, MemoryJiraStore, MemoryStore
@@ -56,6 +58,8 @@ def client(verifier: FakeVerifier) -> Iterator[TestClient]:
     app.dependency_overrides[get_chat_service] = lambda: chat
     actions = ActionService(chat_store, jira, Settings(env="test"))
     app.dependency_overrides[get_action_service] = lambda: actions
+    conversations = ConversationService(chat_store)
+    app.dependency_overrides[get_conversation_service] = lambda: conversations
     with TestClient(app) as c:
         yield c
 

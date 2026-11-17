@@ -50,6 +50,15 @@ def system_prompt(version: str, *, today: date, jira_connected: bool) -> str:
     )
 
 
+def project_note(project_key: str) -> str:
+    """Projeto fixado na conversa pelo usuário (F07-RF-06): vale como resposta a "qual projeto?"."""
+    return (
+        "## Projeto padrão desta conversa\n"
+        f"O usuário fixou o projeto {project_key} nesta conversa. Use-o nas propostas sem "
+        "perguntar o projeto, a menos que o usuário peça outro."
+    )
+
+
 def build_agent(
     llm: BaseChatModel, tools: list[BaseTool], *, max_iterations: int = 8
 ) -> CompiledStateGraph[AgentState, Any, AgentState, AgentState]:

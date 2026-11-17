@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em validação |
+| **Status** | Aceita |
 | **Fase** | 2 — Produto |
 | **Dependências** | F03 (pode iniciar com mocks), F05, F06, F07 |
 | **ADRs** | ADR-002 |
@@ -139,8 +139,8 @@ Funcionalidade: Interface de chat
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
-| 2026-11-17 | `feat/F08-interface-chat` | Local: Vite + API + emuladores, modelo de eco (`LLM_PROVIDER=fake`) | `E2E_EMULATORS=1 npx playwright test e2e/f08-chat.spec.ts e2e/f08-telas.spec.ts e2e/f03-auth.spec.ts` | 14/14: AT-F08-01 (streaming, Markdown com tabela, histórico ao recarregar), AT-F08-03, AT-F08-05, AT-F08-06 (axe sem violações sérias, 390×844 sem rolagem lateral), AT-F08-07 | — |
-| 2026-11-17 | `feat/F08-interface-chat` | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` só leitura | `E2E_REAL_LLM=1 … e2e/f08-chat-agente.spec.ts` | 2/2: AT-F08-02 (indicador de ferramenta, cartão com Confirmar/Recusar, pendente após recarregar; nada confirmado, nada escrito no Jira), AT-F08-04 ("Stop" após o 1º token; parcial marcada como interrompida após recarregar) | — |
-| 2026-11-17 | `feat/F08-interface-chat` | Local: `npm run build` + `vite preview`, Lighthouse 12.8.2 mobile em `/chat/{id}` com histórico (Markdown, tabela, código) | `scripts/perf/lighthouse-chat.mjs`, 2 execuções | performance 92 e 93, acessibilidade 100, boas práticas 100; LCP 2,6–3,0 s, TBT 160–260 ms, CLS 0 | — |
-| 2026-11-17 | `feat/F08-interface-chat` | Local: build de produção, Chromium headless, 5000 tokens em ~11 s | `scripts/perf/stream-fps.mjs` | texto com parágrafos e listas: 60,1 fps, p95 do quadro 16,8 ms, 0 long tasks; pior caso (uma tabela única de ~625 linhas): 57,7 fps, p95 16,8 ms. Antes da divisão em blocos: 28,2 fps (corrigido) | — |
-| 2026-11-17 | `feat/F08-interface-chat` | Build de produção | `postbuild` | bundle inicial 218 kB gzip (limite 250 kB); sem dados de demonstração | — |
+| 2026-11-17 | `feat/F08-interface-chat` | Local: Vite + API + emuladores, modelo de eco (`LLM_PROVIDER=fake`) | `E2E_EMULATORS=1 npx playwright test e2e/f08-chat.spec.ts e2e/f08-telas.spec.ts e2e/f03-auth.spec.ts` | 14/14: AT-F08-01 (streaming, Markdown com tabela, histórico ao recarregar), AT-F08-03, AT-F08-05, AT-F08-06 (axe sem violações sérias, 390×844 sem rolagem lateral), AT-F08-07 | PO (aceite com as evidências locais) |
+| 2026-11-17 | `feat/F08-interface-chat` | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` só leitura | `E2E_REAL_LLM=1 … e2e/f08-chat-agente.spec.ts` | 2/2: AT-F08-02 (indicador de ferramenta, cartão com Confirmar/Recusar, pendente após recarregar; nada confirmado, nada escrito no Jira), AT-F08-04 ("Stop" após o 1º token; parcial marcada como interrompida após recarregar) | PO (aceite com as evidências locais) |
+| 2026-11-17 | `feat/F08-interface-chat` | Local: `npm run build` + `vite preview`, Lighthouse 12.8.2 mobile em `/chat/{id}` com histórico (Markdown, tabela, código) | `scripts/perf/lighthouse-chat.mjs`, 2 execuções | performance 92 e 93, acessibilidade 100, boas práticas 100; LCP 2,6–3,0 s, TBT 160–260 ms, CLS 0 | PO (aceite com as evidências locais) |
+| 2026-11-17 | `feat/F08-interface-chat` | Local: build de produção, Chromium headless, 5000 tokens em ~11 s | `scripts/perf/stream-fps.mjs` | texto com parágrafos e listas: 60,1 fps, p95 do quadro 16,8 ms, 0 long tasks; pior caso (uma tabela única de ~625 linhas): 57,7 fps, p95 16,8 ms. Antes da divisão em blocos: 28,2 fps (corrigido) | PO (aceite com as evidências locais) |
+| 2026-11-17 | `feat/F08-interface-chat` | Build de produção | `postbuild` | bundle inicial 218 kB gzip (limite 250 kB); sem dados de demonstração | PO (aceite com as evidências locais) |

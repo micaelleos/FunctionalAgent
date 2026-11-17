@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em validação |
+| **Status** | Em produção |
 | **Fase** | 1 — Núcleo |
 | **Dependências** | F05 |
 | **ADRs** | ADR-003, ADR-007 |
@@ -129,4 +129,5 @@ Funcionalidade: Confirmação humana
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
-| 2026-11-16 | PR #17 (`feat/F06-confirmacao-humana`) | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` (site em português) | `pytest tests/acceptance` (F05 + F06), 2 execuções seguidas; evals 30 casos | 16/16 nas duas; issues mantidas para conferência a pedido do PO (SCRUM-20..29); evals: nenhuma métrica abaixo do baseline, todas 100% (`evals/results/2026-11-16-new-gemini-3.5-flash-lite-f06.json`) | Pendente (PO) |
+| 2026-11-16 | PR #17 (`feat/F06-confirmacao-humana`) | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` (site em português) | `pytest tests/acceptance` (F05 + F06), 2 execuções seguidas; evals 30 casos | 16/16 nas duas; issues mantidas para conferência a pedido do PO (SCRUM-20..29); evals: nenhuma métrica abaixo do baseline, todas 100% (`evals/results/2026-11-16-new-gemini-3.5-flash-lite-f06.json`) | PO (aceite com as evidências locais) |
+| 2026-11-17 | `31e0396` (merge do PR #17) | prd (pcb-inspect) | `make deploy`: revisão `specflow-api-00010-t4b` com 100% do tráfego, smoke `/health` na versão do commit e smoke do modelo; `POST /api/v1/actions/{id}/confirm` sem token → 401; SPA publicado | ok, sem erros nos logs da revisão. Confirmação em produção não exercitada (o chat só ganha tela na F08) | PO (aceite com as evidências locais) |

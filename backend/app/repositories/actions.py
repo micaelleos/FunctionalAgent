@@ -71,6 +71,8 @@ class ActionRepository(ConversationRepository):
         @firestore.transactional
         def run(transaction: firestore.Transaction) -> None:
             snapshot = conversation.get(transaction=transaction)
+            if not snapshot.exists:  # conversa excluída enquanto o Jira gravava (F07-RT-03)
+                return
             count = int((snapshot.to_dict() or {}).get("messageCount", 0))
             transaction.create(message, {**data, "role": "system", "seq": count + 1})
             transaction.update(

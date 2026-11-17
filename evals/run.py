@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage  # noqa: E402
 
-from app.agent.graph import build_agent, system_prompt  # noqa: E402
+from app.agent.graph import build_agent, project_note, system_prompt  # noqa: E402
 from app.agent.llm import build_chat_model  # noqa: E402
 from app.agent.spec.parse import parse_issue  # noqa: E402
 from app.agent.spec.readiness import evaluate  # noqa: E402
@@ -112,7 +112,14 @@ def _normalize_new(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         spec = spec_of(action["payload"])
         if spec is None:
             continue
-        out.append({"kind": action["kind"], "spec": spec, "labels": action["labels"]})
+        out.append(
+            {
+                "kind": action["kind"],
+                "spec": spec,
+                "labels": action["labels"],
+                "project": action["payload"].get("project_key"),
+            }
+        )
     return out
 
 
@@ -122,7 +129,9 @@ def _normalize_legacy(writes: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if write["kind"] != "create_issue":
             continue
         spec = parse_issue(write["title"], write["issuetype"], write.get("description", ""))
-        out.append({"kind": "create_issue", "spec": spec, "labels": []})
+        out.append(
+            {"kind": "create_issue", "spec": spec, "labels": [], "project": write.get("project")}
+        )
     return out
 
 
@@ -137,6 +146,8 @@ async def run_case(case: dict[str, Any], agent_kind: str, settings: Settings) ->
     else:
         tools = LEGACY_TOOLS
         prompt = legacy_prompt()
+    if case.get("project"):  # projeto fixado na conversa (F07-RF-06)
+        prompt += "\n\n" + project_note(case["project"])
     agent = build_agent(llm, tools, max_iterations=settings.agent_max_iterations)
     messages: list[BaseMessage] = [SystemMessage(prompt)]
     outcome = Outcome([], [], [], 0)
@@ -224,6 +235,11 @@ def score(case: dict[str, Any], out: Outcome) -> dict[str, bool]:
         first = out.texts[0].lower() if out.texts else ""
         metrics["no_jira_documents"] = "objetivo" in first
         metrics["no_jira_guides_connect"] = "configura" in last or "conect" in last
+    elif cat == "pinned_project":
+        expected = case.get("expect_project", case.get("project"))
+        metrics["pinned_project"] = bool(creates) and all(
+            p.get("project") == expected for p in creates
+        )
     elif cat == "review_existing":
         metrics["review_uses_tool"] = "avaliar_prontidao" in out.tools
     return metrics
@@ -242,7 +258,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def main_run(agent_kind: str, only: str | None, concurrency: int) -> Path:
+async def main_run(agent_kind: str, only: str | None, concurrency: int, tag: str | None) -> Path:
     settings = Settings(env="local", gcp_project="pcb-inspect")
     cases = [json.loads(line) for line in DATASET.read_text("utf-8").splitlines() if line.strip()]
     if only:
@@ -266,6 +282,7 @@ async def main_run(agent_kind: str, only: str | None, concurrency: int) -> Path:
                 {
                     "kind": p["kind"],
                     "labels": p["labels"],
+                    "project": p.get("project"),
                     "spec": p["spec"].model_dump(mode="json"),
                 }
                 for p in out.proposals
@@ -287,7 +304,8 @@ async def main_run(agent_kind: str, only: str | None, concurrency: int) -> Path:
         "cases": rows,
     }
     RESULTS.mkdir(exist_ok=True)
-    path = RESULTS / f"{date.today().isoformat()}-{agent_kind}-{settings.llm_model}.json"
+    suffix = f"-{tag}" if tag else ""
+    path = RESULTS / f"{date.today().isoformat()}-{agent_kind}-{settings.llm_model}{suffix}.json"
     path.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n", "utf-8")
     print(json.dumps(report["summary"], indent=1, ensure_ascii=False))
     print(f"Resultado em {path}")
@@ -309,7 +327,12 @@ def rescore(path: Path) -> None:
             texts=row["texts"],
             tools=row["tools"],
             proposals=[
-                {"kind": p["kind"], "labels": p["labels"], "spec": adapter.validate_python(p["spec"])}
+                {
+                    "kind": p["kind"],
+                    "labels": p["labels"],
+                    "project": p.get("project"),
+                    "spec": adapter.validate_python(p["spec"]),
+                }
                 for p in row["proposals"]
             ],
             writes_without_confirmation=row["writes_without_confirmation"],
@@ -346,6 +369,7 @@ if __name__ == "__main__":
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--compare", nargs=2, type=Path, metavar=("BASELINE", "NOVO"))
     parser.add_argument("--rescore", nargs="+", type=Path, metavar="RESULTADO")
+    parser.add_argument("--tag", help="sufixo do arquivo de resultado (ex.: f07)")
     args = parser.parse_args()
     if args.rescore:
         for result in args.rescore:
@@ -355,4 +379,4 @@ if __name__ == "__main__":
         sys.exit(compare(*args.compare))
     if not args.agent:
         parser.error("informe --agent ou --compare")
-    asyncio.run(main_run(args.agent, args.only, args.concurrency))
+    asyncio.run(main_run(args.agent, args.only, args.concurrency, args.tag))

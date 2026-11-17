@@ -17,6 +17,7 @@ from app.services.chat import (
     history_window,
 )
 from app.services.chat_events import CHAT_EVENT
+from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
 from tests.chat_fakes import NOW, SITE, FakeJiraService, MemoryChatStore, call
 from tests.spec_fixtures import pix_story_data
@@ -289,3 +290,37 @@ async def test_proximo_turno_sabe_que_o_usuario_recusou_a_acao() -> None:
     assert f"- {action['id']}: criar Story" in str(system.content)
     assert "RECUSADA pelo usuário" in str(system.content)
     assert sum(isinstance(m, SystemMessage) for m in llm.calls[-1]) == 1
+
+
+@pytest.mark.req("F07-RF-06")
+async def test_projeto_fixado_entra_na_instrucao_de_sistema() -> None:
+    llm = ScriptedChatModel(responses=[AIMessage("ok"), AIMessage("ok")])
+    service, store, _ = _service(llm)
+    pinned = await ConversationService(store, clock=lambda: NOW).create("uid-alice", None, "SCRUM")
+
+    await _turn(service, "Crie uma task de revisão de copy", conversation=pinned.id)
+    loose, _ = await _turn(service, "Crie uma task de revisão de copy")
+
+    [with_project, *_] = llm.calls[0]
+    [without, *_] = llm.calls[1]
+    assert "## Projeto padrão desta conversa" in str(with_project.content)
+    assert "fixou o projeto SCRUM" in str(with_project.content)
+    assert "Projeto padrão" not in str(without.content)
+    assert store.conversations["uid-alice"][loose]["projectKey"] is None
+
+
+@pytest.mark.req("F07-RF-03")
+async def test_resposta_guarda_o_texto_visivel_sem_as_notas_do_modelo() -> None:
+    llm = ScriptedChatModel(
+        responses=[
+            call("propor_criacao_issue", {"project_key": "ABC", "spec": pix_story_data()}),
+            AIMessage("Confirme no cartão."),
+        ]
+    )
+    service, store, _ = _service(llm)
+
+    cid, _ = await _turn(service, "Crie a story do Pix no ABC")
+
+    [assistant] = [m for m in store.messages[("uid-alice", cid)] if m["role"] == "assistant"]
+    assert assistant["text"] == "Confirme no cartão."
+    assert "[Ação proposta" in assistant["content"]

@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     prompt_version: str = "v1"
     # F06: desligar mantém as propostas guardadas, sem executar nenhuma (rollback do plano).
     actions_enabled: bool = True
+    # Título automático da conversa (F07-RT-05): uma chamada curta ao modelo no 1º turno.
+    auto_title_enabled: bool = True
     agent_max_iterations: int = Field(default=8, description="Iterações de ferramenta por turno")
     agent_turn_timeout_s: float = 240.0
     history_token_budget: int = Field(

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Em validação |
 | **Revisão** | 2026-11-17: alinhada à F05/F06 já em produção — ações reidratadas pela rota da F06, título pelo mesmo modelo em paralelo ao turno, exclusão sem apagar o que já está no Jira, aceitação pela API (a tela é da F08) |
 | **Fase** | 2 — Produto |
 | **Dependências** | F05, F06 |
@@ -91,13 +91,14 @@ Funcionalidade: Conversas persistentes
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F07-RF-01 | AT-F07-01, `test_conversations.py`, `test_conversations_api.py` | ✅ unit · ⬜ aceitação |
-| F07-RF-02 | AT-F07-02, `test_conversations.py`, `integration/test_conversations.py` | ✅ unit · ⬜ aceitação |
-| F07-RF-03 | AT-F07-01, AT-F07-03, `test_conversations.py` | ✅ unit · ⬜ aceitação |
-| F07-RF-04 | AT-F07-02, `test_conversation_title.py` | ✅ unit · ⬜ aceitação |
-| F07-RF-05 | AT-F07-04, `test_conversations.py`, `integration/test_conversations.py` | ✅ unit · ⬜ aceitação |
-| F07-RF-06 | AT-F07-05, `test_chat_service.py`, eval `pinned_project_*` | ✅ unit · ⬜ aceitação |
+| F07-RF-01 | AT-F07-01, `test_conversations.py`, `test_conversations_api.py` | ✅ unit · ✅ aceitação |
+| F07-RF-02 | AT-F07-02, `test_conversations.py`, `integration/test_conversations.py` | ✅ unit · ✅ aceitação |
+| F07-RF-03 | AT-F07-01, AT-F07-03, `test_conversations.py` | ✅ unit · ✅ aceitação |
+| F07-RF-04 | AT-F07-02, `test_conversation_title.py` | ✅ unit · ✅ aceitação |
+| F07-RF-05 | AT-F07-04, `test_conversations.py`, `integration/test_conversations.py` | ✅ unit · ✅ aceitação |
+| F07-RF-06 | AT-F07-05, `test_chat_service.py`, eval `pinned_project_*` | ✅ unit · ✅ aceitação |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-17 | PR #19 (`feat/F07-conversas-persistentes`) | Local: API + emuladores, Gemini `gemini-3.5-flash-lite` (Vertex, `pcb-inspect`), Jira sandbox `SCRUM` | `pytest tests/acceptance` AT-F07-01..05 em 2 execuções (a 2ª junto com AT-F05); evals 33 casos | 5/5 e 14/14; issues mantidas a pedido do PO (SCRUM-30..33); evals sem métrica abaixo do baseline, `pinned_project` 100% (`evals/results/2026-11-17-new-gemini-3.5-flash-lite-f07.json`); integração: p95 da listagem com 500 conversas < 300 ms | Pendente (PO) |

@@ -40,4 +40,4 @@
 
 **Aceitação:** AT-F07-01..05
 
-- [ ] T006 AT-F07-01..05 pela API com o Gemini e o Jira sandbox — teste: `tests/acceptance/test_f07_conversations.py` — 1 d
+- [x] T006 AT-F07-01..05 pela API com o Gemini e o Jira sandbox — teste: `tests/acceptance/test_f07_conversations.py` — 1 d

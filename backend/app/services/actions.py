@@ -60,13 +60,62 @@ class ActionStore(Protocol):
     def list_actions(self, uid: str, conversation_id: str) -> list[dict[str, Any]]: ...
     def transition(self, uid: str, action_id: str, decide: Decide) -> dict[str, Any] | None: ...
     def update_action(self, uid: str, action_id: str, data: dict[str, Any]) -> None: ...
-    def save_issue(self, uid: str, key: str, data: dict[str, Any]) -> None: ...
+    def complete_action(
+        self,
+        uid: str,
+        action_id: str,
+        change: dict[str, Any],
+        issue_key: str,
+        issue: dict[str, Any],
+        first_time: dict[str, Any],
+    ) -> None: ...
     def add_system_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str: ...
 
 
 class ActionResult(BaseModel):
     issue_key: str
     url: str
+
+
+def _issue_record(
+    doc: dict[str, Any], result: ActionResult, now: datetime
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Registro de `users/{uid}/jira_issues/{key}` (F10): o que muda a cada ação e o que só
+    entra na 1ª vez que o SpecFlow toca na issue."""
+    payload, preview = doc["payload"], doc.get("preview") or {}
+    issue: dict[str, Any] = {
+        "url": result.url,
+        "lastActionId": doc["id"],
+        "conversationId": doc["conversationId"],
+        "updatedAt": now,
+    }
+    if payload.get("spec") is not None:
+        issue["specActionId"] = doc["id"]  # base do "Copiar para agente" (F10-RF-06)
+    if "labels" in payload:
+        issue["labels"] = list(payload.get("labels") or [])
+    summary = preview.get("summary") or payload.get("summary")
+    if summary:
+        issue["summary"] = summary
+    if doc["kind"] == "create_issue":
+        issue |= {
+            "projectKey": payload["project_key"],
+            "issueType": payload["issue_type"],
+            "actionId": doc["id"],
+            "operation": "created",
+            "createdAt": now,
+        }
+        return issue, {}
+    if preview.get("issue_type"):
+        issue["issueType"] = preview["issue_type"]
+    first_time: dict[str, Any] = {
+        "projectKey": result.issue_key.rsplit("-", 1)[0],
+        "issueType": preview.get("issue_type") or "",
+        "summary": summary or "",
+        "labels": [],
+        "operation": "updated",
+        "createdAt": now,
+    }
+    return issue, first_time
 
 
 class ActionError(BaseModel):
@@ -431,26 +480,16 @@ class ActionService:
     async def _done(
         self, uid: str, doc: dict[str, Any], result: ActionResult, now: datetime
     ) -> ActionOut:
-        change = {"status": "done", "result": result.model_dump(), "executedAt": self._clock()}
-        await self._run(self._store.update_action, uid, doc["id"], change)
+        executed_at = self._clock()
+        change = {"status": "done", "result": result.model_dump(), "executedAt": executed_at}
+        issue, first_time = _issue_record(doc, result, executed_at)
+        # Ação concluída e histórico (F10) na mesma transação (F10-RT-01).
+        await self._run(
+            self._store.complete_action, uid, doc["id"], change, result.issue_key, issue, first_time
+        )
         doc = {**doc, **change}
-        if doc["kind"] == "create_issue":
-            payload, preview = doc["payload"], doc.get("preview") or {}
-            issue = {
-                "key": result.issue_key,
-                "url": result.url,
-                "projectKey": payload["project_key"],
-                "issueType": payload["issue_type"],
-                "summary": preview.get("summary", ""),
-                "labels": list(payload.get("labels") or []),
-                "actionId": doc["id"],
-                "conversationId": doc["conversationId"],
-                "createdAt": change["executedAt"],
-            }
-            await self._run(self._store.save_issue, uid, result.issue_key, issue)
-            text = f"O usuário confirmou e o SpecFlow criou {result.issue_key} ({result.url})."
-        else:
-            text = f"O usuário confirmou e o SpecFlow atualizou {result.issue_key} ({result.url})."
+        verb = "criou" if doc["kind"] == "create_issue" else "atualizou"
+        text = f"O usuário confirmou e o SpecFlow {verb} {result.issue_key} ({result.url})."
         await self._system_message(uid, doc, text)
         self._audit(uid, doc, "done", issue_key=result.issue_key)
         return to_out(doc, now)

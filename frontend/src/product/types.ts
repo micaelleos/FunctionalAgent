@@ -59,18 +59,44 @@ export interface JiraProject {
 
 export type IssueType = 'Epic' | 'Story' | 'Task'
 
+/** Prontidão gravada nas labels: `agent-ready`, `human-only` ou nenhuma das duas (F10-RF-07). */
+export type IssueReadiness = 'agent_ready' | 'human_only' | 'not_ready'
+
 export interface CreatedIssue {
   key: string
-  type: IssueType
+  /** Tipo no momento da gravação (Epic, Story, Task); vazio se o SpecFlow só atualizou campos. */
+  type: string
   title: string
   projectKey: string
-  /** Status atual no Jira; só existe depois de "Atualizar status" (F10). */
-  status: string | null
+  /** Quando o SpecFlow tocou na issue pela 1ª vez. */
   createdAt: string
+  updatedAt: string | null
+  /** `updated`: o SpecFlow só atualizou uma issue que já existia. */
+  operation: 'created' | 'updated'
+  readiness: IssueReadiness
   url: string
-  conversationId: string
-  conversationTitle: string
+  /** `null` se a conversa de origem foi excluída (F10-RT-03). */
+  conversationId: string | null
+  conversationTitle: string | null
+  /** Há spec guardada para "Copiar para agente de código" (F10-RF-06). */
+  hasSpec: boolean
 }
+
+export interface IssueFilters {
+  projectKey?: string
+  type?: IssueType
+  readiness?: IssueReadiness
+  /** ISO; início do período (inclusivo). */
+  from?: string
+}
+
+export interface IssuePage {
+  items: CreatedIssue[]
+  nextCursor: string | null
+}
+
+/** Status atual no Jira; `null` quando a issue não existe mais (ou a conta não a vê). */
+export type IssueStatus = { name: string; category: string } | null
 
 export interface ConversationSummary {
   id: string
@@ -167,8 +193,12 @@ export interface ProductApi {
   validateJira(): Promise<JiraConnection>
   /** `refresh` ignora o cache de 5 min do backend (F09-RF-07). */
   listProjects(refresh?: boolean): Promise<JiraProject[]>
-  listIssues(): Promise<CreatedIssue[]>
-  refreshIssueStatuses(): Promise<CreatedIssue[]>
+  /** Do mais recente ao mais antigo, filtrado no servidor (F10-RF-01, RF-03). */
+  listIssues(filters: IssueFilters, cursor?: string | null): Promise<IssuePage>
+  /** Até 50 chaves numa chamada (F10-RF-05). */
+  issueStatuses(keys: string[]): Promise<Record<string, IssueStatus>>
+  /** Texto para colar no agente de código (F10-RF-06). */
+  agentPrompt(key: string): Promise<string>
   listConversations(): Promise<ConversationSummary[]>
   /** Conversa vazia com o projeto fixado (F07-RF-06); sem projeto, o 1º envio já cria. */
   createConversation(projectKey: string | null): Promise<ConversationSummary>

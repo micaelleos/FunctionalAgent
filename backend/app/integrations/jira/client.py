@@ -78,6 +78,12 @@ class JiraProject:
 
 
 @dataclass(frozen=True)
+class JiraStatus:
+    name: str  # no idioma do site ("A fazer")
+    category: str  # new, indeterminate, done
+
+
+@dataclass(frozen=True)
 class JiraIssueType:
     id: str
     name: str
@@ -340,6 +346,23 @@ class JiraClient:
             "POST", "/rest/api/3/search/approximate-count", json={"jql": jql}
         )
         return int(response.json()["count"])
+
+    async def statuses(self, keys: list[str]) -> dict[str, JiraStatus]:
+        """`POST /rest/api/3/issue/bulkfetch` (até 100): status atual de cada chave. As que não
+        existem mais (ou que a conta não vê) simplesmente não voltam (F10-RF-05)."""
+        if not keys:
+            return {}
+        response = await self._request(
+            "POST",
+            "/rest/api/3/issue/bulkfetch",
+            json={"issueIdsOrKeys": keys[:100], "fields": ["status"]},
+        )
+        found: dict[str, JiraStatus] = {}
+        for issue in response.json().get("issues") or []:
+            status = (issue.get("fields") or {}).get("status") or {}
+            category = (status.get("statusCategory") or {}).get("key") or ""
+            found[str(issue["key"])] = JiraStatus(str(status.get("name") or ""), str(category))
+        return found
 
     async def get_issue(self, key: str) -> JiraIssue:
         response = await self._request(

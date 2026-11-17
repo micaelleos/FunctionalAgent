@@ -21,6 +21,7 @@ from app.services.actions import ActionService
 from app.services.chat import ChatService
 from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
+from app.services.jira_issues import JiraIssueService
 from app.services.jira_projects import JiraProjectService
 
 
@@ -62,6 +63,14 @@ def get_jira_project_service(
 ) -> JiraProjectService:
     db = _firestore(settings.gcp_project, settings.firestore_database)
     return JiraProjectService(jira, JiraCacheRepository(db))
+
+
+def get_jira_issue_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
+) -> JiraIssueService:
+    db = _firestore(settings.gcp_project, settings.firestore_database)
+    return JiraIssueService(ActionRepository(db), jira)
 
 
 _models: dict[tuple[str, ...], BaseChatModel] = {}
@@ -149,3 +158,4 @@ Chat = Annotated[ChatService, Depends(get_chat_service)]
 Actions = Annotated[ActionService, Depends(get_action_service)]
 Conversations = Annotated[ConversationService, Depends(get_conversation_service)]
 JiraProjects = Annotated[JiraProjectService, Depends(get_jira_project_service)]
+JiraIssues = Annotated[JiraIssueService, Depends(get_jira_issue_service)]

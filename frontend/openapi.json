@@ -130,6 +130,24 @@
         "title": "ActionResult",
         "type": "object"
       },
+      "AgentPrompt": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "text"
+        ],
+        "title": "AgentPrompt",
+        "type": "object"
+      },
       "ConversationCreate": {
         "additionalProperties": false,
         "properties": {
@@ -305,6 +323,152 @@
           "env"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "IssueOut": {
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "conversation_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Title"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "has_spec": {
+            "title": "Has Spec",
+            "type": "boolean"
+          },
+          "issue_type": {
+            "title": "Issue Type",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "created",
+              "updated"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "project_key": {
+            "title": "Project Key",
+            "type": "string"
+          },
+          "readiness": {
+            "enum": [
+              "agent_ready",
+              "human_only",
+              "not_ready"
+            ],
+            "title": "Readiness",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "url",
+          "project_key",
+          "issue_type",
+          "summary",
+          "readiness",
+          "operation",
+          "created_at",
+          "updated_at",
+          "conversation_id",
+          "conversation_title",
+          "has_spec"
+        ],
+        "title": "IssueOut",
+        "type": "object"
+      },
+      "IssuePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "IssuePage",
+        "type": "object"
+      },
+      "IssueStatus": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "category"
+        ],
+        "title": "IssueStatus",
         "type": "object"
       },
       "JiraConnection": {
@@ -618,6 +782,45 @@
           "locale"
         ],
         "title": "Profile",
+        "type": "object"
+      },
+      "StatusOut": {
+        "properties": {
+          "statuses": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IssueStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Statuses",
+            "type": "object"
+          }
+        },
+        "required": [
+          "statuses"
+        ],
+        "title": "StatusOut",
+        "type": "object"
+      },
+      "StatusRequest": {
+        "properties": {
+          "keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "title": "StatusRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -1620,6 +1823,289 @@
           }
         },
         "summary": "Testa a credencial guardada; se o Jira recusar, a conexão fica inválida",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
+    "/api/v1/jira/issues": {
+      "get": {
+        "operationId": "list_issues_api_v1_jira_issues_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "readiness",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "agent_ready",
+                    "human_only",
+                    "not_ready"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Readiness"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issues criadas/atualizadas pelo SpecFlow",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
+    "/api/v1/jira/issues/status": {
+      "post": {
+        "operationId": "issue_statuses_api_v1_jira_issues_status_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Status atual no Jira (até 50 chaves)",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
+    "/api/v1/jira/issues/{key}/agent-prompt": {
+      "get": {
+        "operationId": "agent_prompt_api_v1_jira_issues__key__agent_prompt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPrompt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Texto da spec para colar no agente de código",
         "tags": [
           "jira"
         ]

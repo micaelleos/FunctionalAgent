@@ -84,6 +84,17 @@ class ConversationRepository:
                 for ref in refs:
                     batch.delete(ref)
                 batch.commit()
+        # O histórico de issues (F10) fica; só perde o vínculo com a conversa (F10-RT-03).
+        issues = cast(firestore.CollectionReference, self._user(uid).collection("jira_issues"))
+        linked = issues.where(filter=firestore.FieldFilter("conversationId", "==", conversation_id))
+        while True:
+            refs = [d.reference for d in linked.limit(DELETE_BATCH).stream()]
+            if not refs:
+                break
+            batch = self._db.batch()
+            for ref in refs:
+                batch.update(ref, {"conversationId": None})
+            batch.commit()
         self._conversations(uid).document(conversation_id).delete()
 
     def add_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str:

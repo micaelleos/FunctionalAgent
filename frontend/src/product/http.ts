@@ -4,6 +4,9 @@ import { streamPost } from '../lib/sse'
 import type {
   ChatMessage,
   ConversationSummary,
+  CreatedIssue,
+  IssueFilters,
+  IssueStatus,
   JiraConnection,
   JiraConnectionInput,
   JiraProject,
@@ -18,6 +21,13 @@ type ApiConversationPage = components['schemas']['ConversationPage']
 type ApiMessagePage = components['schemas']['MessagePage']
 type ApiMessage = components['schemas']['MessageOut']
 type ApiProjectList = components['schemas']['JiraProjectList']
+type ApiIssue = components['schemas']['IssueOut']
+type ApiIssuePage = components['schemas']['IssuePage']
+type ApiStatuses = components['schemas']['StatusOut']
+type ApiPrompt = components['schemas']['AgentPrompt']
+
+const ISSUES = '/api/v1/jira/issues'
+const ISSUE_PAGE = 25
 
 const BASE = '/api/v1/jira/connections'
 const CONVERSATIONS = '/api/v1/conversations'
@@ -41,6 +51,31 @@ const messageFromApi = (m: ApiMessage): ChatMessage => ({
   actions: m.actions.map(fromApiAction),
   interrupted: m.interrupted ?? false,
 })
+
+const issueFromApi = (i: ApiIssue): CreatedIssue => ({
+  key: i.key,
+  type: i.issue_type,
+  title: i.summary,
+  projectKey: i.project_key,
+  createdAt: i.created_at,
+  updatedAt: i.updated_at ?? null,
+  operation: i.operation,
+  readiness: i.readiness,
+  url: i.url,
+  conversationId: i.conversation_id ?? null,
+  conversationTitle: i.conversation_title ?? null,
+  hasSpec: i.has_spec,
+})
+
+const issueQuery = (filters: IssueFilters, cursor?: string | null): string => {
+  const params = new URLSearchParams({ limit: String(ISSUE_PAGE) })
+  if (filters.projectKey) params.set('project', filters.projectKey)
+  if (filters.type) params.set('type', filters.type)
+  if (filters.readiness) params.set('readiness', filters.readiness)
+  if (filters.from) params.set('from', filters.from)
+  if (cursor) params.set('cursor', cursor)
+  return `${ISSUES}?${params.toString()}`
+}
 
 const fromApi = (c: ApiConnection): JiraConnection => ({
   id: c.id,
@@ -105,6 +140,19 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
     features: { ...unavailableProductApi.features, jira: true, projects: true, chat: CHAT_ENABLED },
     getJiraConnection: current,
     listProjects,
+    // F10: histórico de issues.
+    listIssues: async (filters, cursor) => {
+      const page = await json<ApiIssuePage>(issueQuery(filters, cursor))
+      return { items: page.items.map(issueFromApi), nextCursor: page.next_cursor ?? null }
+    },
+    issueStatuses: async (keys) => {
+      const out = await json<ApiStatuses>(`${ISSUES}/status`, send('POST', { keys }))
+      return Object.fromEntries(
+        Object.entries(out.statuses).map(([k, v]): [string, IssueStatus] => [k, v ?? null]),
+      )
+    },
+    agentPrompt: async (key) =>
+      (await json<ApiPrompt>(`${ISSUES}/${encodeURIComponent(key)}/agent-prompt`)).text,
     connectJira: async ({ site, email, token }: JiraConnectionInput) => {
       const body = { site_url: site, email, api_token: token }
       const existing = await current()

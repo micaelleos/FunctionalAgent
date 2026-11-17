@@ -2,10 +2,12 @@ import type {
   ChatMessage,
   ConversationSummary,
   CreatedIssue,
+  IssueType,
   JiraConnection,
   JiraProject,
   ProductApi,
   ProposedAction,
+  IssueReadiness,
 } from './types'
 
 const JIRA = 'https://jira.example.com'
@@ -127,30 +129,51 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
   }
 
   const issues: CreatedIssue[] = [
-    issue('PAG-120', 'Epic', 'New payment methods', 30, 'c1', 'Pix checkout'),
-    issue('AUTH-88', 'Story', 'Sign in with a Microsoft account', 50, 'c2', 'Refine social login'),
-    issue('AUTH-89', 'Task', 'Configure the OIDC provider', 51, 'c2', 'Refine social login'),
-    issue('BI-57', 'Story', 'Export the monthly report as CSV', 98, 'c3', 'Monthly sales report'),
+    issue('PAG-120', 'Epic', 'New payment methods', 30, 'c1', 'Pix checkout', 'agent_ready'),
+    issue(
+      'AUTH-88',
+      'Story',
+      'Sign in with a Microsoft account',
+      50,
+      'c2',
+      'Refine social login',
+      'agent_ready',
+    ),
+    issue(
+      'AUTH-89',
+      'Task',
+      'Configure the OIDC provider',
+      51,
+      'c2',
+      'Refine social login',
+      'human_only',
+    ),
+    issue('BI-57', 'Story', 'Export the monthly report as CSV', 98, null, null, 'not_ready'),
   ]
 
   function issue(
     key: string,
-    type: CreatedIssue['type'],
+    type: IssueType,
     title: string,
     hoursAgo: number,
-    conversationId: string,
-    conversationTitle: string,
+    conversationId: string | null,
+    conversationTitle: string | null,
+    readiness: IssueReadiness,
   ): CreatedIssue {
+    const createdAt = new Date(now() - hoursAgo * HOUR).toISOString()
     return {
       key,
       type,
       title,
       projectKey: key.split('-')[0],
-      status: null,
-      createdAt: new Date(now() - hoursAgo * HOUR).toISOString(),
+      createdAt,
+      updatedAt: createdAt,
+      operation: 'created',
+      readiness,
       url: `${JIRA}/browse/${key}`,
       conversationId,
       conversationTitle,
+      hasSpec: true,
     }
   }
 
@@ -196,11 +219,35 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
       return connection
     },
     listProjects: async () => (connection ? projects : []),
-    listIssues: async () => [...issues].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    refreshIssueStatuses: async () => {
-      const statuses = ['To Do', 'In Progress', 'Done']
-      issues.forEach((i, n) => (i.status = statuses[n % statuses.length]))
-      return [...issues].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    listIssues: async (filters) => ({
+      items: issues
+        .filter(
+          (i) =>
+            (!filters.projectKey || i.projectKey === filters.projectKey) &&
+            (!filters.type || i.type === filters.type) &&
+            (!filters.readiness || i.readiness === filters.readiness) &&
+            (!filters.from || i.createdAt >= filters.from),
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      nextCursor: null,
+    }),
+    issueStatuses: async (keys) => {
+      const statuses = [
+        { name: 'To Do', category: 'new' },
+        { name: 'In Progress', category: 'indeterminate' },
+        { name: 'Done', category: 'done' },
+      ]
+      return Object.fromEntries(keys.map((k, n) => [k, statuses[n % statuses.length]]))
+    },
+    agentPrompt: async (key) => {
+      const found = issues.find((i) => i.key === key)
+      if (!found) throw Object.assign(new Error('not found'), { code: 'issue-not-found' })
+      return [
+        `Implemente a issue ${key} abaixo. Os critérios de aceite são os testes de pronto.`,
+        `# ${key} · ${found.title}`,
+        `Issue no Jira: ${found.url}`,
+        '## Critérios de aceite\n\n- Dado …, quando …, então …',
+      ].join('\n\n')
     },
     listConversations: async () =>
       [...conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
@@ -290,7 +337,10 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
           resultKey: 'PAG-142',
           resultUrl: `${JIRA}/browse/PAG-142`,
         })
-        issues.push(issue('PAG-142', a.issueType ?? 'Story', a.title, 0, 'c1', 'Pix checkout'))
+        const ready = a.readiness?.ready ? 'agent_ready' : 'not_ready'
+        issues.push(
+          issue('PAG-142', a.issueType ?? 'Story', a.title, 0, 'c1', 'Pix checkout', ready),
+        )
       }
       return { ...a }
     },

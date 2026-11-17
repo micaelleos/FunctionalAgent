@@ -166,6 +166,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jira/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Issues criadas/atualizadas pelo SpecFlow */
+        get: operations["list_issues_api_v1_jira_issues_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jira/issues/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Status atual no Jira (até 50 chaves) */
+        post: operations["issue_statuses_api_v1_jira_issues_status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jira/issues/{key}/agent-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Texto da spec para colar no agente de código */
+        get: operations["agent_prompt_api_v1_jira_issues__key__agent_prompt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jira/projects": {
         parameters: {
             query?: never;
@@ -312,6 +363,13 @@ export interface components {
             /** Url */
             url: string;
         };
+        /** AgentPrompt */
+        AgentPrompt: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
         /** ConversationCreate */
         ConversationCreate: {
             /** Project Key */
@@ -373,6 +431,56 @@ export interface components {
             status: "ok";
             /** Version */
             version: string;
+        };
+        /** IssueOut */
+        IssueOut: {
+            /** Conversation Id */
+            conversation_id: string | null;
+            /** Conversation Title */
+            conversation_title: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Has Spec */
+            has_spec: boolean;
+            /** Issue Type */
+            issue_type: string;
+            /** Key */
+            key: string;
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "created" | "updated";
+            /** Project Key */
+            project_key: string;
+            /**
+             * Readiness
+             * @enum {string}
+             */
+            readiness: "agent_ready" | "human_only" | "not_ready";
+            /** Summary */
+            summary: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Url */
+            url: string;
+        };
+        /** IssuePage */
+        IssuePage: {
+            /** Items */
+            items: components["schemas"]["IssueOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** IssueStatus */
+        IssueStatus: {
+            /** Category */
+            category: string;
+            /** Name */
+            name: string;
         };
         /**
          * JiraConnection
@@ -501,6 +609,18 @@ export interface components {
             locale: string;
             /** Uid */
             uid: string;
+        };
+        /** StatusOut */
+        StatusOut: {
+            /** Statuses */
+            statuses: {
+                [key: string]: components["schemas"]["IssueStatus"] | null;
+            };
+        };
+        /** StatusRequest */
+        StatusRequest: {
+            /** Keys */
+            keys: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -1111,6 +1231,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JiraConnection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_issues_api_v1_jira_issues_get: {
+        parameters: {
+            query?: {
+                project?: string | null;
+                type?: string | null;
+                readiness?: ("agent_ready" | "human_only" | "not_ready") | null;
+                from?: string | null;
+                to?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_statuses_api_v1_jira_issues_status_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agent_prompt_api_v1_jira_issues__key__agent_prompt_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPrompt"];
                 };
             };
             /** @description Validation Error */

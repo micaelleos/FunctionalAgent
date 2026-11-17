@@ -58,6 +58,9 @@ function backend() {
       stored = null
       return new HttpResponse(null, { status: 204 })
     }),
+    http.get(api('/api/v1/jira/projects'), () =>
+      HttpResponse.json({ items: [], fetched_at: '2026-11-16T12:00:00Z' }),
+    ),
     http.post(api(`${BASE}/:id/validate`), () => {
       stored = { ...stored!, status: 'invalid' } // o token foi revogado no Jira
       return HttpResponse.json(stored)
@@ -212,8 +215,8 @@ describe('F04-RF-07 como criar o token', () => {
   })
 })
 
-describe('F08-RT-08 projetos enquanto a F09 não chega', () => {
-  it('com o Jira conectado, diz que a lista vem na próxima versão em vez de "0 projetos"', async () => {
+describe('F09-RF-06 token recusado ao listar projetos', () => {
+  it('a API marca a conexão inválida e o aviso de reconectar aparece', async () => {
     stored = {
       id: 'conn-1',
       site_url: 'https://sandbox.atlassian.net',
@@ -223,11 +226,17 @@ describe('F08-RT-08 projetos enquanto a F09 não chega', () => {
       status: 'ok',
       last_validated_at: '2026-11-16T12:00:00Z',
     }
+    server.use(
+      http.get(api('/api/v1/jira/projects'), () => {
+        if (stored) stored = { ...stored, status: 'invalid' }
+        return problem(409, 'jira-credential-rejected', 'recusado')
+      }),
+    )
     renderAt('/projects')
 
-    expect(
-      await screen.findByRole('heading', { name: 'The project list arrives in the next release' }),
-    ).toBeInTheDocument()
+    const banner = await screen.findByRole('alert')
+    expect(banner).toHaveTextContent('Your Jira connection has expired')
+    expect(within(banner).getByRole('link', { name: 'Reconnect' })).toBeInTheDocument()
     expect(screen.queryByText(/0 projects/)).not.toBeInTheDocument()
   })
 })

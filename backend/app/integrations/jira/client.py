@@ -71,6 +71,10 @@ class JiraProject:
     key: str
     name: str
     type: str
+    id: str = ""
+    avatar_url: str | None = None
+    # `expand=insight` (F09-RT-01); `None` quando o Jira não manda.
+    total_issues: int | None = None
 
 
 @dataclass(frozen=True)
@@ -100,6 +104,7 @@ class JiraIssue:
     url: str
 
 
+MAX_PROJECT_PAGES = 20  # 1000 projetos (F09-RT-03)
 ISSUE_FIELDS = ["summary", "description", "issuetype", "status", "priority", "labels", "parent"]
 MAX_SEARCH = 50
 
@@ -126,6 +131,23 @@ def _error_messages(response: httpx.Response) -> str:
 
 def _name(value: Any) -> str | None:
     return str(value["name"]) if isinstance(value, dict) and value.get("name") else None
+
+
+def _project(data: dict[str, Any]) -> JiraProject:
+    insight = data.get("insight") if isinstance(data.get("insight"), dict) else {}
+    total = insight.get("totalIssueCount") if insight else None
+    avatars = data.get("avatarUrls") if isinstance(data.get("avatarUrls"), dict) else {}
+    avatar = avatars.get("48x48") if avatars else None
+    return JiraProject(
+        key=str(data["key"]),
+        name=str(data.get("name") or ""),
+        type=str(data.get("projectTypeKey") or ""),
+        id=str(data.get("id") or ""),
+        avatar_url=str(avatar)
+        if isinstance(avatar, str) and avatar.startswith("https://")
+        else None,
+        total_issues=int(total) if isinstance(total, int) else None,
+    )
 
 
 def _backoff(attempt: int) -> float:
@@ -295,15 +317,29 @@ class JiraClient:
             url=f"{self.site_url}/browse/{data['key']}",
         )
 
-    async def list_projects(self) -> list[JiraProject]:
-        """`GET /rest/api/3/project/search`: projetos visíveis para a conta (até 50)."""
+    async def list_projects(
+        self, *, insight: bool = False, max_pages: int = 1
+    ) -> list[JiraProject]:
+        """`GET /rest/api/3/project/search`: projetos visíveis para a conta, 50 por página, até
+        `isLast` ou `max_pages` (F09-RT-03). Com `insight`, cada projeto traz o total de issues."""
+        projects: list[JiraProject] = []
+        for page in range(max_pages):
+            params: dict[str, Any] = {"startAt": page * MAX_SEARCH, "maxResults": MAX_SEARCH}
+            if insight:
+                params["expand"] = "insight"
+            data = (await self._request("GET", "/rest/api/3/project/search", params=params)).json()
+            values = data.get("values") or []
+            projects.extend(_project(p) for p in values)
+            if data.get("isLast", True) or not values:
+                break
+        return projects
+
+    async def approximate_count(self, jql: str) -> int:
+        """`POST /rest/api/3/search/approximate-count`: quantas issues a JQL encontra."""
         response = await self._request(
-            "GET", "/rest/api/3/project/search", params={"maxResults": MAX_SEARCH}
+            "POST", "/rest/api/3/search/approximate-count", json={"jql": jql}
         )
-        return [
-            JiraProject(str(p["key"]), str(p.get("name") or ""), str(p.get("projectTypeKey") or ""))
-            for p in response.json().get("values", [])
-        ]
+        return int(response.json()["count"])
 
     async def get_issue(self, key: str) -> JiraIssue:
         response = await self._request(

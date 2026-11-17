@@ -66,3 +66,17 @@ class MemoryJiraStore:
 
     def delete(self, uid: str, connection_id: str) -> None:
         self.docs.get(uid, {}).pop(connection_id, None)
+
+
+class MemoryProjectCache:
+    """Cache de projetos em memória (o real fica em `users/{uid}/cache/jiraProjects`)."""
+
+    def __init__(self) -> None:
+        self.docs: dict[str, dict[str, Any]] = {}
+
+    def get_projects(self, uid: str) -> dict[str, Any] | None:
+        doc = self.docs.get(uid)
+        return copy.deepcopy(doc) if doc else None
+
+    def set_projects(self, uid: str, data: dict[str, Any]) -> None:
+        self.docs[uid] = copy.deepcopy(data)

@@ -47,9 +47,13 @@ export interface JiraConnectionInput {
 export interface JiraProject {
   key: string
   name: string
+  /** `projectTypeKey` do Jira: `software`, `business`, `service_desk`. */
   type: string
-  openIssues: number
-  totalIssues: number
+  /** Avatar do Jira (https); a tela mostra as iniciais se não carregar. */
+  avatarUrl: string | null
+  /** `null`: o Jira não respondeu a contagem (a tela mostra "—", F09-RT-04). */
+  openIssues: number | null
+  totalIssues: number | null
   url: string
 }
 
@@ -161,7 +165,8 @@ export interface ProductApi {
   disconnectJira(): Promise<void>
   /** Testa a credencial guardada; se o Jira recusar, a conexão volta com `status: 'invalid'`. */
   validateJira(): Promise<JiraConnection>
-  listProjects(): Promise<JiraProject[]>
+  /** `refresh` ignora o cache de 5 min do backend (F09-RF-07). */
+  listProjects(refresh?: boolean): Promise<JiraProject[]>
   listIssues(): Promise<CreatedIssue[]>
   refreshIssueStatuses(): Promise<CreatedIssue[]>
   listConversations(): Promise<ConversationSummary[]>

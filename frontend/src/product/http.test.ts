@@ -113,3 +113,45 @@ describe('F08-RF-03 histórico com cartões', () => {
     expect(product().features.chat).toBe(true)
   })
 })
+
+describe('F09-RF-01 F09-RF-07 projetos pela API', () => {
+  it('mapeia os projetos e "refresh" ignora o cache', async () => {
+    const searches: string[] = []
+    server.use(
+      http.get(api('/api/v1/jira/projects'), ({ request }) => {
+        searches.push(new URL(request.url).search)
+        return HttpResponse.json({
+          items: [
+            {
+              id: '1',
+              key: 'SCRUM',
+              name: 'Sandbox',
+              type: 'software',
+              avatar_url: null,
+              open_issues: null,
+              total_issues: 22,
+              url: 'https://x.atlassian.net/browse/SCRUM',
+            },
+          ],
+          fetched_at: '2026-11-17T12:00:00Z',
+        })
+      }),
+    )
+    const p = product()
+
+    expect(await p.listProjects()).toEqual([
+      {
+        key: 'SCRUM',
+        name: 'Sandbox',
+        type: 'software',
+        avatarUrl: null,
+        openIssues: null,
+        totalIssues: 22,
+        url: 'https://x.atlassian.net/browse/SCRUM',
+      },
+    ])
+    await p.listProjects(true)
+    expect(searches).toEqual(['', '?refresh=true'])
+    expect(p.features.projects).toBe(true)
+  })
+})

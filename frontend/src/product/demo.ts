@@ -27,16 +27,17 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
   }
 
   const projects: JiraProject[] = [
-    ['PAG', 'Payments', 'Software · Scrum', 38, 214],
-    ['AUTH', 'Authentication', 'Software · Kanban', 12, 96],
-    ['BI', 'Business Intelligence', 'Software · Scrum', 21, 140],
-    ['ENT', 'Delivery app', 'Software · Scrum', 54, 388],
-    ['ATD', 'Customer support', 'Service management', 9, 61],
+    ['PAG', 'Payments', 'software', 38, 214],
+    ['AUTH', 'Authentication', 'software', 12, 96],
+    ['BI', 'Business Intelligence', 'business', 21, 140],
+    ['ENT', 'Delivery app', 'software', null, 388],
+    ['ATD', 'Customer support', 'service_desk', 9, 61],
   ].map(([key, name, type, openIssues, totalIssues]) => ({
     key: String(key),
     name: String(name),
     type: String(type),
-    openIssues: Number(openIssues),
+    avatarUrl: null,
+    openIssues: openIssues === null ? null : Number(openIssues),
     totalIssues: Number(totalIssues),
     url: `${JIRA}/browse/${String(key)}`,
   }))

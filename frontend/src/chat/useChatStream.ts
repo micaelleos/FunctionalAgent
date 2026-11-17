@@ -5,7 +5,7 @@ import { ApiError } from '../lib/api'
 import type { ChatEvent } from '../lib/sse'
 import { fromProposedEvent } from '../product/actions'
 import { useProduct } from '../product/context'
-import type { ProposedAction } from '../product/types'
+import type { MessagePage, ProposedAction } from '../product/types'
 
 export type TurnStatus = 'streaming' | 'stopped' | 'failed' | 'done'
 
@@ -97,6 +97,27 @@ export function useChatStream({ onConversation, onRestore }: Options = {}) {
     [queryClient],
   )
 
+  // Se a 1ª busca do histórico de uma conversa nova ainda estava em andamento no fim do turno, o
+  // `invalidateQueries` reaproveita essa busca (sem a resposta): o TanStack Query não cancela uma
+  // busca que ainda não tem dados. Relê até a resposta gravada aparecer.
+  const ensureSaved = useCallback(
+    async (conversationId: string | null, messageId: string | null) => {
+      if (!conversationId || !messageId) return
+      const key = ['messages', conversationId]
+      const has = () =>
+        queryClient
+          .getQueryData<{ pages: MessagePage[] }>(key)
+          ?.pages.some((p) => p.items.some((m) => m.id === messageId)) ?? false
+      for (let attempt = 0; attempt < 3 && !has(); attempt++) {
+        if (!queryClient.getQueryCache().find({ queryKey: key })) return
+        // Sem cancelar, o refetch se junta à busca em andamento (sem dados ainda) e não relê.
+        await queryClient.cancelQueries({ queryKey: key })
+        await queryClient.refetchQueries({ queryKey: key })
+      }
+    },
+    [queryClient],
+  )
+
   const send = useCallback(
     async (conversationId: string | null, text: string, projectKey: string | null = null) => {
       if (controller.current) return
@@ -106,6 +127,7 @@ export function useChatStream({ onConversation, onRestore }: Options = {}) {
       buffer.current = ''
       let current = conversationId
       let started = false
+      let savedId: string | null = null
       setTurn({
         conversationId,
         userText: text,
@@ -126,7 +148,10 @@ export function useChatStream({ onConversation, onRestore }: Options = {}) {
           case 'open':
           case 'message_saved':
             // A conversa existe desde o início do stream: "Parar" antes do fim não a perde.
-            if (event.event === 'message_saved') update({ messageId: event.message_id })
+            if (event.event === 'message_saved') {
+              savedId = event.message_id
+              update({ messageId: event.message_id })
+            }
             if (event.conversation_id !== current) {
               current = event.conversation_id
               update({ conversationId: current })
@@ -167,8 +192,17 @@ export function useChatStream({ onConversation, onRestore }: Options = {}) {
         current = result.conversationId || current
         update({ text: buffer.current, tool: null, conversationId: current })
         await refresh(current)
-        // Erro do agente (evento `error`): o turno fica na tela com o aviso e "Try again".
-        if (mounted.current) setTurn((t) => (t && t.error ? { ...t, status: 'failed' } : null))
+        await ensureSaved(current, savedId)
+        // Erro do agente (evento `error`): o turno fica na tela com o aviso e "Try again". Sem
+        // erro, fica `done` até o histórico trazer a resposta gravada (a tela o esconde então).
+        if (mounted.current)
+          setTurn((t) =>
+            t && t.error
+              ? { ...t, status: 'failed' }
+              : t?.messageId
+                ? { ...t, status: 'done' }
+                : null,
+          )
       } catch (error) {
         if (abort.signal.aborted) {
           update({ text: buffer.current, tool: null, status: 'stopped' })
@@ -190,7 +224,7 @@ export function useChatStream({ onConversation, onRestore }: Options = {}) {
         controller.current = null
       }
     },
-    [flushSoon, onConversation, onRestore, product, refresh, update],
+    [ensureSaved, flushSoon, onConversation, onRestore, product, refresh, update],
   )
 
   const stop = useCallback(() => controller.current?.abort(), [])

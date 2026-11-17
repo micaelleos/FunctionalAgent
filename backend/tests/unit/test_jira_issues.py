@@ -166,6 +166,7 @@ async def test_conversa_apagada_antes_da_f10_tambem_some_o_link() -> None:
 
 
 @pytest.mark.req("F10-RF-06")
+@pytest.mark.req("F10-RT-06")
 async def test_copiar_para_agente_usa_a_spec_confirmada() -> None:
     env = Env()
     key = await env.create()
@@ -194,6 +195,7 @@ async def test_atualizacao_com_spec_nova_vira_a_base_do_copiar() -> None:
 
 
 @pytest.mark.req("F10-RF-06")
+@pytest.mark.req("F10-RT-06")
 async def test_so_atualizacao_sem_spec_nao_tem_o_que_copiar() -> None:
     env = Env()
     aid = _propose(

@@ -116,10 +116,10 @@ export function IssuesPage() {
       {issues.isError && <Alert kind="error">{errorMessage(issues.error)}</Alert>}
       {refresh.isError && <Alert kind="error">{errorMessage(refresh.error)}</Alert>}
       {copy.isError && <Alert kind="error">{errorMessage(copy.error)}</Alert>}
-      <p role="status" className="sr-only">
+      {/* Sempre no DOM: leitores de tela anunciam quando o texto muda. */}
+      <p role="status" className="text-sm text-green-800 empty:hidden">
         {copied}
       </p>
-      {copied && <p className="text-sm text-green-800">{copied}</p>}
 
       {empty && !filtered && (
         <section className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-zinc-400 bg-white p-6">

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em validação |
 | **Fase** | 2 — Produto |
 | **Dependências** | F06, F08 |
 | **Estimativa** | 3,5 dias |
@@ -86,14 +86,16 @@ Funcionalidade: Histórico de issues
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F10-RF-01 | AT-F10-01, `test_jira_issues.py`, `IssuesPage.test.tsx` | ⬜ |
-| F10-RF-02 | AT-F10-01, `test_jira_issues.py` | ⬜ |
-| F10-RF-03 | AT-F10-02, `test_jira_issues.py`, `IssuesPage.test.tsx` | ⬜ |
-| F10-RF-04 | AT-F10-01, `test_jira_issues.py`, `IssuesPage.test.tsx` | ⬜ |
-| F10-RF-05 | AT-F10-03, `test_jira_issues.py`, `IssuesPage.test.tsx` | ⬜ |
-| F10-RF-06 | AT-F10-04, `test_jira_issues.py`, `IssuesPage.test.tsx` | ⬜ |
-| F10-RF-07 | AT-F10-04, `test_jira_issues.py`, `IssuesPage.test.tsx` | ⬜ |
+| F10-RF-01 | AT-F10-01, `test_jira_issues.py`, `IssuesPage.test.tsx`, `http.test.ts` | ✅ |
+| F10-RF-02 | AT-F10-01, `test_jira_issues.py` | ✅ |
+| F10-RF-03 | AT-F10-02, `test_jira_issues.py`, `IssuesPage.test.tsx` | ✅ |
+| F10-RF-04 | AT-F10-01, `test_jira_issues.py`, `IssuesPage.test.tsx` | ✅ |
+| F10-RF-05 | AT-F10-03, `test_jira_issues.py`, `IssuesPage.test.tsx` | ✅ |
+| F10-RF-06 | AT-F10-04, `test_jira_issues.py`, `IssuesPage.test.tsx` | ✅ |
+| F10-RF-07 | AT-F10-04, `test_jira_issues.py`, `IssuesPage.test.tsx` | ✅ |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-17 | `feat/F10-historico-issues` | Local: Vite + API (Gemini `gemini-3.5-flash-lite` no Vertex, `pcb-inspect`) + emuladores, Jira sandbox `SCRUM` | `E2E_EMULATORS=1 E2E_REAL_LLM=1 E2E_JIRA_WRITE=1 npx playwright test e2e/f10-historico.spec.ts`, com autorização do PO para escrever | AT-F10-01..03 ok com SCRUM-40 (outra sessão vê no topo, link `/browse/SCRUM-40`, filtros projeto/tipo no servidor, status "A fazer"); AT-F10-04 (selo Agent-ready, cópia com instrução, link e `## Critérios de aceite`, origem abre a conversa) conferido na mesma conta sem nova escrita, depois de corrigir o aviso duplicado de "copied". SCRUM-39 criada numa 1ª execução que parou num erro do próprio teste. Issues mantidas no sandbox a pedido do PO | |
+| 2026-11-17 | `feat/F10-historico-issues` | Unit + Firestore do emulador | `make test` (backend 553, front 136), `tests/integration/test_jira_issues.py` | registro e ação na mesma transação; atualização não muda a 1ª data; ordem, cursor e período na consulta real; conversa excluída limpa o vínculo | |

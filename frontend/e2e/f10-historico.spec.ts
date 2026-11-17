@@ -65,8 +65,10 @@ test.describe('F10 histórico de issues', () => {
       await card.getByRole('button', { name: 'Confirm and create' }).click({ timeout: 150_000 })
       const created = card.getByText(/^Created as /)
       await expect(created).toBeVisible({ timeout: 60_000 })
-      const key = ((await created.textContent()) ?? '').replace('Created as ', '').trim()
-      expect(key).toMatch(new RegExp(`^${PROJECT}-\\d+$`))
+      // O texto do cartão vem com o link ("Created as KEY-1 · Open in Jira").
+      const key =
+        ((await created.textContent()) ?? '').match(new RegExp(`${PROJECT}-\\d+`))?.[0] ?? ''
+      expect(key).not.toBe('')
       const conversationUrl = new URL(page.url()).pathname
 
       // AT-F10-01: outra sessão da mesma conta vê a issue no topo.

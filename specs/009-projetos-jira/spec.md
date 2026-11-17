@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em validação |
+| **Status** | Aceita |
 | **Fase** | 2 — Produto |
 | **Dependências** | F04, F08 |
 | **Estimativa** | 3 dias |
@@ -99,5 +99,5 @@ Funcionalidade: Projetos Jira
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
-| 2026-11-17 | `feat/F09-projetos-jira` | Local: Vite + API + emuladores, Jira sandbox `SCRUM` só leitura | `E2E_EMULATORS=1 npx playwright test e2e/f09-projetos.spec.ts` (e a suíte local inteira) | AT-F09-01..03 2/2 (o projeto do sandbox com abertas e total, filtro, sem resultado, `/browse/SCRUM` em nova aba, Refresh, chat com o projeto fixado; sem conexão orienta a conectar); suíte local 19/19 | — |
-| 2026-11-17 | `feat/F09-projetos-jira` | Unit, Jira falso com 150 ms por chamada, 20 projetos | `test_jira_projects_perf.py` | p95 < 1,5 s (cache frio ≈ 6 × 150 ms; com cache, sem chamadas ao Jira) | — |
+| 2026-11-17 | `feat/F09-projetos-jira` | Local: Vite + API + emuladores, Jira sandbox `SCRUM` só leitura | `E2E_EMULATORS=1 npx playwright test e2e/f09-projetos.spec.ts` (e a suíte local inteira) | AT-F09-01..03 2/2 (o projeto do sandbox com abertas e total, filtro, sem resultado, `/browse/SCRUM` em nova aba, Refresh, chat com o projeto fixado; sem conexão orienta a conectar); suíte local 19/19 | PO (aceite com as evidências locais) |
+| 2026-11-17 | `feat/F09-projetos-jira` | Unit, Jira falso com 150 ms por chamada, 20 projetos | `test_jira_projects_perf.py` | p95 < 1,5 s (cache frio ≈ 6 × 150 ms; com cache, sem chamadas ao Jira) | PO (aceite com as evidências locais) |

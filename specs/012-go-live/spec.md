@@ -28,18 +28,23 @@ lista de convite em código: a URL já é pública e cotas (F11) + App Check lim
 
 ### 2. Escopo
 - **Inclui:** checklist de prontidão; beta com convidados (roteiro, convite, coleta de feedback); página
-  "About" com o fluxo novo e o contato de suporte; página de privacidade e uso; AT-F12-01 em prd;
+  rodapé da página inicial com ajuda (GitHub) e status da API; página de privacidade e uso; AT-F12-01 em prd;
   remoção de `legacy/`, tag `legacy-streamlit-final`, README novo.
 - **Fora de escopo:** migração de dados do Streamlit (não há dados persistidos); domínio próprio;
   redirecionamento (o Streamlit não estava publicado); lista de convite no código.
+
+**Ajuste 2026-11-18 (PO):** a página "About" saiu ("não tem nada de relevante"). O status e a versão da
+API (F01-RF-03, F02-RF-03), o link de ajuda e o de privacidade ficam no rodapé da página inicial;
+`/about` leva à página inicial. No chat, em telas largas, mensagens e lista de conversas rolam cada uma
+no seu contêiner; o ícone da aba é o logo da landing.
 
 ### 3. Requisitos funcionais
 | ID | Requisito | Prio. |
 |---|---|---|
 | F12-RF-01 | Todas as capacidades do app antigo existem no novo (matriz de paridade abaixo) | Must |
 | F12-RF-02 | Quem chega pelo repositório (README, descrição do GitHub) é levado ao app novo; o Streamlit sai do repositório | Should |
-| F12-RF-03 | A página "About" explica o fluxo novo (criar conta, conectar o Jira, conversar, confirmar ações) e diz onde pedir ajuda (issues do GitHub) | Must |
-| F12-RF-04 | Página pública "Privacy" (`/privacy`, ligada no About, no cadastro e no rodapé): que dados guardamos (conta, conexão Jira com token cifrado, conversas, issues criados, uso diário), com quem são processados (Google Gemini no Vertex AI, Atlassian), o que os logs têm (`uid_hash`, nunca o conteúdo), e como apagar tudo (Account → Delete my data) | Must |
+| F12-RF-03 | O rodapé da página inicial diz onde pedir ajuda ("Help", issues do GitHub), liga a privacidade e mostra o status da API; `/about` (antigo) leva à página inicial | Must |
+| F12-RF-04 | Página pública "Privacy" (`/privacy`, ligada no rodapé da página inicial e no cadastro): que dados guardamos (conta, conexão Jira com token cifrado, conversas, issues criados, uso diário), com quem são processados (Google Gemini no Vertex AI, Atlassian), o que os logs têm (`uid_hash`, nunca o conteúdo), e como apagar tudo (Account → Delete my data) | Must |
 
 **Matriz de paridade**
 
@@ -52,7 +57,7 @@ lista de convite em código: a URL já é pública e cotas (F11) + App Check lim
 | Lista de projetos | F09 | AT-F09-01 |
 | Issues criados | F10 | AT-F10-01 |
 | Configurar credenciais Jira | F04 | AT-F04-01 |
-| Página Sobre | F12-RF-03 | `AboutPage.test.tsx` |
+| Página Sobre (status da API) | F12-RF-03 (rodapé da página inicial) | `LandingPage.test.tsx`, `App.test.tsx` |
 
 ### 4. Requisitos técnicos
 | ID | Requisito | Verificação |
@@ -67,7 +72,7 @@ SLOs e alertas ativos (F11, AT-F11-03) · restauração do Firestore ensaiada (P
 `docs/runbooks/firestore-restauracao.md`) · runbooks revisados · evals ≥ baseline (`evals/run.py --compare`)
 · ZAP sem achados altos (F11-RT-10) · custo estimado por mês aprovado pelo PO · privacidade publicada
 (F12-RF-04) · App Check em `enforce` (F11-T008) · HTTPS (Hosting e Cloud Run; sem domínio próprio) ·
-contato de suporte no About (F12-RF-03).
+contato de suporte no rodapé (F12-RF-03).
 
 ### 5. Teste final de aceitação
 ```gherkin
@@ -88,9 +93,9 @@ Funcionalidade: Go-live
 
   Cenário: AT-F12-03 Ajuda e privacidade públicas              # F12-RF-03, F12-RF-04
     Quando abro /about sem estar logado
-    Então vejo os passos "Create an account", "Connect Jira", "Chat", "Confirm before anything is written"
-    E o link de suporte para as issues do GitHub
-    E o link "Privacy", que abre /privacy sem login
+    Então vou para a página inicial
+    E o rodapé tem "Help" (issues do GitHub), "Privacy" e "API: ok"
+    E "Privacy" abre /privacy sem login
 ```
 
 ### 6. Conformidade com a Constituição
@@ -110,10 +115,11 @@ Funcionalidade: Go-live
 |---|---|---|
 | F12-RF-01 | Matriz de paridade, AT-F12-01 (`e2e/f12-golive.spec.ts`) | ⬜ |
 | F12-RF-02 | AT-F12-02, `scripts/test_no_legacy.py` | ⬜ |
-| F12-RF-03 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `AboutPage.test.tsx` | ✅ local |
+| F12-RF-03 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `LandingPage.test.tsx` | ✅ local |
 | F12-RF-04 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `PrivacyPage.test.tsx` | ✅ local |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
 | 2026-11-18 | branch `feat/F12-go-live` | local (`make dev`) | AT-F12-03 (About com os 4 passos e o suporte; Privacy pública; axe sem violações sérias); suíte E2E local (19 passaram, 9 pulados); `make lint`; `make test` (backend 593, frontend 149); `make trace` | ✅ | — |
+| 2026-11-18 | branch `fix/F12-ajustes-ui` | local (`make dev`) | Ajustes do PO: favicon = logo da landing; About removido (rodapé com Help, Privacy e status da API; `/about` → `/`); chat em tela larga com rolagem própria nas mensagens e na lista de conversas (E2E novo em `f08-chat.spec.ts`: a página não rola, a lateral fica parada). Suíte E2E local 20 passaram, 9 pulados; Vitest 150 | ✅ | — |

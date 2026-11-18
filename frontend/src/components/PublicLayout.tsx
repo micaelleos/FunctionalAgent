@@ -31,9 +31,6 @@ export function PublicLayout() {
               {t.nav.chat}
             </NavLink>
           )}
-          <NavLink to="/about" className={link}>
-            {t.nav.about}
-          </NavLink>
           {status === 'signed-in' && user && (
             <div className="ml-auto flex items-center gap-3" aria-label={t.nav.userMenu}>
               <NavLink to="/account" className={link}>

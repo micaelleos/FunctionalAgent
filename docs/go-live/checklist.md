@@ -14,7 +14,7 @@ todos marcados. Revisão final: PO.
 | 7 | Privacidade publicada | ⬜ | https://specsflow-ai.web.app/privacy (F12-RF-04) |
 | 8 | App Check em `enforce` | ⬜ | F11-T008 (a partir de 2026-11-25); AT-F11-04 |
 | 9 | HTTPS | ✅ | Firebase Hosting e Cloud Run só servem HTTPS; sem domínio próprio (decisão do PO) |
-| 10 | Contato de suporte no About | ⬜ | https://specsflow-ai.web.app/about → "Open an issue on GitHub" (F12-RF-03) |
+| 10 | Contato de suporte | ⬜ | rodapé de https://specsflow-ai.web.app → "Help (GitHub issues)" (F12-RF-03) |
 | 11 | AT-F12-01 verde em prd | ⬜ | `e2e/f12-golive.spec.ts` com `E2E_PRD=1` |
 | 12 | Beta concluído, sem Sev1 aberto | ⬜ | `docs/go-live/beta.md` → resumo do feedback |
 

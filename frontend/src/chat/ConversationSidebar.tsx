@@ -56,7 +56,7 @@ export function ConversationSidebar({ currentId }: { currentId: string | null })
   return (
     <aside
       aria-label={t.chat.conversations}
-      className="flex shrink-0 flex-col gap-2 border-b border-zinc-200 bg-white p-3 lg:w-72 lg:border-r lg:border-b-0"
+      className="flex shrink-0 flex-col gap-2 border-b border-zinc-200 bg-white p-3 lg:min-h-0 lg:w-72 lg:border-r lg:border-b-0"
     >
       <div className="flex gap-2">
         <Link
@@ -77,7 +77,10 @@ export function ConversationSidebar({ currentId }: { currentId: string | null })
         </button>
       </div>
       {error ? <Alert kind="error">{errorMessage(error)}</Alert> : null}
-      <div id="lista-de-conversas" className={`${open ? 'flex' : 'hidden'} flex-col gap-1 lg:flex`}>
+      <div
+        id="lista-de-conversas"
+        className={`${open ? 'flex' : 'hidden'} relative flex-col gap-1 lg:flex lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
+      >
         {conversations.isError && <Alert kind="error">{errorMessage(conversations.error)}</Alert>}
         {conversations.isSuccess && conversations.data.length === 0 && (
           <p className="px-2 py-3 text-sm text-zinc-600">{t.chat.noConversations}</p>

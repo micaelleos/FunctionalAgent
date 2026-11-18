@@ -5,7 +5,6 @@ import { GuestRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 import { PublicLayout } from './components/PublicLayout'
 import { RouteError } from './components/RouteError'
-import { AboutPage } from './pages/AboutPage'
 import { AccountPage } from './pages/AccountPage'
 import { ChatPage } from './pages/ChatPage'
 import { IssuesPage } from './pages/IssuesPage'
@@ -19,7 +18,9 @@ import { SignupPage } from './pages/SignupPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
 const LEGACY_PATHS: Record<string, string> = {
-  '/sobre': '/about',
+  // O "About" saiu (F12): status da API, ajuda e privacidade ficam no rodapé da página inicial.
+  '/about': '/',
+  '/sobre': '/',
   '/cadastro': '/signup',
   '/recuperar-senha': '/reset-password',
   '/verificar-email': '/verify-email',
@@ -36,7 +37,6 @@ const pages: RouteObject[] = [
   {
     element: <PublicLayout />,
     children: [
-      { path: '/about', element: <AboutPage /> },
       { path: '/privacy', element: <PrivacyPage /> },
       { path: '/login', element: guest(<LoginPage />) },
       { path: '/signup', element: guest(<SignupPage />) },

@@ -20,10 +20,10 @@ describe('F03-RF-04 rotas protegidas', () => {
     ).toBeInTheDocument()
   })
 
-  it('"About" é público', async () => {
-    renderAt('/about')
+  it('"Privacy" é pública', async () => {
+    renderAt('/privacy')
 
-    expect(await screen.findByRole('heading', { name: 'SpecFlow AI' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Privacy' })).toBeInTheDocument()
   })
 
   it('conta de e-mail não confirmada vai para a verificação', async () => {
@@ -133,7 +133,7 @@ describe('F03-RF-03 redefinir senha', () => {
 })
 
 describe('F03-RF-06 sair', () => {
-  it.each(['/chat', '/account', '/about'])('sai a partir de %s', async (path) => {
+  it.each(['/chat', '/account', '/privacy'])('sai a partir de %s', async (path) => {
     const auth = renderAt(path, fakeAuth(ALICE))
 
     expect(await screen.findByRole('link', { name: 'Alice' })).toBeInTheDocument()

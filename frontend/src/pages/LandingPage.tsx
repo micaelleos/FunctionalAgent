@@ -10,7 +10,8 @@ import { Link, Navigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
 import { t } from '../i18n/en'
-import { SOURCE_URL } from '../lib/links'
+import { ApiStatus } from '../components/ApiStatus'
+import { SOURCE_URL, SUPPORT_URL } from '../lib/links'
 
 const L = t.landing
 
@@ -219,12 +220,6 @@ function Header() {
           {t.app.name}
         </Link>
         <nav aria-label={L.nav} className="ml-auto flex items-center gap-2 text-sm">
-          <Link
-            to="/about"
-            className="hidden px-3 py-2 text-zinc-300 transition-colors hover:text-white sm:block"
-          >
-            {t.nav.about}
-          </Link>
           <Link to="/login" className="px-3 py-2 text-zinc-300 transition-colors hover:text-white">
             {L.signIn}
           </Link>
@@ -453,9 +448,6 @@ export function LandingPage() {
             <Mark />
             {t.app.name}
           </span>
-          <Link to="/about" className="transition-colors hover:text-zinc-900 hover:underline">
-            {L.about}
-          </Link>
           <Link to="/privacy" className="transition-colors hover:text-zinc-900 hover:underline">
             {L.privacy}
           </Link>
@@ -467,6 +459,17 @@ export function LandingPage() {
           >
             {L.source}
           </a>
+          <a
+            href={SUPPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-zinc-900 hover:underline"
+          >
+            {L.help}
+          </a>
+          <span className="sm:ml-auto">
+            <ApiStatus />
+          </span>
         </div>
       </footer>
     </div>

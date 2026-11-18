@@ -1,35 +1,28 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
-// AT-F12-03: About e Privacy públicas, sem login, sem violações sérias de acessibilidade. Roda contra
-// `make dev` ou contra prd (E2E_BASE_URL); não escreve nada.
-async function serious(page: import('@playwright/test').Page) {
+// AT-F12-03: rodapé da página inicial com ajuda e status da API; Privacy pública, sem login e sem
+// violações sérias de acessibilidade. Roda contra `make dev` ou prd (E2E_BASE_URL); não escreve nada.
+async function serious(page: Page) {
   const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
   return violations
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => `${v.id}: ${v.help}`)
 }
 
-test('F12-RF-03 F12-RF-04 AT-F12-03 About e Privacy são públicas e acessíveis', async ({
+test('F12-RF-03 F12-RF-04 AT-F12-03 ajuda e privacidade públicas e acessíveis', async ({
   page,
 }) => {
-  await page.goto('/about')
-  const how = page.getByRole('region', { name: 'How it works' })
-  for (const step of [
-    'Create an account',
-    'Connect Jira',
-    'Chat',
-    'Confirm before anything is written',
-  ]) {
-    await expect(how.getByRole('heading', { name: step, exact: true })).toBeVisible()
-  }
-  await expect(page.getByRole('link', { name: 'Open an issue on GitHub' })).toHaveAttribute(
+  await page.goto('/about') // endereço antigo
+  await expect(page).toHaveURL(/\/$/)
+  const footer = page.getByRole('contentinfo')
+  await expect(footer.getByRole('link', { name: /Help/ })).toHaveAttribute(
     'href',
     /github\.com\/micaelleos\/FunctionalAgent\/issues$/,
   )
-  expect(await serious(page)).toEqual([])
+  await expect(footer.getByText('API: ok')).toBeVisible({ timeout: 20_000 })
 
-  await page.getByRole('link', { name: 'Privacy' }).click()
+  await footer.getByRole('link', { name: 'Privacy' }).click()
   await expect(page).toHaveURL(/\/privacy$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible()
   await expect(page.getByRole('heading', { level: 2, name: 'Your choices' })).toBeVisible()

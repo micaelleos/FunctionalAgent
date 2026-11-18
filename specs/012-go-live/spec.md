@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho (revisado em 2026-11-18) |
+| **Status** | Em implementação (beta de 2026-11-19 a 2026-11-25) |
 | **Fase** | 3 — Produção |
 | **Dependências** | F01–F11 (F11-T008, App Check em `enforce`, em 2026-11-25) |
 | **Estimativa** | 4 dias de trabalho + 1 semana de beta |
@@ -39,7 +39,7 @@ lista de convite em código: a URL já é pública e cotas (F11) + App Check lim
 | F12-RF-01 | Todas as capacidades do app antigo existem no novo (matriz de paridade abaixo) | Must |
 | F12-RF-02 | Quem chega pelo repositório (README, descrição do GitHub) é levado ao app novo; o Streamlit sai do repositório | Should |
 | F12-RF-03 | A página "About" explica o fluxo novo (criar conta, conectar o Jira, conversar, confirmar ações) e diz onde pedir ajuda (issues do GitHub) | Must |
-| F12-RF-04 | Página pública "Privacy" (`/privacy`, ligada no About, no cadastro e no rodapé): que dados guardamos (conta, conexão Jira com token cifrado, conversas, issues criados, uso diário), com quem são processados (Google Gemini no Vertex AI, Atlassian), o que os logs têm (`uid_hash`, nunca o conteúdo), e como apagar tudo (Account → Delete account) | Must |
+| F12-RF-04 | Página pública "Privacy" (`/privacy`, ligada no About, no cadastro e no rodapé): que dados guardamos (conta, conexão Jira com token cifrado, conversas, issues criados, uso diário), com quem são processados (Google Gemini no Vertex AI, Atlassian), o que os logs têm (`uid_hash`, nunca o conteúdo), e como apagar tudo (Account → Delete my data) | Must |
 
 **Matriz de paridade**
 
@@ -110,9 +110,10 @@ Funcionalidade: Go-live
 |---|---|---|
 | F12-RF-01 | Matriz de paridade, AT-F12-01 (`e2e/f12-golive.spec.ts`) | ⬜ |
 | F12-RF-02 | AT-F12-02, `scripts/test_no_legacy.py` | ⬜ |
-| F12-RF-03 | AT-F12-03, `AboutPage.test.tsx` | ⬜ |
-| F12-RF-04 | AT-F12-03, `PrivacyPage.test.tsx` | ⬜ |
+| F12-RF-03 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `AboutPage.test.tsx` | ✅ local |
+| F12-RF-04 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `PrivacyPage.test.tsx` | ✅ local |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-18 | branch `feat/F12-go-live` | local (`make dev`) | AT-F12-03 (About com os 4 passos e o suporte; Privacy pública; axe sem violações sérias); suíte E2E local (19 passaram, 9 pulados); `make lint`; `make test` (backend 593, frontend 149); `make trace` | ✅ | — |

@@ -22,10 +22,10 @@ checklist e restauração separados (T005), remoção do legado em PR próprio (
 
 **Aceitação:** AT-F12-03
 
-- [ ] T001 [F12-RF-03] About com o fluxo novo, suporte e link de privacidade — teste: `AboutPage.test.tsx`, AT-F12-03 — 0,5 d
-- [ ] T002 [P] [F12-RF-04] Página pública `/privacy` ligada no About, cadastro e landing — teste: `PrivacyPage.test.tsx`, AT-F12-03 — 0,5 d
-- [ ] T003 [P] Checklist de prontidão e roteiro do beta (`docs/go-live/`) — teste: revisão do PO — 0,5 d
-- [ ] T004 [F12-RF-01] AT-F12-01 em Playwright para prd com debug token do App Check — teste: `e2e/f12-golive.spec.ts` — 0,5 d
+- [x] T001 [F12-RF-03] About com o fluxo novo, suporte e link de privacidade — teste: `AboutPage.test.tsx`, AT-F12-03 — 0,5 d
+- [x] T002 [P] [F12-RF-04] Página pública `/privacy` ligada no About, cadastro e landing — teste: `PrivacyPage.test.tsx`, AT-F12-03 — 0,5 d
+- [x] T003 [P] Checklist de prontidão e roteiro do beta (`docs/go-live/`) — teste: revisão do PO — 0,5 d
+- [x] T004 [F12-RF-01] AT-F12-01 em Playwright para prd com debug token do App Check — teste: `e2e/f12-golive.spec.ts` (escrito; roda no Dia D, T005) — 0,5 d
 
 ---
 

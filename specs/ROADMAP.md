@@ -20,7 +20,7 @@
 | F08 | Interface de chat em React | 2 | Em produção | F03 (mocks), F05, F06, F07 | 9.5 d | 11 / 8 | [spec](008-interface-chat/spec.md) · [plano](008-interface-chat/plan.md) · [tarefas](008-interface-chat/tasks.md) |
 | F09 | Projetos Jira | 2 | Em produção | F04, F08 | 3 d | 7 / 6 | [spec](009-projetos-jira/spec.md) · [plano](009-projetos-jira/plan.md) · [tarefas](009-projetos-jira/tasks.md) |
 | F10 | Histórico de issues criados (com "Copiar para agente de código") | 2 | Em produção | F06, F08 | 3,5 d | 7 / 4 | [spec](010-historico-issues/spec.md) · [plano](010-historico-issues/plan.md) · [tarefas](010-historico-issues/tasks.md) |
-| F11 | Observabilidade, limites de uso e proteção | 3 | Rascunho | F05–F10 | 5 d | 4 / 10 | [spec](011-observabilidade-e-limites/spec.md) · [plano](011-observabilidade-e-limites/plan.md) · [tarefas](011-observabilidade-e-limites/tasks.md) |
+| F11 | Observabilidade, limites de uso e proteção | 3 | Em validação | F05–F10 | 6 d | 4 / 11 | [spec](011-observabilidade-e-limites/spec.md) · [plano](011-observabilidade-e-limites/plan.md) · [tarefas](011-observabilidade-e-limites/tasks.md) |
 | F12 | Go-live e desativação do Streamlit | 3 | Rascunho | F01–F11 | 3 d | 3 / 3 | [spec](012-go-live/spec.md) · [plano](012-go-live/plan.md) · [tarefas](012-go-live/tasks.md) |
 | F13 | Login Atlassian via OAuth 2.0 (3LO) | 4 | Rascunho · plano após GA | F04, F12 | 7 d | 4 / 4 | [spec](013-oauth-atlassian/spec.md) · [plano](013-oauth-atlassian/plan.md) |
 | F14 | Editor de artefatos antes da exportação (por seção do contrato) | 4 | Rascunho · plano após GA | F06, F08 | 7 d | 6 / 4 | [spec](014-editor-artefatos/spec.md) · [plano](014-editor-artefatos/plan.md) |

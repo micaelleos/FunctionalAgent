@@ -15,6 +15,8 @@ import {
   type User,
 } from '@firebase/auth'
 
+import { setAppCheckTokenGetter } from '../lib/appCheck'
+
 /** Usuário do Firebase Auth reduzido ao que a interface usa. */
 export interface AuthUser {
   uid: string
@@ -77,7 +79,24 @@ export function firebaseOptionsFromEnv(env: ImportMetaEnv): {
 
 export function createFirebaseAuthClient(env: ImportMetaEnv = import.meta.env): AuthClient {
   const { options, emulatorHost } = firebaseOptionsFromEnv(env)
-  const auth: Auth = getAuth(initializeApp(options))
+  const app = initializeApp(options)
+  const auth: Auth = getAuth(app)
+  const siteKey = env.VITE_APPCHECK_SITE_KEY
+  if (siteKey && !emulatorHost) {
+    // App Check (F11-RT-07) carregado à parte, fora do bundle inicial; as chamadas à API esperam
+    // o módulo e pegam um token (renovado sozinho).
+    const ready = import('@firebase/app-check').then((m) => ({
+      m,
+      check: m.initializeAppCheck(app, {
+        provider: new m.ReCaptchaEnterpriseProvider(siteKey),
+        isTokenAutoRefreshEnabled: true,
+      }),
+    }))
+    setAppCheckTokenGetter(async () => {
+      const { m, check } = await ready
+      return (await m.getToken(check)).token
+    })
+  }
   auth.languageCode = 'en'
   if (emulatorHost) {
     connectAuthEmulator(auth, `http://${emulatorHost}`, { disableWarnings: true })

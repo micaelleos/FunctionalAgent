@@ -1,5 +1,6 @@
 variable "project_id" { type = string }
 variable "hosting_site_id" { type = string }
+variable "app_prefix" { type = string }
 
 # O projeto já é um projeto Firebase compartilhado (portfólio): não é gerenciado aqui, nem a
 # configuração de Auth/Identity Platform, que vale para todos os apps (F02-RT-09).
@@ -32,6 +33,29 @@ resource "google_firebase_hosting_site" "app" {
     prevent_destroy = true
   }
 }
+
+# App Check (F11-RT-07): chave reCAPTCHA Enterprise só deste app e o registro do web app. Não há
+# enforcement nos serviços do Firebase (Firestore/Auth são do projeto compartilhado): quem exige o
+# token é a própria API, pelo APP_CHECK_MODE.
+resource "google_recaptcha_enterprise_key" "web" {
+  project      = var.project_id
+  display_name = "${var.app_prefix}-web"
+  web_settings {
+    integration_type  = "SCORE"
+    allow_all_domains = false
+    allowed_domains   = ["${var.hosting_site_id}.web.app", "${var.hosting_site_id}.firebaseapp.com"]
+  }
+}
+
+resource "google_firebase_app_check_recaptcha_enterprise_config" "web" {
+  provider  = google-beta
+  project   = var.project_id
+  app_id    = google_firebase_web_app.app.app_id
+  site_key  = google_recaptcha_enterprise_key.web.name
+  token_ttl = "3600s"
+}
+
+output "app_check_site_key" { value = google_recaptcha_enterprise_key.web.name }
 
 output "hosting_site_id" { value = google_firebase_hosting_site.app.site_id }
 

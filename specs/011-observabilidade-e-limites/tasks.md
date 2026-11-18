@@ -2,52 +2,37 @@
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
-**Entradas:** plan.md, spec.md · convertido da tabela §8 original para o formato do
-`tasks-template` do projeto (checklist lido por `/speckit-implement` e `/speckit-converge`).
+**Entradas:** plan.md, spec.md · formato do `tasks-template` do projeto.
 
 ## Formato: `- [ ] Tnnn [P?] [Fxx-RF-nn?] Descrição — teste: <teste> — <est.>`
 
-- **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
-  acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
-
-**Total:** 5 tarefas · 5 d.
-**Dividir antes de implementar** (> 1 d, Art. I/VI): T003 (1,5 d).
+**Total:** 8 tarefas · 6 d. Revisão 2026-11-18: T003 dividida (T003/T006), T007 (erros do front), T008 (App Check em
+`enforce` após 1 semana, fora deste PR).
 
 ## 8. Tarefas
 
 ### Fase 1: Fundação
 
-**Objetivo:** Telemetria e proteção da API.
-
 **Aceitação:** AT-F11-04
 
-- [ ] T001 Logging/tracing/métricas — teste: testes de log — 1 d
-- [ ] T002 [P] App Check (front + back) — teste: integração — 0,5 d
-
----
+- [x] T001 Logs JSON com contexto, `uid_hash` e traces OTel — teste: `test_logging.py` — 1 d
+- [x] T002 [P] App Check (front + back, modo `monitor`) — teste: `test_app_check.py`, `api.test.ts` — 0,5 d
+- [x] T007 [P] Erros do front → Error Reporting — teste: `test_client_errors.py`, `errorReporting.test.ts` — 0,5 d
 
 ### Fase 2: Incremento 1 — limites de uso
 
-**Objetivo:** Consumo visível, cota diária e rate limit com mensagens claras.
-
 **Aceitação:** AT-F11-01, AT-F11-02
 
-- [ ] T003 [F11-RF-01][F11-RF-02][F11-RF-03] Cotas + rate limit + UI de consumo — teste: integração/Vitest — 1,5 d
-
----
+- [x] T003 [F11-RF-02][F11-RF-03] Cota diária + rate limit no Firestore — teste: `test_usage.py`, integração — 1 d
+- [x] T006 [F11-RF-01] `GET /me/usage` + indicador e painel — teste: `screens.test.tsx`, `http.test.ts`, `ChatPage.test.tsx` — 0,5 d
 
 ### Fase 3: Incremento 2 — alertas
 
-**Objetivo:** Responsável alertado em erro, latência, falhas externas e orçamento.
-
 **Aceitação:** AT-F11-03
 
-- [ ] T004 [F11-RF-04] Dashboard, alertas, SLOs (Terraform) — teste: AT-F11-03 — 1 d
-
----
+- [ ] T004 [F11-RF-04] Métricas por log, dashboard, alertas, uptime, SLO (Terraform) — teste: `scripts/test_monitoring.py`, AT-F11-03 (falta o apply e o ensaio em prd) — 1 d
 
 ### Fase 4: Validação e entrega
 
-**Objetivo:** Carga, segurança e operação.
-
-- [ ] T005 Teste de carga, varredura ZAP, runbooks — teste: k6/ZAP — 1 d
+- [x] T005 Carga k6, ZAP, runbooks — teste: k6/ZAP — 1 d
+- [ ] T008 App Check `enforce` após 1 semana em `monitor` (PR à parte) — teste: AT-F11-04 em prd — 0,25 d

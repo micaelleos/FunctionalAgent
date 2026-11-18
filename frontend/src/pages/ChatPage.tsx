@@ -266,8 +266,12 @@ function TurnView({
     turn.status === 'failed' || turn.error
       ? turn.error?.code === 'network'
         ? t.chat.networkError
-        : (t.errors[turn.error?.code ?? ''] ?? turn.error?.message ?? t.chat.agentError)
+        : turn.error?.code === 'rate-limited'
+          ? t.chat.rateLimited(turn.error.retryAfter ?? 10)
+          : (t.errors[turn.error?.code ?? ''] ?? turn.error?.message ?? t.chat.agentError)
       : null
+  // Cota do dia acabou: tentar de novo não adianta até a renovação (F11-RF-02).
+  const canRetry = turn.error?.code !== 'quota-exceeded'
   return (
     <>
       {reachedServer && <UserBubble text={turn.userText} />}
@@ -292,13 +296,15 @@ function TurnView({
           className="flex flex-wrap items-center gap-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
         >
           <span className="flex-1">{failure}</span>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="min-h-9 rounded-md bg-red-700 px-3 font-medium text-white hover:bg-red-800"
-          >
-            {t.chat.retry}
-          </button>
+          {canRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="min-h-9 rounded-md bg-red-700 px-3 font-medium text-white hover:bg-red-800"
+            >
+              {t.chat.retry}
+            </button>
+          )}
           <button
             type="button"
             onClick={onDismiss}

@@ -129,7 +129,14 @@ deploy_web() {
   config=$(curl -sS --fail-with-body -H "Authorization: Bearer $token" -H "x-goog-user-project: $PROJECT" \
     "https://firebase.googleapis.com/v1beta1/projects/$PROJECT/webApps/$app_id/config")
 
-  log "Build do SPA (VITE_API_BASE_URL=$api_url, Firebase $(jq -r '.projectId' <<<"$config"))"
+  # Site key do App Check (F11-RT-07): pública, da chave reCAPTCHA criada pelo Terraform. Sem ela
+  # (Terraform da F11 ainda não aplicado), o SPA sai sem App Check e a API em `monitor` só registra.
+  local site_key
+  site_key=$(curl -sS --fail-with-body -H "Authorization: Bearer $token" -H "x-goog-user-project: $PROJECT" \
+    "https://recaptchaenterprise.googleapis.com/v1/projects/$PROJECT/keys" |
+    jq -r '[.keys[]? | select(.displayName == "specflow-web") | .name | split("/") | last][0] // ""')
+
+  log "Build do SPA (VITE_API_BASE_URL=$api_url, Firebase $(jq -r '.projectId' <<<"$config"), App Check ${site_key:+ligado}${site_key:-desligado})"
   (
     cd "$ROOT/frontend"
     VITE_API_BASE_URL="$api_url" \
@@ -137,6 +144,8 @@ deploy_web() {
       VITE_FIREBASE_AUTH_DOMAIN=$(jq -r '.authDomain' <<<"$config") \
       VITE_FIREBASE_PROJECT_ID=$(jq -r '.projectId' <<<"$config") \
       VITE_FIREBASE_APP_ID=$(jq -r '.appId' <<<"$config") \
+      VITE_APPCHECK_SITE_KEY="$site_key" \
+      VITE_APP_VERSION="$VERSION" \
       npm run build
   )
 

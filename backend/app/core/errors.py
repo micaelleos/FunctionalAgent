@@ -35,6 +35,16 @@ class UnauthenticatedError(ApiProblemError):
         self.headers = {"WWW-Authenticate": "Bearer"}
 
 
+class AppCheckRequiredError(ApiProblemError):
+    def __init__(self) -> None:
+        super().__init__(
+            401,
+            "app-check-required",
+            "App não verificado",
+            "Esta requisição não veio do app do SpecFlow AI. Recarregue a página.",
+        )
+
+
 class EmailNotVerifiedError(ApiProblemError):
     def __init__(self) -> None:
         super().__init__(

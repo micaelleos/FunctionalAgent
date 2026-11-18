@@ -3,7 +3,6 @@
 O envio de mensagens (e a criação implícita com `id=new`) continua em `services/chat.py` (F05).
 """
 
-import asyncio
 import base64
 import json
 import re
@@ -14,6 +13,7 @@ from typing import Any, Literal, Protocol
 from pydantic import BaseModel
 
 from app.core.errors import ApiProblemError
+from app.core.telemetry import in_thread
 from app.services.actions import ActionOut, to_out
 from app.services.chat import ConversationNotFoundError
 
@@ -147,7 +147,7 @@ class ConversationService:
         self._clock = clock or (lambda: datetime.now(UTC))
 
     async def _run[T](self, fn: Callable[..., T], *args: Any) -> T:
-        return await asyncio.to_thread(fn, *args)
+        return await in_thread(fn, *args)
 
     async def _get(self, uid: str, conversation_id: str) -> dict[str, Any]:
         doc = await self._run(self._store.get_conversation, uid, conversation_id)

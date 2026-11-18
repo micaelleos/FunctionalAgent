@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { createFirebaseAuthClient } from './auth/client'
+import { installErrorReporting } from './lib/errorReporting'
 import type { ProductApi } from './product/types'
 
 async function productApi(): Promise<ProductApi | undefined> {
@@ -14,6 +15,8 @@ async function productApi(): Promise<ProductApi | undefined> {
   }
   return undefined // App usa a API real (createHttpProductApi)
 }
+
+installErrorReporting() // F11-RT-11: antes de tudo, para pegar erros do carregamento
 
 void productApi().then((api) =>
   createRoot(document.getElementById('root')!).render(

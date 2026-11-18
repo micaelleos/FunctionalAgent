@@ -56,3 +56,45 @@ variable "deletion_protection" {
   type        = bool
   default     = true
 }
+
+# ---- F11: observabilidade, limites e App Check -------------------------------------------------
+
+variable "alert_email" {
+  description = "E-mail que recebe os alertas. O repo é público: passe por TF_VAR_alert_email no apply, nunca no tfvars."
+  type        = string
+  sensitive   = true
+}
+
+variable "uptime_path" {
+  description = "Rota do uptime check; só muda no ensaio do AT-F11-03 (docs/runbooks/alertas.md)."
+  type        = string
+  default     = "/health"
+}
+
+variable "daily_cost_alert_usd" {
+  description = "Custo estimado de LLM por dia (USD) que dispara o alerta de custo."
+  type        = number
+  default     = 2
+}
+
+variable "app_check_mode" {
+  description = "off, monitor (só registra) ou enforce (401 sem token válido). F11-RT-07."
+  type        = string
+  default     = "monitor"
+  validation {
+    condition     = contains(["off", "monitor", "enforce"], var.app_check_mode)
+    error_message = "app_check_mode deve ser off, monitor ou enforce."
+  }
+}
+
+variable "daily_message_quota" {
+  description = "Mensagens por usuário por dia de Brasília (F11-RT-05)."
+  type        = number
+  default     = 20
+}
+
+variable "daily_token_quota" {
+  description = "Tokens (entrada + saída) por usuário por dia de Brasília (F11-RT-05)."
+  type        = number
+  default     = 200000
+}

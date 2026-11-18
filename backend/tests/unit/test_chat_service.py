@@ -26,6 +26,7 @@ from app.services.chat import (
 from app.services.chat_events import CHAT_EVENT
 from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
+from app.services.usage import usage_day
 from tests.chat_fakes import NOW, SITE, FakeJiraService, MemoryChatStore, call
 from tests.spec_fixtures import pix_story_data
 
@@ -228,8 +229,7 @@ async def test_uso_de_tokens_e_custo_por_turno() -> None:
     assert store.usage[("uid-alice", "2026-11-16")] == {
         "inputTokens": 1_000_000,
         "outputTokens": 100_000,
-        "messages": 1,
-    }
+    }  # `messages` é contado pela reserva da cota (F11), fora deste serviço sem `usage`
 
 
 @pytest.mark.req("F05-RT-07")
@@ -360,7 +360,8 @@ async def test_parar_grava_a_resposta_parcial_marcada() -> None:
     saved = _assistant(store, cid)
     assert saved["interrupted"] is True
     assert saved["text"] == "".join(str(getattr(e, "text")) for e in received)  # noqa: B009
-    assert store.usage[("uid-alice", NOW.date().isoformat())]["messages"] == 1
+    # O turno interrompido também soma os tokens no dia de Brasília (F11-RT-05).
+    assert "inputTokens" in store.usage[("uid-alice", usage_day(NOW))]
 
 
 @pytest.mark.req("F08-RT-09")
@@ -416,3 +417,14 @@ async def test_turno_completo_nao_e_interrompido() -> None:
     service, store, _ = _service(ScriptedChatModel(responses=[AIMessage("Pronto.")]))
     cid, _ = await _turn(service, "Oi")
     assert _assistant(store, cid)["interrupted"] is False
+
+
+@pytest.mark.req("F11-RT-08")
+def test_shared_agent_compila_uma_vez_por_modelo() -> None:
+    from app.agent.fake_llm import EchoChatModel
+    from app.services.chat import shared_agent
+
+    llm, other = EchoChatModel(), EchoChatModel()
+    assert shared_agent(llm, 8) is shared_agent(llm, 8)
+    assert shared_agent(llm, 8) is not shared_agent(other, 8)
+    assert shared_agent(llm, 8) is not shared_agent(llm, 3)

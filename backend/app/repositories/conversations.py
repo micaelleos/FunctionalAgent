@@ -150,7 +150,7 @@ class ConversationRepository:
             {
                 "inputTokens": firestore.Increment(input_tokens),
                 "outputTokens": firestore.Increment(output_tokens),
-                "messages": firestore.Increment(1),
+                # `messages` é contado na reserva, antes do turno (F11-RT-05).
             },
             merge=True,
         )

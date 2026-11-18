@@ -8,6 +8,7 @@ locals {
     "aiplatform.googleapis.com", # Vertex AI: Gemini do agente (F05, ADR-008)
     "artifactregistry.googleapis.com",
     "cloudkms.googleapis.com",
+    "cloudtrace.googleapis.com", # traces da API (F11-RT-02)
     "cloudresourcemanager.googleapis.com",
     "firebase.googleapis.com",
     "firebaseappcheck.googleapis.com",
@@ -17,7 +18,9 @@ locals {
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "identitytoolkit.googleapis.com",
+    "logging.googleapis.com",
     "monitoring.googleapis.com",
+    "recaptchaenterprise.googleapis.com", # App Check do SPA (F11-RT-07)
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "serviceusage.googleapis.com",

@@ -5,7 +5,6 @@ Nenhuma resposta nem log o contém (F04-RT-02). `client_for` decifra por requisi
 de entrada de F05/F09/F10 para falar com o Jira em nome do usuário (F04-RT-05).
 """
 
-import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, Literal, Protocol
@@ -14,6 +13,7 @@ from pydantic import BaseModel, Field, SecretStr, field_validator
 
 from app.core.crypto import Cipher
 from app.core.errors import ApiProblemError
+from app.core.telemetry import in_thread
 from app.integrations.jira.client import (
     JiraAccount,
     JiraAuthError,
@@ -135,7 +135,7 @@ class JiraConnectionService:
 
     # Firestore e KMS são síncronos: rodam numa thread para não travar o event loop.
     async def _run[T](self, fn: Callable[..., T], *args: Any) -> T:
-        return await asyncio.to_thread(fn, *args)
+        return await in_thread(fn, *args)
 
     async def list(self, uid: str) -> list[JiraConnection]:
         return [_out(doc) for doc in await self._run(self._store.list, uid)]

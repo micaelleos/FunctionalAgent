@@ -62,3 +62,27 @@ describe('F03-RT-03 cliente da API', () => {
     })
   })
 })
+
+describe('F11-RT-07 App Check', () => {
+  it('manda X-Firebase-AppCheck quando há token e segue sem ele se falhar', async () => {
+    const seen: (string | null)[] = []
+    server.use(
+      http.get(api('/api/v1/me'), ({ request }) => {
+        seen.push(request.headers.get('X-Firebase-AppCheck'))
+        return HttpResponse.json({})
+      }),
+    )
+    const { setAppCheckTokenGetter } = await import('./appCheck')
+
+    setAppCheckTokenGetter(async () => 'app-check-1')
+    await apiFetch('/api/v1/me', async () => 'tok')
+    setAppCheckTokenGetter(async () => {
+      throw new Error('reCAPTCHA fora do ar')
+    })
+    await apiFetch('/api/v1/me', async () => 'tok')
+    setAppCheckTokenGetter(null)
+    await apiFetch('/api/v1/me', async () => 'tok')
+
+    expect(seen).toEqual(['app-check-1', null, null])
+  })
+})

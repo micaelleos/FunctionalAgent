@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/client-errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Relata um erro do SPA */
+        post: operations["report_client_error_api_v1_client_errors_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conversations": {
         parameters: {
             query?: never;
@@ -269,6 +286,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consumo do dia, limites e últimos 7 dias */
+        get: operations["get_usage_api_v1_me_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -370,6 +404,31 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** ClientError */
+        ClientError: {
+            /**
+             * Kind
+             * @default error
+             */
+            kind: string;
+            /** Message */
+            message: string;
+            /**
+             * Release
+             * @default
+             */
+            release: string;
+            /**
+             * Stack
+             * @default
+             */
+            stack: string;
+            /**
+             * Url
+             * @default
+             */
+            url: string;
+        };
         /** ConversationCreate */
         ConversationCreate: {
             /** Project Key */
@@ -414,6 +473,13 @@ export interface components {
             project_key?: string | null;
             /** Title */
             title?: string | null;
+        };
+        /** DayUsage */
+        DayUsage: {
+            /** Day */
+            day: string;
+            /** Messages */
+            messages: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -622,6 +688,24 @@ export interface components {
             /** Keys */
             keys: string[];
         };
+        /** UsageOut */
+        UsageOut: {
+            /** Last 7 Days */
+            last_7_days: components["schemas"]["DayUsage"][];
+            /** Message Limit */
+            message_limit: number;
+            /** Messages Today */
+            messages_today: number;
+            /**
+             * Resets At
+             * Format: date-time
+             */
+            resets_at: string;
+            /** Token Limit */
+            token_limit: number;
+            /** Tokens Today */
+            tokens_today: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -649,6 +733,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 action_id: string;
@@ -708,6 +793,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 action_id: string;
@@ -757,6 +843,37 @@ export interface operations {
             };
         };
     };
+    report_client_error_api_v1_client_errors_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientError"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_conversations_api_v1_conversations_get: {
         parameters: {
             query?: {
@@ -766,6 +883,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -804,6 +922,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -839,6 +958,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 conversation_id: string;
@@ -879,6 +999,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 conversation_id: string;
@@ -917,6 +1038,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 conversation_id: string;
@@ -961,6 +1083,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 conversation_id: string;
@@ -998,6 +1121,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 conversation_id: string;
@@ -1045,6 +1169,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 conversation_id: string;
@@ -1082,6 +1207,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1113,6 +1239,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1148,6 +1275,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 connection_id: string;
@@ -1185,6 +1313,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 connection_id: string;
@@ -1216,6 +1345,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 connection_id: string;
@@ -1257,6 +1387,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1288,6 +1419,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1323,6 +1455,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path: {
                 key: string;
@@ -1358,6 +1491,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1389,6 +1523,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1420,6 +1555,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1449,6 +1585,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1462,6 +1599,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_usage_api_v1_me_usage_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageOut"];
                 };
             };
             /** @description Validation Error */

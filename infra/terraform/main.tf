@@ -72,6 +72,10 @@ module "kms" {
   depends_on             = [module.project_services]
 }
 
+data "google_project" "this" {
+  project_id = var.project_id
+}
+
 module "cloud_run" {
   source                = "./modules/cloud_run"
   project_id            = var.project_id
@@ -86,14 +90,33 @@ module "cloud_run" {
   llm_model             = var.llm_model
   llm_location          = var.llm_location
   deletion_protection   = var.deletion_protection
-  depends_on            = [module.project_services, google_project_iam_member.api_runtime]
+  # F11: tracing, cota/rate limit e App Check.
+  project_number      = data.google_project.this.number
+  app_check_mode      = var.app_check_mode
+  daily_message_quota = var.daily_message_quota
+  daily_token_quota   = var.daily_token_quota
+  depends_on          = [module.project_services, google_project_iam_member.api_runtime]
 }
 
 module "firebase" {
   source          = "./modules/firebase"
   project_id      = var.project_id
   hosting_site_id = var.hosting_site_id
+  app_prefix      = local.p
   depends_on      = [module.project_services]
+}
+
+# Observabilidade (F11): métricas por log, dashboard, uptime, alertas por e-mail e SLO.
+module "monitoring" {
+  source               = "./modules/monitoring"
+  project_id           = var.project_id
+  prefix               = local.p
+  service_name         = module.cloud_run.service_name
+  api_url              = module.cloud_run.url
+  alert_email          = var.alert_email
+  uptime_path          = var.uptime_path
+  daily_cost_alert_usd = var.daily_cost_alert_usd
+  depends_on           = [module.project_services]
 }
 
 # Web app e site de Hosting já existiam (criados no console); passam a ser gerenciados aqui.

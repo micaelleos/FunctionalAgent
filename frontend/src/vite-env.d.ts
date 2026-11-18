@@ -10,6 +10,10 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_AUTH_EMULATOR_HOST?: string
   // Dados de demonstração nas telas (F08-RT-08); só vale em `npm run dev`, nunca no build.
   readonly VITE_DEMO_DATA?: string
+  /** Site key do reCAPTCHA Enterprise do App Check (F11-RT-07); sem ela, sem App Check. */
+  readonly VITE_APPCHECK_SITE_KEY?: string
+  /** Versão (commit) do build, para agrupar os erros do front (F11-RT-11). */
+  readonly VITE_APP_VERSION?: string
   /** `false` desliga o envio de mensagens (rollback da F08). */
   readonly VITE_FEATURE_CHAT?: string
 }

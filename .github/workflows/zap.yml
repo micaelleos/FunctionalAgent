@@ -1,0 +1,45 @@
+# Varredura ZAP baseline (F11-RT-10): passiva (só observa respostas, não ataca) no SPA e na API de
+# produção. Falha só com achado de risco alto; os médios/baixos ficam no relatório (artefato).
+# Roda à mão e no PR que muda este arquivo. Não é deploy: não usa credenciais do GCP.
+name: zap
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/zap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: spa
+            url: https://specsflow-ai.web.app
+          - name: api
+            url: https://specflow-api-511022267092.us-central1.run.app/health
+    steps:
+      - name: ZAP baseline
+        run: |
+          mkdir -p zap && chmod 777 zap
+          # -I: avisos não falham o passo; o critério (sem risco alto) é checado abaixo.
+          docker run --rm -v "$PWD/zap:/zap/wrk" ghcr.io/zaproxy/zaproxy:2.16.1 \
+            zap-baseline.py -t "${{ matrix.target.url }}" -m 2 -I \
+            -J report.json -r report.html
+      - name: Sem achado de risco alto
+        run: |
+          high=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' zap/report.json)
+          jq -r '.site[].alerts[] | "\(.riskdesc)\t\(.name)"' zap/report.json | sort | uniq
+          echo "achados altos: $high"
+          test "$high" -eq 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-${{ matrix.target.name }}
+          path: zap/report.*

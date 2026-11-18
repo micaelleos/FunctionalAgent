@@ -13,6 +13,8 @@ export type TurnStatus = 'streaming' | 'stopped' | 'failed' | 'done'
 export interface TurnError {
   code: string
   message: string
+  /** Segundos até poder mandar de novo (429 `rate-limited`, F11-RF-03). */
+  retryAfter?: number
 }
 
 /** O turno em andamento, mostrado até o histórico relido trazer a resposta gravada. */
@@ -214,8 +216,18 @@ export function useChatStream({ onConversation, onRestore }: Options = {}) {
         } else {
           const failure: TurnError =
             error instanceof ApiError
-              ? { code: error.code, message: error.message }
+              ? {
+                  code: error.code,
+                  message: error.message,
+                  ...(typeof error.body.retry_after === 'number' && {
+                    retryAfter: error.body.retry_after,
+                  }),
+                }
               : { code: 'network', message: '' }
+          // Cota ou rate limit: o indicador de uso mostra o número atualizado (F11-RF-01).
+          if (error instanceof ApiError && error.status === 429) {
+            void queryClient.invalidateQueries({ queryKey: ['usage'] })
+          }
           update({ text: buffer.current, tool: null, status: 'failed', error: failure })
           if (!started) onRestore?.(text)
           else void refresh(current)
@@ -224,7 +236,7 @@ export function useChatStream({ onConversation, onRestore }: Options = {}) {
         controller.current = null
       }
     },
-    [ensureSaved, flushSoon, onConversation, onRestore, product, refresh, update],
+    [ensureSaved, flushSoon, onConversation, onRestore, product, queryClient, refresh, update],
   )
 
   const stop = useCallback(() => controller.current?.abort(), [])

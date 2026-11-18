@@ -59,9 +59,10 @@ def project_note(project_key: str) -> str:
     )
 
 
-def build_agent(
-    llm: BaseChatModel, tools: list[BaseTool], *, max_iterations: int = 8
-) -> CompiledStateGraph[AgentState, Any, AgentState, AgentState]:
+type Agent = CompiledStateGraph[AgentState, Any, AgentState, AgentState]
+
+
+def build_agent(llm: BaseChatModel, tools: list[BaseTool], *, max_iterations: int = 8) -> Agent:
     model = llm.bind_tools(model_tool_specs(tools))
 
     async def call_model(state: AgentState, config: RunnableConfig) -> dict[str, Any]:

@@ -5,7 +5,6 @@ da ação. Projeto, tipo e prontidão são filtrados aqui, lendo em lotes: o vol
 pequeno e assim não há índices compostos para manter (F10-RT-02).
 """
 
-import asyncio
 import base64
 import json
 from collections.abc import Callable
@@ -18,6 +17,7 @@ from app.agent.spec.jira_payload import spec_of
 from app.agent.spec.readiness import LABEL_AGENT_READY, LABEL_HUMAN_ONLY
 from app.agent.spec.render import to_markdown
 from app.core.errors import ApiProblemError
+from app.core.telemetry import in_thread
 from app.integrations.jira.client import JiraAuthError, JiraError
 from app.services.jira_connections import JiraConnectionService, UnreachableError
 from app.services.jira_projects import JiraCredentialRejectedError, JiraNotConnectedError
@@ -140,7 +140,7 @@ class JiraIssueService:
         self._connections = connections
 
     async def _run[T](self, fn: Callable[..., T], *args: Any) -> T:
-        return await asyncio.to_thread(fn, *args)
+        return await in_thread(fn, *args)
 
     async def issues(
         self,

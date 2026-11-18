@@ -4,6 +4,7 @@ import { Navigate, type RouteObject } from 'react-router'
 import { GuestRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 import { PublicLayout } from './components/PublicLayout'
+import { RouteError } from './components/RouteError'
 import { AboutPage } from './pages/AboutPage'
 import { AccountPage } from './pages/AccountPage'
 import { ChatPage } from './pages/ChatPage'
@@ -28,7 +29,7 @@ const LEGACY_PATHS: Record<string, string> = {
 
 const guest = (page: ReactNode) => <GuestRoute>{page}</GuestRoute>
 
-export const routes: RouteObject[] = [
+const pages: RouteObject[] = [
   // Página inicial pública (F08-RF-11), com cabeçalho próprio; quem já entrou vai para o chat.
   { path: '/', element: <LandingPage /> },
   {
@@ -64,3 +65,7 @@ export const routes: RouteObject[] = [
   })),
   { path: '*', element: <Navigate to="/chat" replace /> },
 ]
+
+// Uma raiz sem caminho só para o `errorElement`: erro de renderização em qualquer tela é relatado
+// (F11-RT-11) e mostra a opção de recarregar, em vez da tela padrão do react-router.
+export const routes: RouteObject[] = [{ errorElement: <RouteError />, children: pages }]

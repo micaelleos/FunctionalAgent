@@ -19,6 +19,10 @@ dependencies = [
     "langchain-google-genai>=4.5,<5",
     "sse-starlette>=2.1,<4",
     "markdown-it-py>=3,<5",
+    "opentelemetry-sdk>=1.30,<2",
+    "opentelemetry-exporter-gcp-trace>=1.9,<2",
+    "opentelemetry-propagator-gcp>=1.9,<2",
+    "opentelemetry-instrumentation-httpx>=0.51b0",
 ]
 
 [dependency-groups]

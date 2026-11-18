@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em validação |
+| **Status** | Em produção |
 | **Fase** | 3 — Produção |
 | **Dependências** | F05–F10 |
 | **Estimativa** | 6 dias |
@@ -94,7 +94,7 @@ Funcionalidade: Limites e operação
 | F11-RF-01 | AT-F11-01 (`e2e/f11-limites.spec.ts`), `tests/unit/test_usage.py`, `http.test.ts`, `screens.test.tsx` | ✅ local |
 | F11-RF-02 | AT-F11-01, `tests/unit/test_usage.py`, `tests/integration/test_usage.py`, `ChatPage.test.tsx` | ✅ local |
 | F11-RF-03 | AT-F11-02 (`e2e/f11-limites.spec.ts`), `tests/unit/test_usage.py`, `ChatPage.test.tsx` | ✅ local |
-| F11-RF-04 | AT-F11-03 (ensaio em prd, `docs/runbooks/alertas.md`), `scripts/test_monitoring.py` | ⏳ após o `terraform apply` |
+| F11-RF-04 | AT-F11-03 (ensaio em prd, `docs/runbooks/alertas.md`), `scripts/test_monitoring.py` | ✅ prd |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
@@ -105,4 +105,6 @@ Funcionalidade: Limites e operação
 | 2026-11-18 | idem | local (codespace 2 vCPU, emulador na mesma máquina) | F11-RT-08, k6 `scripts/load/chat.js`: 50 usuários por 2 min perto do rate limit, 797 turnos, erro 0%, p95 193 ms (mediana 80 ms). Antes das correções do teste: p95 1,93 s — o grafo do agente era compilado a cada turno (≈ metade da CPU) e o pool padrão do `asyncio.to_thread` tinha 6 threads (5 no Cloud Run) para as chamadas ao Firestore; agora o grafo é compartilhado e o pool de I/O tem 32 threads | ✅ | — |
 | 2026-11-18 | idem | local | `terraform validate` (Docker `hashicorp/terraform:1.9.8`) do módulo `monitoring`, App Check e variáveis do Cloud Run; `scripts/test_monitoring.py` | ✅ | — |
 | 2026-11-18 | PR #27 | prd (versão da F10) | F11-RT-10, ZAP baseline (`zap.yml`, run 44282497680): 0 achados altos. Médios no SPA: CSP com curinga e `style-src 'unsafe-inline'`; baixos: API sem HSTS e sem `X-Content-Type-Options`, isolamento de site (Spectre) | ✅ | — |
-| — | — | prd | `terraform apply` (com `TF_VAR_alert_email`), `make deploy`, AT-F11-03 (ensaio do uptime) | ⏳ pendente | — |
+| 2026-11-18 | `0963caf` (merge do PR #27) | prd | `make deploy`: API `specflow-api-00015-m79` (smoke ok; rollback `specflow-api-00014-mjt`); SPA publicado (o `deploy-web` falhava com 403 sem a API do reCAPTCHA: corrigido no PR #28). Verificado: `/health` com a versão, 401 sem token, `client-errors` → Error Reporting (`specflow-web`) | ✅ | — |
+| 2026-11-18 | idem + PR #28 | prd | `terraform apply` (e-mail por `TF_VAR_alert_email`): 27 recursos criados, Cloud Run com tracing, `APP_CHECK_MODE=monitor` e cotas (revisão `specflow-api-00016-px8`, sem erros). O 1º apply parou no alerta de erro do modelo (métrica recém-criada, até 10 min) e no dashboard (`REDUCE_PERCENTILE_75` não existe); reaplicado. SPA republicado com o App Check ligado | ✅ | — |
+| 2026-11-18 | idem | prd | AT-F11-03: uptime check apontado para `/ensaio-alerta` (404) às 12:47 UTC; as 6 regiões falharam a partir de ~12:48; o e-mail "specflow: API fora do ar (uptime /health)" chegou ao PO; volta para `/health` às 13:26 UTC | ✅ | PO (recebeu o e-mail) |

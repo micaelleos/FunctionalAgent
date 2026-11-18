@@ -14,7 +14,9 @@ from app.api.deps import (
     get_action_service,
     get_chat_service,
     get_conversation_service,
+    get_jira_issue_service,
     get_jira_service,
+    get_usage_service,
     get_verifier,
 )
 from app.core.config import Settings, get_settings
@@ -25,17 +27,23 @@ from app.services.actions import ActionService
 from app.services.chat import ChatService
 from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
+from app.services.jira_issues import JiraIssueService
+from app.services.usage import UsageService
 from tests.chat_fakes import MemoryChatStore
 from tests.fakes import FakeVerifier, MemoryJiraStore, MemoryStore
 
 _OPENAPI = create_app().openapi()
 _HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
+# Públicas de propósito, cada uma com o motivo.
+PUBLIC_ROUTES = {
+    ("POST", "/api/v1/client-errors"),  # erro na tela de login também é relatado (F11-RT-11)
+}
 API_ROUTES = [
     (method.upper(), path)
     for path, operations in _OPENAPI["paths"].items()
     if path.startswith("/api/")
     for method in sorted(operations)
-    if method in _HTTP_METHODS
+    if method in _HTTP_METHODS and (method.upper(), path) not in PUBLIC_ROUTES
 ]
 
 
@@ -60,6 +68,10 @@ def client(verifier: FakeVerifier) -> Iterator[TestClient]:
     app.dependency_overrides[get_action_service] = lambda: actions
     conversations = ConversationService(chat_store)
     app.dependency_overrides[get_conversation_service] = lambda: conversations
+    issues = JiraIssueService(chat_store, jira)
+    app.dependency_overrides[get_jira_issue_service] = lambda: issues
+    usage = UsageService(chat_store, Settings(env="test"))
+    app.dependency_overrides[get_usage_service] = lambda: usage
     with TestClient(app) as c:
         yield c
 

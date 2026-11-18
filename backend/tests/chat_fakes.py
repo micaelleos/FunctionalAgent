@@ -277,12 +277,28 @@ class MemoryChatStore:
         return self.add_message(uid, conversation_id, {**data, "role": "system", "seq": seq})
 
     def add_usage(self, uid: str, day: str, input_tokens: int, output_tokens: int) -> None:
-        doc = self.usage.setdefault(
-            (uid, day), {"inputTokens": 0, "outputTokens": 0, "messages": 0}
-        )
+        doc = self.usage.setdefault((uid, day), {})
+        doc.setdefault("inputTokens", 0)
+        doc.setdefault("outputTokens", 0)
         doc["inputTokens"] += input_tokens
         doc["outputTokens"] += output_tokens
-        doc["messages"] += 1
+
+    # ---- F11: cota e rate limit (mesma interface do UsageRepository)
+    def update_usage(
+        self,
+        uid: str,
+        day: str,
+        decide: Callable[[dict[str, Any]], tuple[dict[str, Any] | None, Any]],
+    ) -> Any:
+        with self._lock:  # a transação do Firestore
+            current = copy.deepcopy(self.usage.get((uid, day), {}))
+            change, result = decide(current)
+            if change:
+                self.usage.setdefault((uid, day), {}).update(copy.deepcopy(change))
+            return result
+
+    def usage_days(self, uid: str, days: list[str]) -> dict[str, dict[str, Any]]:
+        return {d: copy.deepcopy(self.usage[(uid, d)]) for d in days if (uid, d) in self.usage}
 
 
 JiraHandler = Callable[[httpx.Request], httpx.Response]

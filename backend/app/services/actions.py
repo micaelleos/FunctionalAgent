@@ -15,8 +15,6 @@ em que o Jira certamente não gravou (credencial, limite de requisições, site 
 `failed`, porque repetir poderia duplicar a issue.
 """
 
-import asyncio
-import json
 import logging
 import uuid
 from collections.abc import Callable
@@ -33,6 +31,8 @@ from app.agent.spec.jira_payload import (
 )
 from app.core.config import Settings
 from app.core.errors import ApiProblemError
+from app.core.logging import uid_hash
+from app.core.telemetry import in_thread
 from app.integrations.jira.client import (
     JiraAuthError,
     JiraBadRequestError,
@@ -344,7 +344,7 @@ class ActionService:
         self._clock = clock
 
     async def _run[T](self, fn: Callable[..., T], *args: Any) -> T:
-        return await asyncio.to_thread(fn, *args)
+        return await in_thread(fn, *args)
 
     async def list(self, uid: str, conversation_id: str) -> list[ActionOut]:
         now = self._clock()
@@ -516,17 +516,18 @@ class ActionService:
     def _audit(self, uid: str, doc: dict[str, Any], result: str, **extra: Any) -> None:
         """Auditoria `jira_write` (F06-RT-06): toda decisão sobre uma ação, sem conteúdo."""
         log.info(
-            json.dumps(
-                {
+            "jira_write",
+            extra={
+                "fields": {
                     "event": "jira_write",
-                    "uid": uid,
+                    "uid_hash": uid_hash(uid),
                     "action_id": doc["id"],
                     "kind": doc["kind"],
                     "result": result,
                     "issue_key": extra.get("issue_key"),
                     "code": extra.get("code"),
                 }
-            )
+            },
         )
 
 

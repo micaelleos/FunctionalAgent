@@ -5,8 +5,9 @@ from typing import Any
 from fastapi import APIRouter, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.deps import Account, CurrentUser, CurrentUserChecked
+from app.api.deps import Account, CurrentUser, CurrentUserChecked, Usage
 from app.services.account import Profile
+from app.services.usage import UsageOut
 
 router = APIRouter(prefix="/api/v1/me", tags=["conta"])
 
@@ -14,6 +15,11 @@ router = APIRouter(prefix="/api/v1/me", tags=["conta"])
 @router.get("", response_model=Profile, summary="Perfil (criado no primeiro acesso)")
 def get_me(user: CurrentUser, account: Account) -> Profile:
     return account.profile(user)
+
+
+@router.get("/usage", response_model=UsageOut, summary="Consumo do dia, limites e últimos 7 dias")
+async def get_usage(user: CurrentUser, usage: Usage) -> UsageOut:
+    return await usage.usage(user.uid)
 
 
 @router.get("/export", summary="Baixa todos os meus dados (JSON)")

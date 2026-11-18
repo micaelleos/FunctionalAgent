@@ -49,6 +49,16 @@ class Settings(BaseSettings):
     llm_price_input_per_mtok: float = 0.30
     llm_price_output_per_mtok: float = 2.50
     prompt_version: str = "v1"
+    # F11: observabilidade, limites de uso e App Check.
+    tracing_enabled: bool = Field(default=False, description="Exporta traces ao Cloud Trace")
+    tracing_sample_ratio: float = Field(default=0.1, ge=0, le=1, description="Sem trace do pai")
+    daily_message_quota: int = Field(default=20, ge=1, description="Mensagens por dia (Brasília)")
+    daily_token_quota: int = Field(default=200_000, ge=1, description="Tokens por dia (Brasília)")
+    rate_limit_per_minute: int = Field(default=10, ge=1, description="Mensagens em 60 s")
+    app_check_mode: Literal["off", "monitor", "enforce"] = "off"
+    firebase_project_number: str | None = Field(
+        default=None, description="Número do projeto (audiência do token do App Check)"
+    )
     # F06: desligar mantém as propostas guardadas, sem executar nenhuma (rollback do plano).
     actions_enabled: bool = True
     # Título automático da conversa (F07-RT-05): uma chamada curta ao modelo no 1º turno.
@@ -58,6 +68,12 @@ class Settings(BaseSettings):
     history_token_budget: int = Field(
         default=12_000, description="Orçamento do histórico; acima disso, sumarização (RT-07)"
     )
+
+    @model_validator(mode="after")
+    def _app_check_precisa_do_numero_do_projeto(self) -> "Settings":
+        if self.app_check_mode != "off" and not self.firebase_project_number:
+            raise ValueError("APP_CHECK_MODE monitor/enforce exige FIREBASE_PROJECT_NUMBER")
+        return self
 
     @model_validator(mode="after")
     def _sem_llm_fake_em_producao(self) -> "Settings":

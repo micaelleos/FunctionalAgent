@@ -148,6 +148,44 @@
         "title": "AgentPrompt",
         "type": "object"
       },
+      "ClientError": {
+        "properties": {
+          "kind": {
+            "default": "error",
+            "pattern": "^(error|unhandledrejection|render)$",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 500,
+            "title": "Message",
+            "type": "string"
+          },
+          "release": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Release",
+            "type": "string"
+          },
+          "stack": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Stack",
+            "type": "string"
+          },
+          "url": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ClientError",
+        "type": "object"
+      },
       "ConversationCreate": {
         "additionalProperties": false,
         "properties": {
@@ -286,6 +324,24 @@
           }
         },
         "title": "ConversationPatch",
+        "type": "object"
+      },
+      "DayUsage": {
+        "properties": {
+          "day": {
+            "title": "Day",
+            "type": "string"
+          },
+          "messages": {
+            "title": "Messages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "messages"
+        ],
+        "title": "DayUsage",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -823,6 +879,48 @@
         "title": "StatusRequest",
         "type": "object"
       },
+      "UsageOut": {
+        "properties": {
+          "last_7_days": {
+            "items": {
+              "$ref": "#/components/schemas/DayUsage"
+            },
+            "title": "Last 7 Days",
+            "type": "array"
+          },
+          "message_limit": {
+            "title": "Message Limit",
+            "type": "integer"
+          },
+          "messages_today": {
+            "title": "Messages Today",
+            "type": "integer"
+          },
+          "resets_at": {
+            "format": "date-time",
+            "title": "Resets At",
+            "type": "string"
+          },
+          "token_limit": {
+            "title": "Token Limit",
+            "type": "integer"
+          },
+          "tokens_today": {
+            "title": "Tokens Today",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "messages_today",
+          "message_limit",
+          "tokens_today",
+          "token_limit",
+          "resets_at",
+          "last_7_days"
+        ],
+        "title": "UsageOut",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -899,6 +997,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -962,6 +1076,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -998,6 +1128,40 @@
         "summary": "Recusa a ação; nada é escrito no Jira",
         "tags": [
           "actions"
+        ]
+      }
+    },
+    "/api/v1/client-errors": {
+      "post": {
+        "operationId": "report_client_error_api_v1_client_errors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientError"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Relata um erro do SPA",
+        "tags": [
+          "observabilidade"
         ]
       }
     },
@@ -1051,6 +1215,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -1100,6 +1280,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -1169,6 +1365,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -1220,6 +1432,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -1279,6 +1507,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -1350,6 +1594,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -1444,6 +1704,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -1507,6 +1783,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "requestBody": {
@@ -1562,6 +1854,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -1612,6 +1920,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -1681,6 +2005,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -1729,6 +2069,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -1797,6 +2153,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -1964,6 +2336,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -2012,6 +2400,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -2081,6 +2485,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -2140,6 +2560,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -2189,6 +2625,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -2228,6 +2680,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
             }
           }
         ],
@@ -2278,6 +2746,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
           }
         ],
         "responses": {
@@ -2301,6 +2785,71 @@
           }
         },
         "summary": "Baixa todos os meus dados (JSON)",
+        "tags": [
+          "conta"
+        ]
+      }
+    },
+    "/api/v1/me/usage": {
+      "get": {
+        "operationId": "get_usage_api_v1_me_usage_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Consumo do dia, limites e últimos 7 dias",
         "tags": [
           "conta"
         ]

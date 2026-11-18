@@ -18,6 +18,7 @@ from app.agent.spec.jira_payload import (
 )
 from app.core.config import Settings
 from app.core.errors import ApiProblemError
+from app.core.logging import uid_hash
 from app.services.actions import ActionService, translate
 from app.services.chat import ACTION_TTL
 from app.services.jira_connections import JiraConnectionService
@@ -444,11 +445,11 @@ async def test_auditoria_jira_write(caplog: pytest.LogCaptureFixture) -> None:
     await _problem(service.confirm(UID, created))
     await service.reject(UID, refused)
 
-    events = [json.loads(r.getMessage()) for r in caplog.records]
+    events = [cast(Any, r).fields for r in caplog.records]
     assert events == [
         {
             "event": "jira_write",
-            "uid": UID,
+            "uid_hash": uid_hash(UID),
             "action_id": created,
             "kind": "create_issue",
             "result": "failed",
@@ -457,7 +458,7 @@ async def test_auditoria_jira_write(caplog: pytest.LogCaptureFixture) -> None:
         },
         {
             "event": "jira_write",
-            "uid": UID,
+            "uid_hash": uid_hash(UID),
             "action_id": refused,
             "kind": "create_issue",
             "result": "rejected",

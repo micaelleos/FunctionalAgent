@@ -6,7 +6,6 @@ usuário, das ferramentas e do assistente e o uso de tokens. Nada fica em memór
 """
 
 import asyncio
-import json
 import logging
 import time
 from collections.abc import AsyncGenerator, AsyncIterator, Callable
@@ -33,6 +32,8 @@ from app.agent.spec.jira_payload import payload_hash
 from app.agent.tools.context import ActionKind, ProposedAction, ToolContext
 from app.agent.tools.jira_tools import PROGRESS, TOOLS
 from app.core.errors import ApiProblemError
+from app.core.logging import uid_hash
+from app.core.telemetry import in_thread
 from app.services.actions import describe, to_out
 from app.services.chat_events import (
     ActionProposedEvent,
@@ -47,6 +48,7 @@ from app.services.chat_events import (
 from app.services.conversation_title import generate_title, provisional_title
 from app.services.jira_connections import JiraConnectionService
 from app.services.jira_reader import JiraReaderAdapter
+from app.services.usage import UsageService, usage_day
 
 log = logging.getLogger("app.chat")
 
@@ -257,6 +259,8 @@ class _Turn:
         self.input_tokens = 0
         self.output_tokens = 0
         self.tool_messages: list[ToolMessage] = []
+        # `time.monotonic()` do 1º pedaço de texto (latência do 1º token, F11-RT-03).
+        self.first_token_at: float | None = None
 
     def add_usage(self, message: BaseMessage) -> None:
         usage = getattr(message, "usage_metadata", None) or {}
@@ -275,8 +279,11 @@ class ChatService:
         tools: list[BaseTool] | None = None,
         clock: Callable[[], datetime] | None = None,
         title_llm: BaseChatModel | None = None,
+        usage: UsageService | None = None,
     ) -> None:
         self._store = store
+        # Cota diária e rate limit (F11); `None` nos testes que não tratam disso.
+        self._usage = usage
         # Título automático (F07-RT-05); `None` desliga (testes com LLM roteirizado).
         self._title_llm = title_llm
         self._jira = jira
@@ -286,13 +293,16 @@ class ChatService:
         self._clock = clock or (lambda: datetime.now(UTC))
 
     async def _run_sync[T](self, fn: Callable[..., T], *args: Any) -> T:
-        return await asyncio.to_thread(fn, *args)
+        return await in_thread(fn, *args)
 
     async def open_turn(
         self, uid: str, conversation_id: str, text: str
     ) -> tuple[str, AsyncGenerator[BaseModel]]:
         """Valida a conversa e grava a mensagem do usuário antes de começar o streaming, para que
         404 e erros de validação saiam como Problem Details, não como evento."""
+        if self._usage is not None:
+            # Antes de tudo: mensagem recusada (429) não cria conversa nem chama o modelo.
+            await self._usage.reserve(uid)
         now = self._clock()
         if conversation_id == NEW:
             conversation: dict[str, Any] = {
@@ -467,6 +477,8 @@ class ChatService:
                             ):
                                 piece = message_text(message.content)
                                 if piece:
+                                    if turn.first_token_at is None:
+                                        turn.first_token_at = time.monotonic()
                                     turn.text.append(piece)
                                     yield TokenEvent(text=piece)
                             continue
@@ -610,13 +622,14 @@ class ChatService:
             output_tokens=turn.output_tokens,
             cost_usd=round(cost, 6),
         )
-        day = self._clock().date().isoformat()
+        day = usage_day(self._clock())  # o dia da cota é o de Brasília (F11-RT-05)
         await self._run_sync(self._store.add_usage, uid, day, turn.input_tokens, turn.output_tokens)
         log.info(
-            json.dumps(
-                {
+            "chat_turn",
+            extra={
+                "fields": {
                     "event": "chat_turn",
-                    "uid": uid,
+                    "uid_hash": uid_hash(uid),
                     "conversation_id": conversation_id,
                     "model": self._settings.llm_model,
                     "prompt_version": self._settings.prompt_version,
@@ -624,8 +637,13 @@ class ChatService:
                     "output_tokens": usage.output_tokens,
                     "cost_usd": usage.cost_usd,
                     "duration_ms": int((time.monotonic() - started) * 1000),
+                    "first_token_ms": (
+                        int((turn.first_token_at - started) * 1000)
+                        if turn.first_token_at is not None
+                        else None
+                    ),
                     "error": error,
                 }
-            )
+            },
         )
         return usage

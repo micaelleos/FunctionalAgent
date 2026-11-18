@@ -43,7 +43,7 @@ export function AppLayout() {
     }`
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-100 text-zinc-900 md:flex-row">
+    <div className="flex min-h-screen flex-col bg-zinc-100 text-zinc-900 md:h-dvh md:min-h-0 md:flex-row md:overflow-hidden">
       <div className="flex items-center justify-between bg-zinc-900 px-4 py-2 text-white md:hidden">
         <span className="font-semibold">{t.app.name}</span>
         <button
@@ -126,7 +126,9 @@ export function AppLayout() {
         </nav>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Em md+ só esta coluna rola (o menu fica parado); o chat divide a rolagem por dentro. `relative`
+          prende os `sr-only` (absolutos) aqui, senão eles esticam o documento e a página volta a rolar. */}
+      <div className="relative flex min-w-0 flex-1 flex-col md:min-h-0 md:overflow-y-auto">
         {/* F04-RF-06: o Jira recusou o token guardado; o aviso aparece em todas as telas. */}
         {connection.data?.status === 'invalid' && location.pathname !== '/settings' && (
           <div

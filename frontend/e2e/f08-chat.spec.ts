@@ -121,4 +121,43 @@ test.describe('F08 chat', () => {
     const overflow = await page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
     expect(overflow).toBe(false)
   })
+
+  test('F08-RF-01 F08-RF-09 em tela larga, mensagens e conversas rolam cada uma no seu contêiner', async ({
+    page,
+    request,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await signIn(page, request)
+    // Mensagens longas o bastante para passar da altura da tela.
+    const long = Array.from({ length: 30 }, (_, i) => `Linha ${i + 1} da mensagem longa.`).join(
+      '\n\n',
+    )
+    for (let i = 0; i < 2; i++) {
+      await send(page, long)
+      await expect(page.getByRole('button', { name: 'Send' })).toBeVisible()
+    }
+    await expect(page.locator('.chat-markdown')).toHaveCount(2)
+
+    // A página não rola: só o contêiner das mensagens.
+    const pageScrolls = await page.evaluate(
+      'document.scrollingElement.scrollHeight > window.innerHeight + 1',
+    )
+    expect(pageScrolls).toBe(false)
+    const messages = page.getByTestId('chat-scroll')
+    const box = (await messages.boundingBox())!
+    expect(box.y + box.height).toBeLessThanOrEqual(720)
+    expect(await messages.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
+    // O campo de mensagem continua visível e a lateral não sai do lugar ao rolar as mensagens.
+    const sideBefore = (await sidebar(page).boundingBox())!
+    await messages.evaluate((el) => el.scrollTo({ top: 0 }))
+    await expect(page.getByLabel('Message')).toBeInViewport()
+    const sideAfter = (await sidebar(page).boundingBox())!
+    expect(sideAfter.y).toBe(sideBefore.y)
+    expect(sideAfter.height).toBeLessThanOrEqual(720)
+    // A lista de conversas tem a própria rolagem.
+    const overflowY = await page.evaluate(
+      "getComputedStyle(document.getElementById('lista-de-conversas')).overflowY",
+    )
+    expect(overflowY).toBe('auto')
+  })
 })

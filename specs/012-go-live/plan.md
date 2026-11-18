@@ -9,9 +9,9 @@
 Três PRs, porque o beta e o `enforce` do App Check têm datas:
 
 1. **PR 1 — preparação (2026-11-18/19), branch `feat/F12-go-live`:**
-   - `AboutPage` com os 4 passos do fluxo, o link de suporte (`https://github.com/micaelleos/FunctionalAgent/issues`)
-     e o link "Privacy"; `PrivacyPage` pública em `/privacy` (rota fora do login, como `/about`), ligada
-     também no cadastro e no rodapé da landing. Textos em `i18n/en.ts`.
+   - Rodapé da landing com "Help" (`https://github.com/micaelleos/FunctionalAgent/issues`), "Privacy" e o
+     status da API (`ApiStatus`); a página About saiu (ajuste do PO) e `/about` leva a `/`. `PrivacyPage`
+     pública em `/privacy`, ligada também no cadastro. Textos em `i18n/en.ts`.
    - `docs/go-live/checklist.md` (itens do F12-RT-01 com coluna de evidência) e `docs/go-live/beta.md`
      (convite, roteiro de 20 min, perguntas de feedback, como reportar problema).
    - `e2e/f12-golive.spec.ts` (AT-F12-01, só com `E2E_PRD=1`): login com a conta de teste, conversa com
@@ -40,7 +40,7 @@ documento conhecido, e remoção do banco e do bucket. Custo: centavos (armazena
 aprovação do PO na hora, porque cria recursos em prd.
 
 ### 9. Plano de testes
-- Componentes: `AboutPage.test.tsx` (passos, suporte, link de privacidade), `PrivacyPage.test.tsx`
+- Componentes: `LandingPage.test.tsx` (rodapé: ajuda, privacidade, status da API; `/about` → `/`), `PrivacyPage.test.tsx`
   (seções, acesso sem login), `routes` (`/privacy` público).
 - E2E local: AT-F12-03 contra `make dev` (`e2e/f12-golive.spec.ts`, bloco sem `E2E_PRD`).
 - prd: AT-F12-01 (`E2E_PRD=1`), smoke manual de 10 min pelo PO, roteiro do beta.

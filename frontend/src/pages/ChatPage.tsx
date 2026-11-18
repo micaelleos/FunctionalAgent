@@ -86,10 +86,10 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden">
       <ConversationSidebar currentId={conversationId} />
 
-      <main className="flex min-w-0 flex-1 flex-col bg-zinc-50">
+      <main className="flex min-w-0 flex-1 flex-col bg-zinc-50 lg:min-h-0">
         <header className="flex flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-4 py-4 md:px-8">
           <h1 className="min-w-0 flex-1 truncate text-xl font-semibold">
             {current?.title ?? t.chat.title}
@@ -112,55 +112,62 @@ export function ChatPage() {
           )}
         </header>
 
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 md:px-8">
-          {history.isError && <Alert kind="error">{errorMessage(history.error)}</Alert>}
-          {history.hasNextPage && (
-            <button
-              type="button"
-              onClick={() => void history.fetchNextPage()}
-              disabled={history.isFetchingNextPage}
-              className="min-h-11 self-center rounded-full border border-zinc-300 bg-white px-4 text-sm hover:bg-zinc-100 disabled:opacity-50"
-            >
-              {t.chat.loadEarlier}
-            </button>
-          )}
-          {history.isLoading && conversationId && (
-            <p role="status" className="text-sm text-zinc-600">
-              {t.chat.loadingHistory}
-            </p>
-          )}
-          {empty ? (
-            <section className="flex flex-col gap-4 py-8">
-              <h2 className="text-2xl font-semibold">{t.chat.emptyTitle}</h2>
-              <p className="text-zinc-700">{t.chat.emptyBody}</p>
-              <ul className="flex flex-wrap gap-2" aria-label={t.chat.suggestionsLabel}>
-                {t.chat.suggestions.map((s) => (
-                  <li key={s}>
-                    <button
-                      type="button"
-                      onClick={() => setDraft(s)}
-                      className="min-h-11 rounded-full border border-zinc-300 bg-white px-4 text-sm hover:bg-zinc-100"
-                    >
-                      {s}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : (
-            messages.map((m) => (
-              <Message key={m.id} message={m} conversationId={conversationId ?? ''} />
-            ))
-          )}
-          {visibleTurn && (
-            <TurnView
-              turn={visibleTurn}
-              conversationId={conversationId ?? ''}
-              onRetry={visibleTurn.started ? retry : () => submit()}
-              onDismiss={dismiss}
-            />
-          )}
-          <div ref={bottom} />
+        {/* F08: as mensagens rolam dentro deste contêiner (lg+); o campo fica sempre embaixo. `relative`
+            prende os rótulos `sr-only` (absolutos) aqui dentro. */}
+        <div
+          data-testid="chat-scroll"
+          className="relative flex flex-1 flex-col lg:min-h-0 lg:overflow-y-auto"
+        >
+          <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 md:px-8">
+            {history.isError && <Alert kind="error">{errorMessage(history.error)}</Alert>}
+            {history.hasNextPage && (
+              <button
+                type="button"
+                onClick={() => void history.fetchNextPage()}
+                disabled={history.isFetchingNextPage}
+                className="min-h-11 self-center rounded-full border border-zinc-300 bg-white px-4 text-sm hover:bg-zinc-100 disabled:opacity-50"
+              >
+                {t.chat.loadEarlier}
+              </button>
+            )}
+            {history.isLoading && conversationId && (
+              <p role="status" className="text-sm text-zinc-600">
+                {t.chat.loadingHistory}
+              </p>
+            )}
+            {empty ? (
+              <section className="flex flex-col gap-4 py-8">
+                <h2 className="text-2xl font-semibold">{t.chat.emptyTitle}</h2>
+                <p className="text-zinc-700">{t.chat.emptyBody}</p>
+                <ul className="flex flex-wrap gap-2" aria-label={t.chat.suggestionsLabel}>
+                  {t.chat.suggestions.map((s) => (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onClick={() => setDraft(s)}
+                        className="min-h-11 rounded-full border border-zinc-300 bg-white px-4 text-sm hover:bg-zinc-100"
+                      >
+                        {s}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
+              messages.map((m) => (
+                <Message key={m.id} message={m} conversationId={conversationId ?? ''} />
+              ))
+            )}
+            {visibleTurn && (
+              <TurnView
+                turn={visibleTurn}
+                conversationId={conversationId ?? ''}
+                onRetry={visibleTurn.started ? retry : () => submit()}
+                onDismiss={dismiss}
+              />
+            )}
+            <div ref={bottom} />
+          </div>
         </div>
 
         <form

@@ -7,7 +7,6 @@ export const t = {
     issues: 'Created issues',
     settings: 'Settings',
     account: 'My account',
-    about: 'About',
     signOut: 'Sign out',
     userMenu: 'User menu',
     main: 'Main',
@@ -296,33 +295,6 @@ export const t = {
     details: (version: string, env: string) => `(version ${version}, environment ${env})`,
     down: 'API unavailable',
   },
-  about: {
-    body: 'An AI agent that helps Product Owners turn product needs into Jira epics, stories and tasks written for AI coding agents to implement.',
-    howTitle: 'How it works',
-    steps: [
-      {
-        title: 'Create an account',
-        body: 'Sign up with email or Google and confirm your email.',
-      },
-      {
-        title: 'Connect Jira',
-        body: 'In Settings, add your Atlassian site, email and an API token. The token is encrypted and never shown again.',
-      },
-      {
-        title: 'Chat',
-        body: 'Pick a project and describe the need in your own words. The agent asks about what is missing and drafts the epic, story or task.',
-      },
-      {
-        title: 'Confirm before anything is written',
-        body: 'Every create or update in Jira shows up as a card. Nothing is written until you press Confirm, and what is sent is exactly what you saw.',
-      },
-    ],
-    helpTitle: 'Need help?',
-    helpBody: 'Report a problem or ask a question in the project issues on GitHub.',
-    helpLink: 'Open an issue on GitHub',
-    privacyLink: 'Privacy',
-    statusTitle: 'API status',
-  },
   privacy: {
     title: 'Privacy',
     updated: 'Last updated: November 18, 2026',
@@ -519,8 +491,8 @@ export const t = {
     closingBody:
       'Create a free account, connect your Jira, and turn your next idea into a spec an AI agent can implement.',
     source: 'Source on GitHub',
-    about: 'About & API status',
     privacy: 'Privacy',
+    help: 'Help (GitHub issues)',
   },
 } as const
 

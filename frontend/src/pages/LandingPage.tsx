@@ -10,9 +10,9 @@ import { Link, Navigate } from 'react-router'
 
 import { useAuth } from '../auth/context'
 import { t } from '../i18n/en'
+import { SOURCE_URL } from '../lib/links'
 
 const L = t.landing
-const SOURCE_URL = 'https://github.com/micaelleos/FunctionalAgent'
 
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === 'function'
@@ -455,6 +455,9 @@ export function LandingPage() {
           </span>
           <Link to="/about" className="transition-colors hover:text-zinc-900 hover:underline">
             {L.about}
+          </Link>
+          <Link to="/privacy" className="transition-colors hover:text-zinc-900 hover:underline">
+            {L.privacy}
           </Link>
           <a
             href={SOURCE_URL}

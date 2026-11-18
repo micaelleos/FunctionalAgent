@@ -62,6 +62,12 @@ export function SignupPage() {
         </Button>
       </form>
       <p className="text-sm text-slate-600">
+        {t.signup.privacyNote}{' '}
+        <Link to="/privacy" className="text-indigo-700 underline">
+          {t.signup.privacyLink}
+        </Link>
+      </p>
+      <p className="text-sm text-slate-600">
         {t.signup.hasAccount}{' '}
         <Link to="/login" className="text-indigo-700 underline">
           {t.signup.signIn}

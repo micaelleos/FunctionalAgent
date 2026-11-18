@@ -11,6 +11,7 @@ import { ChatPage } from './pages/ChatPage'
 import { IssuesPage } from './pages/IssuesPage'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -36,6 +37,7 @@ const pages: RouteObject[] = [
     element: <PublicLayout />,
     children: [
       { path: '/about', element: <AboutPage /> },
+      { path: '/privacy', element: <PrivacyPage /> },
       { path: '/login', element: guest(<LoginPage />) },
       { path: '/signup', element: guest(<SignupPage />) },
       { path: '/reset-password', element: guest(<ResetPasswordPage />) },

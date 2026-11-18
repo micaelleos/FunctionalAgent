@@ -2,32 +2,44 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em implementação (beta de 2026-11-19 a 2026-11-25) |
 | **Fase** | 3 — Produção |
-| **Dependências** | F01–F11 |
-| **Estimativa** | 3 dias |
+| **Dependências** | F01–F11 (F11-T008, App Check em `enforce`, em 2026-11-25) |
+| **Estimativa** | 4 dias de trabalho + 1 semana de beta |
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
+
+**Revisão 2026-11-18 (decisões do PO):** o Streamlit nunca foi publicado (rodava só local), então não há
+endereço antigo a redirecionar: o RF-02 passa a ser o repositório e o README levando ao app novo. O beta
+com convidados fica. Não há domínio próprio (fica `https://specsflow-ai.web.app`, HTTPS do Hosting). O
+go-live fecha depois do App Check em `enforce` (2026-11-25). Entra uma página simples de privacidade e
+uso. O AT-F12-01 roda no projeto `SCRUM` do Jira sandbox e mantém os issues como evidência. Não há
+lista de convite em código: a URL já é pública e cotas (F11) + App Check limitam abuso e custo.
 
 ---
 
 ## Parte A — Especificação
 
 ### 1. Contexto e objetivo
-- **Objetivo:** colocar o novo app em produção para todos os usuários, comunicar a mudança e remover o Streamlit.
-- **Indicador:** 0 incidentes Sev1 na primeira semana; 100% dos usuários beta migrados.
+- **Objetivo:** abrir o app novo para os convidados do beta, provar em produção que ele faz tudo o que o
+  Streamlit fazia, publicar ajuda e privacidade e remover o Streamlit do repositório.
+- **Indicador:** 0 incidentes Sev1 na semana do beta e na semana seguinte ao go-live; todos os convidados
+  do beta concluem o roteiro (criar ao menos 1 issue no próprio Jira) ou dizem por que não.
 
 ### 2. Escopo
-- **Inclui:** checklist de prontidão, beta fechado, domínio próprio (se decidido), comunicação, redirecionamento do
-  endereço antigo, remoção de `legacy/`, tag `legacy-streamlit-final`, README novo.
-- **Fora de escopo:** migração de dados do Streamlit (não há dados persistidos).
+- **Inclui:** checklist de prontidão; beta com convidados (roteiro, convite, coleta de feedback); página
+  "About" com o fluxo novo e o contato de suporte; página de privacidade e uso; AT-F12-01 em prd;
+  remoção de `legacy/`, tag `legacy-streamlit-final`, README novo.
+- **Fora de escopo:** migração de dados do Streamlit (não há dados persistidos); domínio próprio;
+  redirecionamento (o Streamlit não estava publicado); lista de convite no código.
 
 ### 3. Requisitos funcionais
 | ID | Requisito | Prio. |
 |---|---|---|
 | F12-RF-01 | Todas as capacidades do app antigo existem no novo (matriz de paridade abaixo) | Must |
-| F12-RF-02 | Quem acessar o endereço antigo é levado ao novo app | Should |
-| F12-RF-03 | A página "Sobre"/ajuda explica o novo fluxo (login, conectar Jira, confirmar ações) | Must |
+| F12-RF-02 | Quem chega pelo repositório (README, descrição do GitHub) é levado ao app novo; o Streamlit sai do repositório | Should |
+| F12-RF-03 | A página "About" explica o fluxo novo (criar conta, conectar o Jira, conversar, confirmar ações) e diz onde pedir ajuda (issues do GitHub) | Must |
+| F12-RF-04 | Página pública "Privacy" (`/privacy`, ligada no About, no cadastro e no rodapé): que dados guardamos (conta, conexão Jira com token cifrado, conversas, issues criados, uso diário), com quem são processados (Google Gemini no Vertex AI, Atlassian), o que os logs têm (`uid_hash`, nunca o conteúdo), e como apagar tudo (Account → Delete my data) | Must |
 
 **Matriz de paridade**
 
@@ -40,18 +52,22 @@
 | Lista de projetos | F09 | AT-F09-01 |
 | Issues criados | F10 | AT-F10-01 |
 | Configurar credenciais Jira | F04 | AT-F04-01 |
-| Página Sobre | F08 / F04-RF-07 | revisão |
+| Página Sobre | F12-RF-03 | `AboutPage.test.tsx` |
 
 ### 4. Requisitos técnicos
 | ID | Requisito | Verificação |
 |---|---|---|
-| F12-RT-01 | Checklist de prontidão (abaixo) 100% marcado | revisão |
-| F12-RT-02 | Suíte E2E completa verde em prd com conta de teste (somente leitura + projeto sandbox) | CI |
-| F12-RT-03 | `legacy/` removido; nenhuma dependência Streamlit no repo | `grep` no CI |
+| F12-RT-01 | Checklist de prontidão (abaixo) 100% marcado, com evidência em cada item | revisão do PO |
+| F12-RT-02 | AT-F12-01 em prd com uma conta de teste (Jira sandbox, projeto `SCRUM`) por Playwright; o App Check em `enforce` é atendido por um *debug token* do App Check, guardado só no `.env.local` | `e2e/f12-golive.spec.ts` |
+| F12-RT-03 | `legacy/` removido; nenhuma dependência nem alvo do Streamlit no repo (Makefile, docs de uso); o baseline das evals continua rodando com o `prompt_2` congelado em `evals/` | `scripts/test_no_legacy.py` no CI |
+| F12-RT-04 | Tag `legacy-streamlit-final` no último commit com `legacy/`; README novo (o que é, link do app, arquitetura, como rodar); CLAUDE.md, CONTRIBUTING e Constituição (Art. com `legacy/`, nos dois espelhos) sem o Streamlit | revisão |
 
-**Checklist de prontidão:** SLOs e alertas ativos (F11) · backups e restauração testados · runbooks revisados ·
-evals ≥ baseline · ZAP sem achados altos · custo estimado aprovado · política de privacidade/termos publicados ·
-App Check obrigatório · domínio e HTTPS (se aplicável) · contatos de suporte na página Sobre.
+**Checklist de prontidão** (`docs/go-live/checklist.md`, um item por linha com a evidência):
+SLOs e alertas ativos (F11, AT-F11-03) · restauração do Firestore ensaiada (PITR para um banco temporário,
+`docs/runbooks/firestore-restauracao.md`) · runbooks revisados · evals ≥ baseline (`evals/run.py --compare`)
+· ZAP sem achados altos (F11-RT-10) · custo estimado por mês aprovado pelo PO · privacidade publicada
+(F12-RF-04) · App Check em `enforce` (F11-T008) · HTTPS (Hosting e Cloud Run; sem domínio próprio) ·
+contato de suporte no About (F12-RF-03).
 
 ### 5. Teste final de aceitação
 ```gherkin
@@ -59,18 +75,32 @@ Funcionalidade: Go-live
 
   Cenário: AT-F12-01 Jornada completa em produção               # F12-RF-01, F12-RT-02
     Dado uma conta de teste em produção conectada ao Jira sandbox
-    Quando faço login, peço um épico e uma story para o projeto "E2E" e confirmo as duas ações
+    E o App Check em "enforce"
+    Quando faço login, peço um épico e uma story para o projeto "SCRUM" e confirmo as duas ações
     Então os dois issues existem no Jira
-    E aparecem em "Issues criados"
+    E aparecem em "Issues"
     E a conversa está disponível após sair e entrar de novo
 
-  Cenário: AT-F12-02 Endereço antigo redireciona                 # F12-RF-02
-    Quando acesso o endereço do app Streamlit
-    Então sou redirecionado para o novo app
+  Cenário: AT-F12-02 O repositório leva ao app novo            # F12-RF-02, F12-RT-03
+    Quando abro o README do repositório
+    Então o primeiro link é https://specsflow-ai.web.app
+    E não existe `legacy/` nem instrução de rodar o Streamlit
+
+  Cenário: AT-F12-03 Ajuda e privacidade públicas              # F12-RF-03, F12-RF-04
+    Quando abro /about sem estar logado
+    Então vejo os passos "Create an account", "Connect Jira", "Chat", "Confirm before anything is written"
+    E o link de suporte para as issues do GitHub
+    E o link "Privacy", que abre /privacy sem login
 ```
 
 ### 6. Conformidade com a Constituição
-Validação final de todos os artigos via checklist de prontidão.
+| Artigo | Como esta feature cumpre |
+|---|---|
+| II Privacidade | A página de privacidade descreve exatamente o que o código guarda; exclusão de conta já existe (F03) |
+| III Segredos | Conta de teste e debug token do App Check só no `.env.local`; nunca em logs nem no repo |
+| IV Humano no circuito | AT-F12-01 confirma as duas ações pela UI |
+| VI Testes | Cada RF tem teste (E2E em prd, componentes, checagem do legado no CI) |
+| VIII Infra | Debug token registrado fora do repo; nenhuma infra nova |
 
 ---
 
@@ -78,10 +108,12 @@ Validação final de todos os artigos via checklist de prontidão.
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F12-RF-01 | Matriz de paridade, AT-F12-01 | ⬜ |
-| F12-RF-02 | AT-F12-02 | ⬜ |
-| F12-RF-03 | Revisão do PO | ⬜ |
+| F12-RF-01 | Matriz de paridade, AT-F12-01 (`e2e/f12-golive.spec.ts`) | ⬜ |
+| F12-RF-02 | AT-F12-02, `scripts/test_no_legacy.py` | ⬜ |
+| F12-RF-03 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `AboutPage.test.tsx` | ✅ local |
+| F12-RF-04 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `PrivacyPage.test.tsx` | ✅ local |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-18 | branch `feat/F12-go-live` | local (`make dev`) | AT-F12-03 (About com os 4 passos e o suporte; Privacy pública; axe sem violações sérias); suíte E2E local (19 passaram, 9 pulados); `make lint`; `make test` (backend 593, frontend 149); `make trace` | ✅ | — |

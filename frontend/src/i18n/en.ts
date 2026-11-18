@@ -44,6 +44,8 @@ export const t = {
     submit: 'Create account',
     hasAccount: 'Already have an account?',
     signIn: 'Sign in',
+    privacyNote: 'By creating an account you agree to how we handle your data:',
+    privacyLink: 'Privacy',
   },
   verify: {
     title: 'Confirm your email',
@@ -296,6 +298,72 @@ export const t = {
   },
   about: {
     body: 'An AI agent that helps Product Owners turn product needs into Jira epics, stories and tasks written for AI coding agents to implement.',
+    howTitle: 'How it works',
+    steps: [
+      {
+        title: 'Create an account',
+        body: 'Sign up with email or Google and confirm your email.',
+      },
+      {
+        title: 'Connect Jira',
+        body: 'In Settings, add your Atlassian site, email and an API token. The token is encrypted and never shown again.',
+      },
+      {
+        title: 'Chat',
+        body: 'Pick a project and describe the need in your own words. The agent asks about what is missing and drafts the epic, story or task.',
+      },
+      {
+        title: 'Confirm before anything is written',
+        body: 'Every create or update in Jira shows up as a card. Nothing is written until you press Confirm, and what is sent is exactly what you saw.',
+      },
+    ],
+    helpTitle: 'Need help?',
+    helpBody: 'Report a problem or ask a question in the project issues on GitHub.',
+    helpLink: 'Open an issue on GitHub',
+    privacyLink: 'Privacy',
+    statusTitle: 'API status',
+  },
+  privacy: {
+    title: 'Privacy',
+    updated: 'Last updated: November 18, 2026',
+    intro:
+      'SpecFlow AI is a portfolio project. This page says exactly what the app keeps and why. It is not a contract.',
+    sections: [
+      {
+        title: 'What we keep',
+        items: [
+          'Your profile: name, email and when you joined.',
+          'Your Jira connection: site URL, Jira email and the API token, encrypted with a Google Cloud KMS key. The token is never shown back to you or written to logs.',
+          'Your conversations and the messages in them.',
+          'Proposed Jira actions while they wait for your confirmation (they expire after 24 hours) and the issues you created or updated through the app.',
+          'Daily usage counters (messages and tokens) used for the daily limit.',
+        ],
+      },
+      {
+        title: 'Who processes it',
+        items: [
+          'Google Cloud hosts the app (Firebase Hosting, Cloud Run) and stores its data in the us-central1 region, in the United States (Firestore, Cloud Logging).',
+          'Google Gemini on Vertex AI reads your messages to write the answers and specs.',
+          'Atlassian receives what you confirm, through your own Jira credential.',
+        ],
+      },
+      {
+        title: 'Logs and errors',
+        items: [
+          'Logs identify you only by a one-way hash of your account id, never by email, and never include message content or your Jira token.',
+          'If the page crashes, the error message, stack trace and page path are sent to our error reports.',
+        ],
+      },
+      {
+        title: 'Your choices',
+        items: [
+          'Account → Download my data gives you everything the app keeps about you, as JSON.',
+          'Account → Delete my data erases all of it from SpecFlow AI. Issues already created stay in your Jira. Your sign-in is shared with other apps of this portfolio, so the login itself is not deleted.',
+          'Removing the Jira connection in Settings deletes the stored token right away.',
+        ],
+      },
+    ],
+    contact: 'Questions: open an issue on GitHub.',
   },
   common: { loading: 'Loading…', error: 'Something went wrong.' },
   errors: {
@@ -446,12 +514,13 @@ export const t = {
     ],
     statusTitle: 'Where things stand',
     status:
-      'SpecFlow AI is a portfolio project built in the open. Sign-in, your account, data export and deletion, and the encrypted Jira connection are live today. The spec-writing agent and the confirmation flow are next; until then, the app screens show what is coming.',
-    closingTitle: 'Want to follow along?',
+      'SpecFlow AI is a portfolio project built in the open, now in beta. The agent, the confirmation flow, your projects and the history of created issues are live, with a daily usage limit per account.',
+    closingTitle: 'Want to try it?',
     closingBody:
-      'Create a free account, connect your Jira, and be first to try the agent when it lands.',
+      'Create a free account, connect your Jira, and turn your next idea into a spec an AI agent can implement.',
     source: 'Source on GitHub',
     about: 'About & API status',
+    privacy: 'Privacy',
   },
 } as const
 

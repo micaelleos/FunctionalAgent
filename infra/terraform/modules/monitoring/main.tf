@@ -315,11 +315,16 @@ locals {
     title = v.title
     xyChart = {
       dataSets = [{
-        plotType = "LINE"
+        plotType   = "LINE"
+        targetAxis = "Y1"
         timeSeriesQuery = {
           timeSeriesFilter = {
-            filter      = v.filter
-            aggregation = { alignmentPeriod = "300s", perSeriesAligner = v.aligner, crossSeriesReducer = v.reducer, groupByFields = v.group }
+            filter = v.filter
+            # A API omite listas vazias e zeros; enviar igual evita diff perpétuo no plan.
+            aggregation = merge(
+              { alignmentPeriod = "300s", perSeriesAligner = v.aligner, crossSeriesReducer = v.reducer },
+              length(v.group) > 0 ? { groupByFields = v.group } : {},
+            )
           }
         }
       }]
@@ -334,13 +339,11 @@ resource "google_monitoring_dashboard" "app" {
     displayName = "${var.prefix}: operação"
     mosaicLayout = {
       columns = 12
-      tiles = [for i, k in local.order : {
-        xPos   = (i % 2) * 6
-        yPos   = floor(i / 2) * 4
-        width  = 6
-        height = 4
-        widget = local.tile[k]
-      }]
+      tiles = [for i, k in local.order : merge(
+        { width = 6, height = 4, widget = local.tile[k] },
+        i % 2 > 0 ? { xPos = 6 } : {},
+        i >= 2 ? { yPos = floor(i / 2) * 4 } : {},
+      )]
     }
   })
   depends_on = [google_logging_metric.chat_turns, google_logging_metric.distribution, google_logging_metric.counter]

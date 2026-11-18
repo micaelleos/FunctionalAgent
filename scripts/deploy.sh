@@ -137,7 +137,7 @@ deploy_web() {
     "https://recaptchaenterprise.googleapis.com/v1/projects/$PROJECT/keys" || echo '{}') |
     jq -r '[.keys[]? | select(.displayName == "specflow-web") | .name | split("/") | last][0] // ""')
 
-  log "Build do SPA (VITE_API_BASE_URL=$api_url, Firebase $(jq -r '.projectId' <<<"$config"), App Check ${site_key:+ligado}${site_key:-desligado})"
+  log "Build do SPA (VITE_API_BASE_URL=$api_url, Firebase $(jq -r '.projectId' <<<"$config"), App Check $([[ -n $site_key ]] && echo ligado || echo desligado))"
   (
     cd "$ROOT/frontend"
     VITE_API_BASE_URL="$api_url" \

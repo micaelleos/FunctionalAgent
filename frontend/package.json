@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@firebase/app": "0.16.2",
+    "@firebase/app-check": "0.13.2",
     "@firebase/auth": "1.13.6",
     "@tanstack/react-query": "5.105.0",
     "react": "19.0.0",

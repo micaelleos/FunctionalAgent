@@ -351,14 +351,14 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
     },
     getUsage: async () => ({
       usedToday,
-      dailyLimit: 50,
+      dailyLimit: 20,
       last7Days: [
         { label: 'Sat', count: 12 },
-        { label: 'Sun', count: 31 },
+        { label: 'Sun', count: 19 },
         { label: 'Mon', count: 8 },
         { label: 'Tue', count: 0 },
-        { label: 'Wed', count: 44 },
-        { label: 'Thu', count: 27 },
+        { label: 'Wed', count: 20 },
+        { label: 'Thu', count: 15 },
         { label: 'today', count: usedToday },
       ],
     }),

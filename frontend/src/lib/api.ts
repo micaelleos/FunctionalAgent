@@ -1,4 +1,5 @@
 import type { components } from './api-schema'
+import { withAppCheck } from './appCheck'
 
 export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -66,7 +67,7 @@ export async function apiFetch(
   init: RequestInit = {},
 ): Promise<Response> {
   const send = async (forceRefresh: boolean) => {
-    const headers = new Headers(init.headers)
+    const headers = await withAppCheck(new Headers(init.headers))
     const token = await getToken(forceRefresh)
     if (token) headers.set('Authorization', `Bearer ${token}`)
     return fetch(`${API_BASE_URL}${path}`, { ...init, headers })

@@ -225,3 +225,47 @@ describe('F10-RF-01 F10-RF-05 F10-RF-06 histórico pela API', () => {
     expect(await p.agentPrompt('ABC-1')).toBe('Implemente a issue ABC-1')
   })
 })
+
+describe('F11-RF-01 uso pela API', () => {
+  it('mapeia o consumo do dia e os 7 dias, o último é hoje', async () => {
+    const days = [
+      '2026-11-12',
+      '2026-11-13',
+      '2026-11-14',
+      '2026-11-15',
+      '2026-11-16',
+      '2026-11-17',
+      '2026-11-18',
+    ]
+    server.use(
+      http.get(api('/api/v1/me/usage'), () =>
+        HttpResponse.json({
+          messages_today: 3,
+          message_limit: 20,
+          tokens_today: 1500,
+          token_limit: 200000,
+          resets_at: '2026-11-19T03:00:00Z',
+          last_7_days: days.map((day, i) => ({ day, messages: i })),
+        }),
+      ),
+    )
+    const p = product()
+
+    const usage = await p.getUsage()
+
+    expect(p.features.usage).toBe(true)
+    expect(usage).toEqual({
+      usedToday: 3,
+      dailyLimit: 20,
+      last7Days: [
+        { label: 'Thu', count: 0 },
+        { label: 'Fri', count: 1 },
+        { label: 'Sat', count: 2 },
+        { label: 'Sun', count: 3 },
+        { label: 'Mon', count: 4 },
+        { label: 'Tue', count: 5 },
+        { label: 'today', count: 6 },
+      ],
+    })
+  })
+})

@@ -11,6 +11,7 @@ import type {
   JiraConnectionInput,
   JiraProject,
   ProductApi,
+  Usage,
 } from './types'
 import { type ApiAction, fromApiAction, toActionProblem } from './actions'
 import { unavailableProductApi } from './unavailable'
@@ -25,6 +26,7 @@ type ApiIssue = components['schemas']['IssueOut']
 type ApiIssuePage = components['schemas']['IssuePage']
 type ApiStatuses = components['schemas']['StatusOut']
 type ApiPrompt = components['schemas']['AgentPrompt']
+type ApiUsage = components['schemas']['UsageOut']
 
 const ISSUES = '/api/v1/jira/issues'
 const ISSUE_PAGE = 25
@@ -76,6 +78,19 @@ const issueQuery = (filters: IssueFilters, cursor?: string | null): string => {
   if (cursor) params.set('cursor', cursor)
   return `${ISSUES}?${params.toString()}`
 }
+
+const weekday = (day: string) =>
+  new Date(`${day}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
+
+/** Uso do dia (F11-RF-01); o último dos 7 dias é hoje (dia de Brasília). */
+export const usageFromApi = (u: ApiUsage): Usage => ({
+  usedToday: u.messages_today,
+  dailyLimit: u.message_limit,
+  last7Days: u.last_7_days.map((d, i, all) => ({
+    label: i === all.length - 1 ? 'today' : weekday(d.day),
+    count: d.messages,
+  })),
+})
 
 const fromApi = (c: ApiConnection): JiraConnection => ({
   id: c.id,
@@ -137,7 +152,15 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
 
   return {
     ...unavailableProductApi,
-    features: { ...unavailableProductApi.features, jira: true, projects: true, chat: CHAT_ENABLED },
+    features: {
+      ...unavailableProductApi.features,
+      jira: true,
+      projects: true,
+      chat: CHAT_ENABLED,
+      usage: true,
+    },
+    // F11: consumo do dia e limite.
+    getUsage: async () => usageFromApi(await json<ApiUsage>('/api/v1/me/usage')),
     getJiraConnection: current,
     listProjects,
     // F10: histórico de issues.

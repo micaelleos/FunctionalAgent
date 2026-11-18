@@ -195,6 +195,47 @@ describe('F08-RF-07 erros', () => {
   })
 })
 
+describe('F11-RF-02 F11-RF-03 limites de uso no chat', () => {
+  it('cota do dia: mensagem com a renovação, sem "Try again", e o uso é relido', async () => {
+    const api = createDemoProductApi(() => NOW)
+    const getUsage = vi.spyOn(api, 'getUsage')
+    api.streamMessage = vi.fn().mockRejectedValue(
+      new ApiError(429, 'quota-exceeded', 'Limite diário atingido', {
+        code: 'quota-exceeded',
+        resets_at: '2026-11-18T03:00:00+00:00',
+      }),
+    )
+    renderApp('/chat/c1', api)
+    await waitFor(() => expect(getUsage).toHaveBeenCalled())
+    const before = getUsage.mock.calls.length
+    await typeAndSend('Oi')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(
+      "You've reached today's limit. It renews at 00:00 (Brasília time).",
+    )
+    expect(within(alert).queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Message')).toHaveValue('Oi')
+    await waitFor(() => expect(getUsage.mock.calls.length).toBeGreaterThan(before))
+  })
+
+  it('rate limit: diz quantos segundos esperar e deixa tentar de novo', async () => {
+    const api = createDemoProductApi(() => NOW)
+    api.streamMessage = vi.fn().mockRejectedValue(
+      new ApiError(429, 'rate-limited', 'Muitas mensagens', {
+        code: 'rate-limited',
+        retry_after: 42,
+      }),
+    )
+    renderApp('/chat/c1', api)
+    await typeAndSend('Oi')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Too many messages. Wait 42 seconds and try again.')
+    expect(within(alert).getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+  })
+})
+
 describe('F08-RF-01 histórico paginado e conversa nova', () => {
   it('"Load earlier messages" traz a página anterior em cima', async () => {
     const api = createDemoProductApi(() => NOW)

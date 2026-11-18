@@ -106,6 +106,7 @@ export const t = {
     thinking: 'Thinking…',
     interrupted: 'Interrupted: you stopped this answer.',
     retry: 'Try again',
+    rateLimited: (seconds: number) => `Too many messages. Wait ${seconds} seconds and try again.`,
     networkError:
       "We couldn't reach the server. Check your connection; your message is still in the box.",
     agentError: 'The answer stopped because of an error.',
@@ -275,6 +276,11 @@ export const t = {
     howNote:
       'The token has the same permissions as your Jira account. You can revoke it in Atlassian at any time.',
   },
+  routeError: {
+    title: 'Something went wrong',
+    body: 'This screen hit an error. We were notified. Reload the page to continue.',
+    reload: 'Reload',
+  },
   usage: {
     title: 'Agent usage',
     resets: 'The limit resets every day at midnight (Brasília time).',
@@ -325,6 +331,9 @@ export const t = {
     'turn-timeout': 'The answer took too long. Try again.',
     'tool-limit': 'The agent used too many tools in this turn. Rephrase or split the request.',
     'llm-unavailable': 'The model is unavailable right now. Try again in a moment.',
+    'quota-exceeded': "You've reached today's limit. It renews at 00:00 (Brasília time).",
+    'rate-limited': 'Too many messages. Wait a few seconds and try again.',
+    'app-check-required': "This request didn't come from the SpecFlow AI app. Reload the page.",
   } as Record<string, string>,
   landing: {
     nav: 'Site',

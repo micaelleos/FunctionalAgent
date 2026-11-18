@@ -1,4 +1,5 @@
 import { API_BASE_URL, ApiError, type TokenGetter, toApiError } from './api'
+import { withAppCheck } from './appCheck'
 
 /**
  * Eventos do chat (docs/api/sse-events.v1.json, F05-RT-02). `open` é só do cliente: o stream
@@ -81,7 +82,9 @@ export async function streamPost(
   signal?: AbortSignal,
 ): Promise<StreamResult> {
   const send = async (forceRefresh: boolean) => {
-    const headers = new Headers({ 'Content-Type': 'application/json', Accept: 'text/event-stream' })
+    const headers = await withAppCheck(
+      new Headers({ 'Content-Type': 'application/json', Accept: 'text/event-stream' }),
+    )
     const token = await getToken(forceRefresh)
     if (token) headers.set('Authorization', `Bearer ${token}`)
     return fetch(`${API_BASE_URL}${path}`, {

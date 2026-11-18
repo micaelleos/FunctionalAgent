@@ -284,7 +284,7 @@ describe('F11 uso na conta', () => {
   it('mostra o uso de hoje e dos últimos 7 dias', async () => {
     renderApp('/account')
 
-    expect(await screen.findByText('18 of 50 messages')).toBeInTheDocument()
+    expect(await screen.findByText('18 of 20 messages')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /last 7 days/ })).toBeInTheDocument()
   })
 })

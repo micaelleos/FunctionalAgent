@@ -4,6 +4,7 @@
 Brasília e já conta a mensagem. Os tokens do turno entram depois, em `add_usage` (F05).
 """
 
+import logging
 import math
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta, timezone
@@ -12,12 +13,14 @@ from typing import Any, Protocol
 from pydantic import BaseModel
 
 from app.core.errors import ApiProblemError
+from app.core.logging import uid_hash
 from app.core.telemetry import in_thread
 from app.repositories.usage import UsageConflictError
 
 # Brasília não tem horário de verão desde 2019: UTC-3 fixo (sem depender do tzdata da imagem).
 BRASILIA = timezone(timedelta(hours=-3), "America/Sao_Paulo")
 WINDOW = timedelta(seconds=60)
+log = logging.getLogger("app.usage")
 HISTORY_DAYS = 7
 
 
@@ -130,10 +133,20 @@ class UsageService:
         try:
             refused = await in_thread(self._store.update_usage, uid, usage_day(now), decide)
         except UsageConflictError:
-            raise RateLimitedError(1) from None  # rajada simultânea: tente de novo em 1 s
+            refused = ("rate", 1)  # rajada simultânea: tente de novo em 1 s
         if refused is None:
             return
         kind, value = refused
+        log.info(  # métrica de limites atingidos (F11-RT-03)
+            "usage_limit",
+            extra={
+                "fields": {
+                    "event": "usage_limit",
+                    "uid_hash": uid_hash(uid),
+                    "limit": "rate-limited" if kind == "rate" else "quota-exceeded",
+                }
+            },
+        )
         if kind == "rate":
             raise RateLimitedError(value)
         raise QuotaExceededError(now, value)

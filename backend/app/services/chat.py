@@ -27,7 +27,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel
 
-from app.agent.graph import AgentState, build_agent, project_note, system_prompt
+from app.agent.graph import Agent, AgentState, build_agent, project_note, system_prompt
 from app.agent.spec.jira_payload import payload_hash
 from app.agent.tools.context import ActionKind, ProposedAction, ToolContext
 from app.agent.tools.jira_tools import PROGRESS, TOOLS
@@ -249,7 +249,18 @@ class FirestoreActionSink:
             "createdAt": now,
             "expiresAt": now + ACTION_TTL,
         }
-        action_id = await asyncio.to_thread(self._store.create_action, self._uid, doc)
+        action_id = await in_thread(self._store.create_action, self._uid, doc)
+        log.info(  # métrica de ações propostas (F11-RT-03)
+            "action_proposed",
+            extra={
+                "fields": {
+                    "event": "action_proposed",
+                    "uid_hash": uid_hash(self._uid),
+                    "action_id": action_id,
+                    "kind": kind,
+                }
+            },
+        )
         return ProposedAction(action_id, kind, preview)
 
 
@@ -268,6 +279,21 @@ class _Turn:
         self.output_tokens += int(usage.get("output_tokens", 0))
 
 
+_agents: dict[tuple[int, int], tuple[BaseChatModel, Agent]] = {}
+
+
+def shared_agent(llm: BaseChatModel, max_iterations: int) -> Agent:
+    """Grafo compilado uma vez por modelo compartilhado (F11-RT-08).
+
+    Só para modelos que vivem o processo todo (o de `api/deps.py`); guarda o modelo junto para o
+    `id` nunca ser reaproveitado por outro objeto.
+    """
+    key = (id(llm), max_iterations)
+    if key not in _agents:
+        _agents[key] = (llm, build_agent(llm, TOOLS, max_iterations=max_iterations))
+    return _agents[key][1]
+
+
 class ChatService:
     def __init__(
         self,
@@ -280,8 +306,12 @@ class ChatService:
         clock: Callable[[], datetime] | None = None,
         title_llm: BaseChatModel | None = None,
         usage: UsageService | None = None,
+        agent: Agent | None = None,
     ) -> None:
         self._store = store
+        # Grafo já compilado e compartilhado (F11-RT-08): compilar custa ~metade da CPU de um turno.
+        # O estado vem em cada invocação, então o mesmo grafo serve requisições simultâneas.
+        self._agent = agent
         # Cota diária e rate limit (F11); `None` nos testes que não tratam disso.
         self._usage = usage
         # Título automático (F07-RT-05); `None` desliga (testes com LLM roteirizado).
@@ -455,7 +485,7 @@ class ChatService:
                         *window.messages,
                         HumanMessage(with_events(text, window.pending_events)),
                     ]
-                    agent = build_agent(
+                    agent = self._agent or build_agent(
                         self._llm, self._tools, max_iterations=self._settings.agent_max_iterations
                     )
                     state: AgentState = {

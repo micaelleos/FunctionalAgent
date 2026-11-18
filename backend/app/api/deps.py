@@ -26,7 +26,7 @@ from app.repositories.usage import UsageRepository
 from app.repositories.users import UserRepository
 from app.services.account import AccountService
 from app.services.actions import ActionService
-from app.services.chat import ChatService
+from app.services.chat import ChatService, shared_agent
 from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
 from app.services.jira_issues import JiraIssueService
@@ -140,7 +140,15 @@ def get_chat_service(
     llm = _chat_model(settings)
     title_llm = llm if settings.auto_title_enabled else None
     usage = UsageService(UsageRepository(db), settings)
-    return ChatService(ActionRepository(db), jira, llm, settings, title_llm=title_llm, usage=usage)
+    return ChatService(
+        ActionRepository(db),
+        jira,
+        llm,
+        settings,
+        title_llm=title_llm,
+        usage=usage,
+        agent=shared_agent(llm, settings.agent_max_iterations),
+    )
 
 
 def get_usage_service(settings: Annotated[Settings, Depends(get_settings)]) -> UsageService:

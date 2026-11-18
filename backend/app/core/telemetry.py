@@ -7,7 +7,10 @@ dele; as chamadas httpx (Jira e o modelo no Vertex) e as operações do Firestor
 """
 
 import asyncio
+import contextvars
+import functools
 from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from typing import Any
 
@@ -48,7 +51,17 @@ def span(name: str, **attributes: Any) -> Iterator[None]:
         yield
 
 
+# Pool próprio para as chamadas bloqueantes ao Firestore/KMS (F11-RT-08). O executor padrão do
+# asyncio tem min(32, CPUs + 4) threads: 5 no Cloud Run de 1 CPU, para até 40 requisições por
+# instância, cada uma com várias chamadas em sequência. As threads passam quase todo o tempo
+# esperando a rede, então o limite é a concorrência, não a CPU.
+IO_THREADS = 32
+_io_pool = ThreadPoolExecutor(max_workers=IO_THREADS, thread_name_prefix="io")
+
+
 async def in_thread[T](fn: Callable[..., T], *args: Any) -> T:
     """Chamada síncrona ao repositório (Firestore) numa thread, com um span `store.<nome>`."""
     with span(f"store.{getattr(fn, '__name__', 'call')}"):
-        return await asyncio.to_thread(fn, *args)
+        # Como `asyncio.to_thread`: leva o contexto (request_id, span) para a thread.
+        call = functools.partial(contextvars.copy_context().run, fn, *args)
+        return await asyncio.get_running_loop().run_in_executor(_io_pool, call)

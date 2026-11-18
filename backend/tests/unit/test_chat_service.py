@@ -417,3 +417,14 @@ async def test_turno_completo_nao_e_interrompido() -> None:
     service, store, _ = _service(ScriptedChatModel(responses=[AIMessage("Pronto.")]))
     cid, _ = await _turn(service, "Oi")
     assert _assistant(store, cid)["interrupted"] is False
+
+
+@pytest.mark.req("F11-RT-08")
+def test_shared_agent_compila_uma_vez_por_modelo() -> None:
+    from app.agent.fake_llm import EchoChatModel
+    from app.services.chat import shared_agent
+
+    llm, other = EchoChatModel(), EchoChatModel()
+    assert shared_agent(llm, 8) is shared_agent(llm, 8)
+    assert shared_agent(llm, 8) is not shared_agent(other, 8)
+    assert shared_agent(llm, 8) is not shared_agent(llm, 3)

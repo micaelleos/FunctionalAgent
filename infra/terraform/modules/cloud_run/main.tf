@@ -10,6 +10,10 @@ variable "kms_key_name" { type = string }
 variable "deletion_protection" { type = bool }
 variable "llm_model" { type = string }
 variable "llm_location" { type = string }
+variable "project_number" { type = string }
+variable "app_check_mode" { type = string }
+variable "daily_message_quota" { type = number }
+variable "daily_token_quota" { type = number }
 
 # O Terraform cria o serviço e a configuração (F02-RT-05); a imagem e o tráfego pertencem ao
 # `make deploy` (scripts/deploy.sh), que publica sempre por digest. Por isso image/traffic são ignorados.
@@ -79,6 +83,28 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "LLM_LOCATION"
         value = var.llm_location
+      }
+
+      # Observabilidade, limites e App Check (F11).
+      env {
+        name  = "TRACING_ENABLED"
+        value = "true"
+      }
+      env {
+        name  = "FIREBASE_PROJECT_NUMBER"
+        value = var.project_number
+      }
+      env {
+        name  = "APP_CHECK_MODE"
+        value = var.app_check_mode
+      }
+      env {
+        name  = "DAILY_MESSAGE_QUOTA"
+        value = tostring(var.daily_message_quota)
+      }
+      env {
+        name  = "DAILY_TOKEN_QUOTA"
+        value = tostring(var.daily_token_quota)
       }
 
       startup_probe {

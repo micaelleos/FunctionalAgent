@@ -25,6 +25,10 @@ services:
       FIREBASE_AUTH_EMULATOR_HOST: emulators:9099
       # Sem credenciais do GCP no container: o modelo de eco responde o chat (E2E da F08 no CI).
       LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+      # Limites de uso (F11): o E2E da cota usa 3; o teste de carga sobe os dois.
+      DAILY_MESSAGE_QUOTA: ${DAILY_MESSAGE_QUOTA:-20}
+      DAILY_TOKEN_QUOTA: ${DAILY_TOKEN_QUOTA:-200000}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-10}
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
     volumes:
       - ./backend/app:/app/app

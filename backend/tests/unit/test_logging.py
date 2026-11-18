@@ -179,3 +179,23 @@ async def test_chamadas_ao_firestore_viram_spans() -> None:
 
     names = {s.name for s in SPANS.get_finished_spans()}
     assert {"store.create_conversation", "store.add_message"} <= names
+
+
+@pytest.mark.req("F11-RT-01")
+async def test_in_thread_leva_o_contexto_da_requisicao_para_a_thread() -> None:
+    import threading
+
+    from app.core import logging as app_logging
+    from app.core.telemetry import in_thread
+
+    token = app_logging._request.set({"request_id": "req-pool"})
+
+    def read() -> tuple[object, str]:
+        return app_logging.current().get("request_id"), threading.current_thread().name
+
+    try:
+        request_id, thread = await in_thread(read)
+    finally:
+        app_logging._request.reset(token)
+    assert request_id == "req-pool"
+    assert thread.startswith("io")

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em validação |
 | **Fase** | 3 — Produção |
 | **Dependências** | F05–F10 |
 | **Estimativa** | 6 dias |
@@ -91,11 +91,17 @@ Funcionalidade: Limites e operação
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F11-RF-01 | AT-F11-01, `test_usage.py`, `UsagePanel.test.tsx`, `http.test.ts` | ⬜ |
-| F11-RF-02 | AT-F11-01, `test_usage.py`, `ChatPage.test.tsx` | ⬜ |
-| F11-RF-03 | AT-F11-02, `test_usage.py`, `ChatPage.test.tsx` | ⬜ |
-| F11-RF-04 | AT-F11-03, `infra/terraform/modules/monitoring` | ⬜ |
+| F11-RF-01 | AT-F11-01 (`e2e/f11-limites.spec.ts`), `tests/unit/test_usage.py`, `http.test.ts`, `screens.test.tsx` | ✅ local |
+| F11-RF-02 | AT-F11-01, `tests/unit/test_usage.py`, `tests/integration/test_usage.py`, `ChatPage.test.tsx` | ✅ local |
+| F11-RF-03 | AT-F11-02 (`e2e/f11-limites.spec.ts`), `tests/unit/test_usage.py`, `ChatPage.test.tsx` | ✅ local |
+| F11-RF-04 | AT-F11-03 (ensaio em prd, `docs/runbooks/alertas.md`), `scripts/test_monitoring.py` | ⏳ após o `terraform apply` |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |
 |---|---|---|---|---|---|
+| 2026-11-18 | branch `feat/F11-observabilidade-limites` | local (`make dev`, LLM de eco) | AT-F11-01 com `DAILY_MESSAGE_QUOTA=3`: 3 mensagens, indicador "3 of 3", 4ª recusada com "You've reached today's limit. It renews at 00:00 (Brasília time).", sem "Try again", texto de volta ao campo | ✅ | — |
+| 2026-11-18 | idem | local | AT-F11-02: 15 mensagens pela API em < 10 s; 1ª–10ª 200, 11ª–15ª 429 `rate-limited` com `Retry-After` | ✅ | — |
+| 2026-11-18 | idem | local | Suíte E2E local completa (18 passaram, 8 pulados: Jira/Gemini/ambiente implantado); `make lint`; `make test` (backend 593, cobertura 94,9%; frontend 145); `make trace` | ✅ | — |
+| 2026-11-18 | idem | local (codespace 2 vCPU, emulador na mesma máquina) | F11-RT-08, k6 `scripts/load/chat.js`: 50 usuários por 2 min perto do rate limit, 797 turnos, erro 0%, p95 193 ms (mediana 80 ms). Antes das correções do teste: p95 1,93 s — o grafo do agente era compilado a cada turno (≈ metade da CPU) e o pool padrão do `asyncio.to_thread` tinha 6 threads (5 no Cloud Run) para as chamadas ao Firestore; agora o grafo é compartilhado e o pool de I/O tem 32 threads | ✅ | — |
+| 2026-11-18 | idem | local | `terraform validate` (Docker `hashicorp/terraform:1.9.8`) do módulo `monitoring`, App Check e variáveis do Cloud Run; `scripts/test_monitoring.py` | ✅ | — |
+| — | — | prd | `terraform apply` (com `TF_VAR_alert_email`), `make deploy`, AT-F11-03 (ensaio do uptime), ZAP baseline (`zap.yml`) | ⏳ pendente | — |

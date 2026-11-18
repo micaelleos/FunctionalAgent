@@ -15,24 +15,24 @@
 
 **Aceitação:** AT-F11-04
 
-- [ ] T001 Logs JSON com contexto, `uid_hash` e traces OTel — teste: `test_logging.py` — 1 d
-- [ ] T002 [P] App Check (front + back, modo `monitor`) — teste: `test_app_check.py`, `api.test.ts` — 0,5 d
-- [ ] T007 [P] Erros do front → Error Reporting — teste: `test_client_errors.py`, `errorReporting.test.ts` — 0,5 d
+- [x] T001 Logs JSON com contexto, `uid_hash` e traces OTel — teste: `test_logging.py` — 1 d
+- [x] T002 [P] App Check (front + back, modo `monitor`) — teste: `test_app_check.py`, `api.test.ts` — 0,5 d
+- [x] T007 [P] Erros do front → Error Reporting — teste: `test_client_errors.py`, `errorReporting.test.ts` — 0,5 d
 
 ### Fase 2: Incremento 1 — limites de uso
 
 **Aceitação:** AT-F11-01, AT-F11-02
 
-- [ ] T003 [F11-RF-02][F11-RF-03] Cota diária + rate limit no Firestore — teste: `test_usage.py`, integração — 1 d
-- [ ] T006 [F11-RF-01] `GET /me/usage` + indicador e painel — teste: `UsagePanel.test.tsx`, `ChatPage.test.tsx` — 0,5 d
+- [x] T003 [F11-RF-02][F11-RF-03] Cota diária + rate limit no Firestore — teste: `test_usage.py`, integração — 1 d
+- [x] T006 [F11-RF-01] `GET /me/usage` + indicador e painel — teste: `screens.test.tsx`, `http.test.ts`, `ChatPage.test.tsx` — 0,5 d
 
 ### Fase 3: Incremento 2 — alertas
 
 **Aceitação:** AT-F11-03
 
-- [ ] T004 [F11-RF-04] Métricas por log, dashboard, alertas, uptime, SLO (Terraform) — teste: AT-F11-03 — 1 d
+- [ ] T004 [F11-RF-04] Métricas por log, dashboard, alertas, uptime, SLO (Terraform) — teste: `scripts/test_monitoring.py`, AT-F11-03 (falta o apply e o ensaio em prd) — 1 d
 
 ### Fase 4: Validação e entrega
 
-- [ ] T005 Carga k6, ZAP, runbooks — teste: k6/ZAP — 1 d
+- [x] T005 Carga k6, ZAP, runbooks — teste: k6/ZAP — 1 d
 - [ ] T008 App Check `enforce` após 1 semana em `monitor` (PR à parte) — teste: AT-F11-04 em prd — 0,25 d

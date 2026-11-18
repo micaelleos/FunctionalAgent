@@ -132,8 +132,9 @@ deploy_web() {
   # Site key do App Check (F11-RT-07): pública, da chave reCAPTCHA criada pelo Terraform. Sem ela
   # (Terraform da F11 ainda não aplicado), o SPA sai sem App Check e a API em `monitor` só registra.
   local site_key
-  site_key=$(curl -sS --fail-with-body -H "Authorization: Bearer $token" -H "x-goog-user-project: $PROJECT" \
-    "https://recaptchaenterprise.googleapis.com/v1/projects/$PROJECT/keys" |
+  # API do reCAPTCHA ainda desligada (403) também cai aqui: sem chave, sem App Check.
+  site_key=$( (curl -sS -H "Authorization: Bearer $token" -H "x-goog-user-project: $PROJECT" \
+    "https://recaptchaenterprise.googleapis.com/v1/projects/$PROJECT/keys" || echo '{}') |
     jq -r '[.keys[]? | select(.displayName == "specflow-web") | .name | split("/") | last][0] // ""')
 
   log "Build do SPA (VITE_API_BASE_URL=$api_url, Firebase $(jq -r '.projectId' <<<"$config"), App Check ${site_key:+ligado}${site_key:-desligado})"

@@ -1,6 +1,6 @@
 # ADR-009 — Confluence como documentação viva do projeto: leitura como contexto, escrita só por ação proposta
 
-- **Status:** Proposto · **Data:** 2026-11-20
+- **Status:** Aceito (pelo PO em 2026-11-20, após o aceite da F19) · **Data:** 2026-11-20
 - **Requisitos:** [F19](../../../specs/019-contexto-confluence/spec.md), [F20](../../../specs/020-documentacao-confluence/spec.md)
   · **Metodologia:** [docs/metodologia](../../metodologia/README.md)
 - **Relacionados:** ADR-003 (ações propostas), ADR-004 (credenciais), ADR-007 (spec pronta para agente)

@@ -14,6 +14,7 @@ from app.api.deps import (
     get_action_service,
     get_chat_service,
     get_conversation_service,
+    get_document_service,
     get_jira_issue_service,
     get_jira_service,
     get_usage_service,
@@ -26,6 +27,7 @@ from app.services.account import AccountService
 from app.services.actions import ActionService
 from app.services.chat import ChatService
 from app.services.conversations import ConversationService
+from app.services.documents import DocumentService
 from app.services.jira_connections import JiraConnectionService
 from app.services.jira_issues import JiraIssueService
 from app.services.usage import UsageService
@@ -70,6 +72,8 @@ def client(verifier: FakeVerifier) -> Iterator[TestClient]:
     app.dependency_overrides[get_conversation_service] = lambda: conversations
     issues = JiraIssueService(chat_store, jira)
     app.dependency_overrides[get_jira_issue_service] = lambda: issues
+    documents = DocumentService(chat_store)
+    app.dependency_overrides[get_document_service] = lambda: documents
     usage = UsageService(chat_store, Settings(env="test"))
     app.dependency_overrides[get_usage_service] = lambda: usage
     with TestClient(app) as c:

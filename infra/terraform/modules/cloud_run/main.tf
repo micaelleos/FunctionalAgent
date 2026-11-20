@@ -16,6 +16,10 @@ variable "daily_message_quota" { type = number }
 variable "daily_token_quota" { type = number }
 variable "monthly_token_budget" { type = number }
 variable "confluence_enabled" { type = bool }
+variable "confluence_write_enabled" {
+  type    = bool
+  default = false
+}
 variable "prompt_version" { type = string }
 
 # O Terraform cria o serviço e a configuração (F02-RT-05); a imagem e o tráfego pertencem ao
@@ -116,6 +120,10 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "CONFLUENCE_ENABLED"
         value = tostring(var.confluence_enabled)
+      }
+      env {
+        name  = "CONFLUENCE_WRITE_ENABLED"
+        value = tostring(var.confluence_write_enabled)
       }
       env {
         name  = "PROMPT_VERSION"

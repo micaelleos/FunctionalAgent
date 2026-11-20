@@ -1,6 +1,7 @@
 """Dependências das rotas: identidade do token e serviços por requisição."""
 
 import logging
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Annotated
 
@@ -20,6 +21,7 @@ from app.core.crypto import Cipher, build_cipher
 from app.core.errors import AppCheckRequiredError, EmailNotVerifiedError, UnauthenticatedError
 from app.core.logging import bind, uid_hash
 from app.repositories.actions import ActionRepository
+from app.repositories.documents import DocumentRepository
 from app.repositories.jira_cache import JiraCacheRepository
 from app.repositories.jira_connections import JiraConnectionRepository
 from app.repositories.project_links import ProjectLinkRepository
@@ -28,8 +30,10 @@ from app.repositories.users import UserRepository
 from app.services.account import AccountService
 from app.services.actions import ActionService
 from app.services.chat import ChatService, shared_agent
+from app.services.confluence_actions import ConfluenceActionExecutor
 from app.services.confluence_links import ConfluenceLinkService
 from app.services.conversations import ConversationService
+from app.services.documents import DocumentService
 from app.services.jira_connections import JiraConnectionService
 from app.services.jira_issues import JiraIssueService
 from app.services.jira_projects import JiraProjectService
@@ -107,7 +111,15 @@ def get_confluence_link_service(
     jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
 ) -> ConfluenceLinkService:
     db = _firestore(settings.gcp_project, settings.firestore_database)
-    return ConfluenceLinkService(ProjectLinkRepository(db), jira)
+    can_create = settings.confluence_enabled and settings.confluence_write_enabled
+    return ConfluenceLinkService(ProjectLinkRepository(db), jira, can_create=can_create)
+
+
+def get_document_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> DocumentService:
+    db = _firestore(settings.gcp_project, settings.firestore_database)
+    return DocumentService(DocumentRepository(db))
 
 
 def get_jira_project_service(
@@ -158,7 +170,10 @@ def get_chat_service(
         title_llm=title_llm,
         usage=usage,
         agent=shared_agent(llm, settings.agent_max_iterations),
-        docs_agent=shared_agent(llm, settings.agent_max_iterations, docs=True),
+        agents={
+            toolset: shared_agent(llm, settings.agent_max_iterations, toolset)
+            for toolset in ("docs", "docs_write", "space")
+        },
         confluence=ConfluenceLinkService(ProjectLinkRepository(db), jira),
     )
 
@@ -181,7 +196,8 @@ def get_action_service(
 ) -> ActionService:
     """Sem modelo de linguagem: a execução não passa pelo LLM (F06-RT-03)."""
     db = _firestore(settings.gcp_project, settings.firestore_database)
-    return ActionService(ActionRepository(db), jira, settings)
+    docs = ConfluenceActionExecutor(ProjectLinkRepository(db), lambda: datetime.now(UTC))
+    return ActionService(ActionRepository(db), jira, settings, docs=docs)
 
 
 def _bearer(authorization: str | None) -> str:
@@ -243,4 +259,5 @@ Conversations = Annotated[ConversationService, Depends(get_conversation_service)
 JiraProjects = Annotated[JiraProjectService, Depends(get_jira_project_service)]
 ConfluenceLinks = Annotated[ConfluenceLinkService, Depends(get_confluence_link_service)]
 JiraIssues = Annotated[JiraIssueService, Depends(get_jira_issue_service)]
+Documents = Annotated[DocumentService, Depends(get_document_service)]
 Usage = Annotated[UsageService, Depends(get_usage_service)]

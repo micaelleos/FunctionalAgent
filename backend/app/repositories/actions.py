@@ -3,6 +3,7 @@
 `users/{uid}/pending_actions/{id}`: as transições de estado rodam numa transação do Firestore, o
 que garante uma única execução mesmo com várias confirmações em paralelo (F06-RT-01).
 `users/{uid}/jira_issues/{key}`: issues criadas ou atualizadas pelo SpecFlow (F10).
+`users/{uid}/documents/{pageId}`: páginas do Confluence escritas pelo SpecFlow (F20-RT-07).
 """
 
 from collections.abc import Callable
@@ -83,6 +84,29 @@ class ActionRepository(ConversationRepository):
             exists = record.get(transaction=transaction).exists
             transaction.update(action, change)
             transaction.set(record, issue if exists else {**first_time, **issue}, merge=True)
+
+        run(self._db.transaction(max_attempts=MAX_ATTEMPTS))
+
+    def _documents(self, uid: str) -> firestore.CollectionReference:
+        return cast(firestore.CollectionReference, self._user(uid).collection("documents"))
+
+    def complete_doc_action(
+        self, uid: str, action_id: str, change: dict[str, Any], documents: dict[str, dict[str, Any]]
+    ) -> None:
+        """Conclui uma ação do Confluence e grava o registro das páginas na mesma transação
+        (F20-RT-07). `createdAt` só entra na 1ª vez que o SpecFlow escreve a página."""
+        action = self._actions(uid).document(action_id)
+        refs = {page_id: self._documents(uid).document(page_id) for page_id in documents}
+
+        @firestore.transactional
+        def run(transaction: firestore.Transaction) -> None:
+            existing = {pid: ref.get(transaction=transaction).exists for pid, ref in refs.items()}
+            transaction.update(action, change)
+            for page_id, ref in refs.items():
+                record = dict(documents[page_id])
+                if existing[page_id]:
+                    record.pop("createdAt", None)
+                transaction.set(ref, record, merge=True)
 
         run(self._db.transaction(max_attempts=MAX_ATTEMPTS))
 

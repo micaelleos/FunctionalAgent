@@ -148,6 +148,8 @@ export interface ProjectDocs {
   suggestion: { space: DocSpace; source: 'same-key' | 'label' } | null
   /** `false`: a conta não tem acesso ao Confluence do site (F19-RF-09). */
   available: boolean
+  /** Sem espaço e com a escrita ligada: o agente pode criar o espaço (F20-RF-01). */
+  canCreate?: boolean
 }
 
 /** Regra, ADR ou artigo da documentação do projeto que a proposta contradiz (F19-RF-07). */
@@ -156,10 +158,58 @@ export interface DocConflict {
   reason: string
 }
 
-/** Ação proposta pelo agente; só vira escrita no Jira depois de confirmada (ADR-003, F06). */
+/** Página do Confluence escrita pelo SpecFlow (F20-RF-08). */
+export interface DocRecord {
+  pageId: string
+  projectKey: string | null
+  spaceKey: string | null
+  type: string
+  title: string
+  url: string
+  version: number
+  operation: 'created' | 'updated'
+  createdAt: string
+  updatedAt: string
+}
+
+/** Seção da página que a proposta muda (F20-RT-04): o cartão mostra antes → depois. */
+export interface PageDiff {
+  section: string
+  change: 'added' | 'removed' | 'changed'
+  before: string
+  after: string
+}
+
+/** Proposta de escrita no Confluence (F20): página nova, atualização ou espaço com o modelo. */
+export interface DocProposal {
+  /** Tipo do modelo da metodologia (`glossario`, `adr`…); vazio na criação do espaço. */
+  pageType: string
+  summary: string
+  space: DocSpace | null
+  parentTitle: string | null
+  /** Atualização: link da página atual, versão vista e o título anterior, se mudou. */
+  url: string | null
+  version: number | null
+  previousTitle: string | null
+  diff: PageDiff[]
+  /** Criação do espaço: chave e títulos das páginas do modelo. */
+  spaceKey: string | null
+  pages: string[]
+}
+
+export type ActionKind =
+  | 'create_issue'
+  | 'update_issue'
+  | 'create_page'
+  | 'update_page'
+  | 'create_space'
+
+export const DOC_KINDS: readonly ActionKind[] = ['create_page', 'update_page', 'create_space']
+
+/** Ação proposta pelo agente; só vira escrita no Jira/Confluence depois de confirmada (ADR-003). */
 export interface ProposedAction {
   id: string
-  kind: 'create_issue' | 'update_issue'
+  kind: ActionKind
   /** Criação: projeto de destino. Atualização: `null` (vale `issueKey`). */
   projectKey: string | null
   projectName: string
@@ -182,6 +232,12 @@ export interface ProposedAction {
   resultUrl: string | null
   /** Erro do Jira já traduzido pela API (F06-RF-07). */
   error: string | null
+  /** Código do erro (ex.: `confluence-version-conflict`), para a mensagem do cartão. */
+  errorCode: string | null
+  /** Só nas ações do Confluence (F20). */
+  doc: DocProposal | null
+  /** Aviso da execução (ex.: o Registro de mudanças não foi atualizado). */
+  warning: string | null
 }
 
 /** Mensagem do histórico (F07): o texto em Markdown e os cartões das ações propostas nela. */
@@ -219,6 +275,8 @@ export interface ProductApi {
   listProjects(refresh?: boolean): Promise<JiraProject[]>
   /** Do mais recente ao mais antigo, filtrado no servidor (F10-RF-01, RF-03). */
   listIssues(filters: IssueFilters, cursor?: string | null): Promise<IssuePage>
+  /** Páginas do Confluence escritas pelo SpecFlow (F20-RF-08). */
+  listDocuments(projectKey?: string): Promise<DocRecord[]>
   /** Até 50 chaves numa chamada (F10-RF-05). */
   issueStatuses(keys: string[]): Promise<Record<string, IssueStatus>>
   /** Texto para colar no agente de código (F10-RF-06). */

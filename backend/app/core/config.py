@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     prompt_version: str = "v1"
     # Leitura do Confluence pelo agente (F19); em prd só depois do aceite.
     confluence_enabled: bool = Field(default=False, description="Agente lê o Confluence (F19)")
+    # Escrita no Confluence por ação proposta (F20); depende da leitura ligada.
+    confluence_write_enabled: bool = Field(
+        default=False, description="Agente propõe páginas do Confluence (F20)"
+    )
     # F11: observabilidade, limites de uso e App Check.
     tracing_enabled: bool = Field(default=False, description="Exporta traces ao Cloud Trace")
     tracing_sample_ratio: float = Field(default=0.1, ge=0, le=1, description="Sem trace do pai")

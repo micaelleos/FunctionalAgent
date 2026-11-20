@@ -1,13 +1,16 @@
 import { ApiError } from '../lib/api'
 import type { components } from '../lib/api-schema'
-import type {
-  DocConflict,
-  FieldChange,
-  IssueType,
-  ProposedAction,
-  Readiness,
-  ReadinessRule,
-  SpecSection,
+import {
+  DOC_KINDS,
+  type DocConflict,
+  type DocProposal,
+  type FieldChange,
+  type IssueType,
+  type PageDiff,
+  type ProposedAction,
+  type Readiness,
+  type ReadinessRule,
+  type SpecSection,
 } from './types'
 
 export type ApiAction = components['schemas']['ActionOut']
@@ -81,8 +84,47 @@ function changes(preview: Preview, action: ApiAction): FieldChange[] {
   return out
 }
 
+function diff(preview: Preview): PageDiff[] {
+  const raw = Array.isArray(preview.diff) ? (preview.diff as Preview[]) : []
+  return raw.flatMap((d) => {
+    const change = str(d.change)
+    if (change !== 'added' && change !== 'removed' && change !== 'changed') return []
+    return [
+      {
+        section: str(d.section) ?? '',
+        change,
+        before: str(d.before) ?? '',
+        after: str(d.after) ?? '',
+      },
+    ]
+  })
+}
+
+function doc(action: ApiAction): DocProposal | null {
+  if (!DOC_KINDS.includes(action.kind)) return null
+  const preview = action.preview
+  const space = (preview.space ?? null) as Preview | null
+  return {
+    pageType: str(preview.page_type) ?? '',
+    summary: str(preview.summary) ?? '',
+    space:
+      space && str(space.key)
+        ? { key: str(space.key) ?? '', name: str(space.name) ?? '', url: str(space.url) ?? '' }
+        : null,
+    parentTitle: str(preview.parent_title),
+    url: str(preview.url),
+    version: typeof preview.version === 'number' ? preview.version : null,
+    previousTitle: str(preview.previous_title),
+    diff: diff(preview),
+    spaceKey: str(preview.space_key),
+    pages: strings(preview.pages),
+  }
+}
+
 export function fromApiAction(action: ApiAction): ProposedAction {
   const preview = action.preview
+  const result = action.result ?? null
+  const docs = doc(action)
   return {
     id: action.id,
     kind: action.kind,
@@ -90,7 +132,7 @@ export function fromApiAction(action: ApiAction): ProposedAction {
     projectName: str(preview.project_name) ?? '',
     issueKey: str(preview.issue_key),
     issueType: (str(preview.issue_type) as IssueType | null) ?? null,
-    title: str(preview.summary) ?? '',
+    title: (docs ? str(preview.title) : str(preview.summary)) ?? '',
     priority: str(preview.priority),
     parentKey: str(preview.parent_key),
     labels: action.labels,
@@ -100,9 +142,12 @@ export function fromApiAction(action: ApiAction): ProposedAction {
     changes: changes(preview, action),
     expiresAt: action.expires_at,
     status: action.status,
-    resultKey: action.result?.issue_key ?? null,
-    resultUrl: action.result?.url ?? null,
+    resultKey: result && 'issue_key' in result ? result.issue_key : null,
+    resultUrl: result?.url ?? null,
     error: action.error?.message ?? null,
+    errorCode: action.error?.code ?? null,
+    doc: docs,
+    warning: result && 'warning' in result ? (result.warning ?? null) : null,
   }
 }
 

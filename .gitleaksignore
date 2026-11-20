@@ -2,3 +2,6 @@
 # valores montados em tempo de execução no commit seguinte. Formato: <commit>:<arquivo>:<regra>:<linha>
 5f4045d8041bceb5dbdaf161d14c5bbbd9013009:backend/tests/unit/test_crypto.py:generic-api-key:12
 5f4045d8041bceb5dbdaf161d14c5bbbd9013009:backend/tests/unit/test_crypto.py:generic-api-key:49
+# F20: nomes de classe num import (`ConfluenceUncertainError` tem 24 letras e casa a regra), não um
+# token; o import foi quebrado em várias linhas no commit seguinte.
+54c5b024f49fd4b5ae55e135a776f6d53f31c694:backend/tests/unit/test_confluence_actions.py:atlassian-api-token:13

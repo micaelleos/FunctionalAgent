@@ -31,6 +31,7 @@ services:
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-10}
       # Documentação do projeto no Confluence (F19): ligada no ambiente local.
       CONFLUENCE_ENABLED: ${CONFLUENCE_ENABLED:-true}
+      CONFLUENCE_WRITE_ENABLED: ${CONFLUENCE_WRITE_ENABLED:-true}
       PROMPT_VERSION: ${PROMPT_VERSION:-v2}
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
     volumes:

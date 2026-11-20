@@ -53,3 +53,16 @@ def test_f11_rf_04_nenhum_email_versionado() -> None:
             if not m.endswith(".gserviceaccount.com")
         ]
         assert not found, f"e-mail versionado em {path.relative_to(ROOT)}"
+
+
+@pytest.mark.req("F20-RT-06")
+def test_f20_rt_06_escritas_no_confluence_no_painel() -> None:
+    assert 'confluence_writes = { event = "confluence_write"' in MONITORING
+    assert "Escritas no Confluence por resultado (F20)" in MONITORING
+    assert '"docswrite"]' in MONITORING
+    cloud_run = (TF / "modules" / "cloud_run" / "main.tf").read_text()
+    assert 'name  = "CONFLUENCE_WRITE_ENABLED"' in cloud_run
+    variables = (TF / "variables.tf").read_text()
+    assert re.search(
+        r'variable "confluence_write_enabled" \{[^}]*default\s*=\s*false', variables, re.DOTALL
+    )

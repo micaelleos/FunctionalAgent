@@ -13,7 +13,7 @@ export type ChatEvent =
   | {
       event: 'action_proposed'
       action_id: string
-      kind: 'create_issue' | 'update_issue'
+      kind: 'create_issue' | 'update_issue' | 'create_page' | 'update_page' | 'create_space'
       preview: Record<string, unknown>
     }
   | { event: 'message_saved'; message_id: string; conversation_id: string; user_message_id: string }

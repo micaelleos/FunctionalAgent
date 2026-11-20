@@ -16,6 +16,7 @@ em que o Jira certamente não gravou (credencial, limite de requisições, site 
 """
 
 import logging
+import time
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -33,6 +34,7 @@ from app.core.config import Settings
 from app.core.errors import ApiProblemError
 from app.core.logging import uid_hash
 from app.core.telemetry import in_thread
+from app.integrations.confluence.client import ConfluenceClient
 from app.integrations.jira.client import (
     JiraAuthError,
     JiraBadRequestError,
@@ -45,6 +47,13 @@ from app.integrations.jira.client import (
     JiraUnreachableError,
 )
 from app.repositories.actions import Decide, TransitionConflictError
+from app.services.confluence_actions import (
+    DOC_KINDS,
+    ConfluenceActionExecutor,
+    DocsOutcome,
+    DocsWriteError,
+    describe_doc,
+)
 from app.services.jira_connections import JiraConnectionService
 
 log = logging.getLogger("app.actions")
@@ -69,12 +78,24 @@ class ActionStore(Protocol):
         issue: dict[str, Any],
         first_time: dict[str, Any],
     ) -> None: ...
+    def complete_doc_action(
+        self, uid: str, action_id: str, change: dict[str, Any], documents: dict[str, dict[str, Any]]
+    ) -> None: ...
     def add_system_message(self, uid: str, conversation_id: str, data: dict[str, Any]) -> str: ...
 
 
 class ActionResult(BaseModel):
     issue_key: str
     url: str
+
+
+class DocResult(BaseModel):
+    """Resultado de uma ação do Confluence (F20): a página (ou a inicial do espaço) e um aviso."""
+
+    page_id: str
+    title: str
+    url: str
+    warning: str | None = None
 
 
 def _issue_record(
@@ -127,7 +148,7 @@ class ActionOut(BaseModel):
     """O cartão inteiro: o que vai ao Jira (`preview`), a prontidão e o estado (F06-RF-01)."""
 
     id: str
-    kind: Literal["create_issue", "update_issue"]
+    kind: Literal["create_issue", "update_issue", "create_page", "update_page", "create_space"]
     status: ActionStatus
     conversation_id: str
     preview: dict[str, Any]
@@ -135,7 +156,7 @@ class ActionOut(BaseModel):
     labels: list[str]
     created_at: datetime
     expires_at: datetime
-    result: ActionResult | None = None
+    result: ActionResult | DocResult | None = None
     error: ActionError | None = None
 
 
@@ -181,6 +202,16 @@ class ActionFailedError(ApiProblemError):
             "O Jira não executou a ação",
             error.message,
             action=action.model_dump(mode="json"),
+        )
+
+
+class DocsWritesDisabledError(ApiProblemError):
+    def __init__(self) -> None:
+        super().__init__(
+            503,
+            "docs-writes-disabled",
+            "Escritas no Confluence desligadas",
+            "A escrita no Confluence está desligada. A proposta continua guardada.",
         )
 
 
@@ -313,13 +344,23 @@ def to_out(doc: dict[str, Any], now: datetime) -> ActionOut:
         labels=list(doc.get("labels") or []),
         created_at=doc["createdAt"],
         expires_at=doc["expiresAt"],
-        result=ActionResult(**doc["result"]) if doc.get("result") else None,
+        result=_result(doc),
         error=ActionError(**doc["error"]) if doc.get("error") else None,
     )
 
 
+def _result(doc: dict[str, Any]) -> ActionResult | DocResult | None:
+    if not doc.get("result"):
+        return None
+    if doc["kind"] in DOC_KINDS:
+        return DocResult(**doc["result"])
+    return ActionResult(**doc["result"])
+
+
 def describe(doc: dict[str, Any]) -> str:
     """Uma linha sobre a ação, para a mensagem de sistema e para o prompt do agente."""
+    if doc["kind"] in DOC_KINDS:
+        return describe_doc(doc)
     preview = doc.get("preview") or {}
     payload = doc.get("payload") or {}
     if doc["kind"] == "create_issue":
@@ -337,11 +378,14 @@ class ActionService:
         jira: JiraConnectionService,
         settings: Settings,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        docs: ConfluenceActionExecutor | None = None,
     ) -> None:
         self._store = store
         self._jira = jira
         self._settings = settings
         self._clock = clock
+        # Execução das ações do Confluence (F20); `None`: ações `*_page`/`create_space` recusadas.
+        self._docs = docs
 
     async def _run[T](self, fn: Callable[..., T], *args: Any) -> T:
         return await in_thread(fn, *args)
@@ -374,9 +418,12 @@ class ActionService:
         self._audit(uid, doc, "rejected")
         return out
 
-    async def confirm(self, uid: str, action_id: str) -> ActionOut:
+    async def confirm(self, uid: str, action_id: str, confirmed_by: str | None = None) -> ActionOut:
         if not self._settings.actions_enabled:
             raise ActionsDisabledError()
+        current = await self._run(self._store.get_action, uid, action_id)
+        if current is not None and current.get("kind") in DOC_KINDS and not self._docs_enabled():
+            raise DocsWritesDisabledError()
         now = self._clock()
         claim = uuid.uuid4().hex
 
@@ -388,8 +435,8 @@ class ActionService:
             if doc["status"] == "pending":
                 return {"status": "executing", "claim": claim, "executingAt": now}
             if doc["status"] == "executing" and _aware(doc["executingAt"]) + STALE_EXECUTION < now:
-                # O processo caiu no meio: não dá para saber se o Jira gravou.
-                failure = translate(doc["kind"], doc["payload"], JiraUncertainError("interrompida"))
+                # O processo caiu no meio: não dá para saber se o Jira/Confluence gravou.
+                failure = _interrupted(doc)
                 return {"status": "failed", "error": _error(failure).model_dump()}
             return None
 
@@ -400,7 +447,63 @@ class ActionService:
             raise ActionExpiredError(to_out(doc, now))
         if doc.get("claim") != claim or doc["status"] != "executing":
             raise ActionNotPendingError(to_out(doc, now))
+        if doc["kind"] in DOC_KINDS:
+            return await self._execute_doc(uid, doc, now, confirmed_by or "o usuário")
         return await self._execute(uid, doc, now)
+
+    def _docs_enabled(self) -> bool:
+        return (
+            self._docs is not None
+            and self._settings.confluence_enabled
+            and self._settings.confluence_write_enabled
+        )
+
+    async def _execute_doc(
+        self, uid: str, doc: dict[str, Any], now: datetime, confirmed_by: str
+    ) -> ActionOut:
+        """Ações do Confluence (F20-RT-01): mesmo hash e mesma conexão da proposta."""
+        payload: dict[str, Any] = doc["payload"]
+        started = time.monotonic()
+        if payload_hash(payload) != doc.get("payloadHash"):
+            await self._fail(uid, doc, _integrity(), now)
+        connections = {c.id: c for c in await self._jira.list(uid)}
+        connection = connections.get(str(doc.get("connectionId")))
+        if connection is None or connection.site_url != doc.get("siteUrl") or self._docs is None:
+            failure = Failure(
+                code="jira-connection-changed",
+                message="A conexão Atlassian mudou desde a proposta. Peça ao agente para propor "
+                "de novo.",
+                retryable=False,
+            )
+            await self._fail(uid, doc, failure, now)
+        client: ConfluenceClient = await self._jira.confluence_client_for(uid, connection.id)
+        try:
+            outcome = await self._docs.execute(uid, doc, client, connection.id, confirmed_by)
+        except DocsWriteError as exc:
+            failure = Failure(code=exc.code, message=exc.message, retryable=exc.retryable)
+            await self._fail(uid, doc, failure, now, started=started)
+        finally:
+            await client.aclose()
+        return await self._done_doc(uid, doc, outcome, now, started)
+
+    async def _done_doc(
+        self, uid: str, doc: dict[str, Any], outcome: DocsOutcome, now: datetime, started: float
+    ) -> ActionOut:
+        result = DocResult(
+            page_id=outcome.page_id, title=outcome.title, url=outcome.url, warning=outcome.warning
+        )
+        change = {"status": "done", "result": result.model_dump(), "executedAt": self._clock()}
+        await self._run(self._store.complete_doc_action, uid, doc["id"], change, outcome.documents)
+        doc = {**doc, **change}
+        verb = {"create_page": "criou a página", "update_page": "atualizou a página"}.get(
+            doc["kind"], "criou o espaço"
+        )
+        text = f'O usuário confirmou e o SpecFlow {verb} "{outcome.title}" ({outcome.url}).'
+        if outcome.warning:
+            text += f" Aviso: {outcome.warning}"
+        await self._system_message(uid, doc, text)
+        self._audit(uid, doc, "done", page_id=outcome.page_id, started=started)
+        return to_out(doc, now)
 
     async def _transition(self, uid: str, action_id: str, decide: Decide) -> dict[str, Any] | None:
         try:
@@ -416,13 +519,7 @@ class ActionService:
         payload: dict[str, Any] = doc["payload"]
         if payload_hash(payload) != doc.get("payloadHash"):
             # O payload mudou depois de exibido: nunca executar (F06-RT-02).
-            failure = Failure(
-                code="action-integrity",
-                message="A proposta foi alterada depois de exibida e não será executada. "
-                "Peça ao agente para propor de novo.",
-                retryable=False,
-            )
-            await self._fail(uid, doc, failure, now)
+            await self._fail(uid, doc, _integrity(), now)
         try:
             client = await self._client(uid, doc)
         except _ConnectionChangedError:
@@ -495,7 +592,12 @@ class ActionService:
         return to_out(doc, now)
 
     async def _fail(
-        self, uid: str, doc: dict[str, Any], failure: Failure, now: datetime
+        self,
+        uid: str,
+        doc: dict[str, Any],
+        failure: Failure,
+        now: datetime,
+        started: float | None = None,
     ) -> NoReturn:
         error = _error(failure)
         status = "pending" if failure.retryable else "failed"
@@ -503,10 +605,11 @@ class ActionService:
         await self._run(self._store.update_action, uid, doc["id"], change)
         doc = {**doc, **change}
         if not failure.retryable:
+            where = "no Confluence" if doc["kind"] in DOC_KINDS else "no Jira"
             await self._system_message(
-                uid, doc, f"A ação ({describe(doc)}) falhou no Jira: {failure.message}"
+                uid, doc, f"A ação ({describe(doc)}) falhou {where}: {failure.message}"
             )
-        self._audit(uid, doc, status, code=failure.code)
+        self._audit(uid, doc, status, code=failure.code, started=started)
         raise ActionFailedError(to_out(doc, now), error)
 
     async def _system_message(self, uid: str, doc: dict[str, Any], text: str) -> None:
@@ -514,21 +617,26 @@ class ActionService:
         await self._run(self._store.add_system_message, uid, doc["conversationId"], message)
 
     def _audit(self, uid: str, doc: dict[str, Any], result: str, **extra: Any) -> None:
-        """Auditoria `jira_write` (F06-RT-06): toda decisão sobre uma ação, sem conteúdo."""
-        log.info(
-            "jira_write",
-            extra={
-                "fields": {
-                    "event": "jira_write",
-                    "uid_hash": uid_hash(uid),
-                    "action_id": doc["id"],
-                    "kind": doc["kind"],
-                    "result": result,
-                    "issue_key": extra.get("issue_key"),
-                    "code": extra.get("code"),
-                }
-            },
-        )
+        """Auditoria `jira_write` (F06-RT-06) ou `confluence_write` (F20-RT-06): toda decisão sobre
+        uma ação, sem título nem conteúdo."""
+        fields: dict[str, Any] = {
+            "uid_hash": uid_hash(uid),
+            "action_id": doc["id"],
+            "kind": doc["kind"],
+            "result": result,
+            "code": extra.get("code"),
+        }
+        if doc["kind"] in DOC_KINDS:
+            event = "confluence_write"
+            fields["page_id"] = extra.get("page_id")
+            started = extra.get("started")
+            fields["duration_ms"] = (
+                round((time.monotonic() - started) * 1000) if started is not None else None
+            )
+        else:
+            event = "jira_write"
+            fields["issue_key"] = extra.get("issue_key")
+        log.info(event, extra={"fields": {"event": event, **fields}})
 
 
 class _ConnectionChangedError(Exception):
@@ -537,6 +645,26 @@ class _ConnectionChangedError(Exception):
 
 class _IssueTypeMissingError(Exception):
     pass
+
+
+def _integrity() -> Failure:
+    return Failure(
+        code="action-integrity",
+        message="A proposta foi alterada depois de exibida e não será executada. "
+        "Peça ao agente para propor de novo.",
+        retryable=False,
+    )
+
+
+def _interrupted(doc: dict[str, Any]) -> Failure:
+    if doc["kind"] in DOC_KINDS:
+        return Failure(
+            code="confluence-uncertain",
+            message="A execução foi interrompida. Confira no Confluence se a página foi escrita "
+            "antes de pedir de novo.",
+            retryable=False,
+        )
+    return translate(doc["kind"], doc["payload"], JiraUncertainError("interrompida"))
 
 
 def _error(failure: Failure) -> ActionError:

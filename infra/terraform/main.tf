@@ -100,7 +100,9 @@ module "cloud_run" {
   # F19: documentação do projeto no Confluence.
   confluence_enabled = var.confluence_enabled
   prompt_version     = var.prompt_version
-  depends_on         = [module.project_services, google_project_iam_member.api_runtime]
+  # F20: escrita no Confluence por ação proposta.
+  confluence_write_enabled = var.confluence_write_enabled
+  depends_on               = [module.project_services, google_project_iam_member.api_runtime]
 }
 
 module "firebase" {

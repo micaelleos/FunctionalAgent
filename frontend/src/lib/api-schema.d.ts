@@ -147,6 +147,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Páginas do Confluence criadas ou atualizadas pelo SpecFlow */
+        get: operations["list_documents_api_v1_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jira/connections": {
         parameters: {
             query?: never;
@@ -408,7 +425,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "create_issue" | "update_issue";
+            kind: "create_issue" | "update_issue" | "create_page" | "update_page" | "create_space";
             /** Labels */
             labels: string[];
             /** Preview */
@@ -419,7 +436,8 @@ export interface components {
             readiness: {
                 [key: string]: unknown;
             };
-            result?: components["schemas"]["ActionResult"] | null;
+            /** Result */
+            result?: components["schemas"]["ActionResult"] | components["schemas"]["DocResult"] | null;
             /**
              * Status
              * @enum {string}
@@ -548,6 +566,52 @@ export interface components {
             day: string;
             /** Messages */
             messages: number;
+        };
+        /**
+         * DocResult
+         * @description Resultado de uma ação do Confluence (F20): a página (ou a inicial do espaço) e um aviso.
+         */
+        DocResult: {
+            /** Page Id */
+            page_id: string;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+            /** Warning */
+            warning?: string | null;
+        };
+        /** DocumentOut */
+        DocumentOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "created" | "updated";
+            /** Page Id */
+            page_id: string;
+            /** Project Key */
+            project_key: string | null;
+            /** Space Key */
+            space_key: string | null;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Url */
+            url: string;
+            /** Version */
+            version: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -756,6 +820,11 @@ export interface components {
              * @default true
              */
             available: boolean;
+            /**
+             * Can Create
+             * @default false
+             */
+            can_create: boolean;
             link: components["schemas"]["ConfluenceLinkOut"] | null;
             suggestion: components["schemas"]["ConfluenceSuggestionOut"] | null;
         };
@@ -1306,6 +1375,40 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_api_v1_documents_get: {
+        parameters: {
+            query?: {
+                project?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"][];
                 };
             };
             /** @description Validation Error */

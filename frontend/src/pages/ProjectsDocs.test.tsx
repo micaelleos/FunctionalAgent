@@ -86,3 +86,35 @@ describe('F19-RF-01 F19-RF-02 vínculo do projeto com o Confluence', () => {
     expect(unavailableProductApi.features.docs).toBe(false)
   })
 })
+
+describe('F20-RF-01 criar o espaço a partir de Projects', () => {
+  it('sem espaço e com a escrita ligada, "Create space" abre o chat do projeto com o pedido', async () => {
+    const api = createDemoProductApi(() => NOW)
+    api.listProjects = async () => [project('NOVO')]
+    api.getProjectDocs = async () => ({
+      link: null,
+      suggestion: null,
+      available: true,
+      canCreate: true,
+    })
+    renderProjects(api)
+
+    const c = await openDocs('Projeto NOVO')
+    await userEvent.click(await within(c).findByRole('link', { name: 'Create space' }))
+
+    expect(await screen.findByLabelText('Message')).toHaveValue(
+      'Create the documentation space for this project in Confluence, from the SpecFlow template.',
+    )
+  })
+
+  it('sem a escrita ligada, só a escolha de um espaço existente', async () => {
+    const api = createDemoProductApi(() => NOW)
+    api.listProjects = async () => [project('NOVO')]
+    api.getProjectDocs = async () => ({ link: null, suggestion: null, available: true })
+    renderProjects(api)
+
+    const c = await openDocs('Projeto NOVO')
+    expect(await within(c).findByText('No space found. Pick one to link.')).toBeInTheDocument()
+    expect(within(c).queryByRole('link', { name: 'Create space' })).not.toBeInTheDocument()
+  })
+})

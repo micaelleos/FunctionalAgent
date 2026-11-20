@@ -307,6 +307,7 @@ describe('F19-RT-08 vínculo com o Confluence pela API', () => {
       link: null,
       suggestion: { space, source: 'same-key' },
       available: true,
+      canCreate: false,
     })
     expect((await p.linkProjectDocs('SCRUM', 'SCRUM')).link).toEqual({
       space,

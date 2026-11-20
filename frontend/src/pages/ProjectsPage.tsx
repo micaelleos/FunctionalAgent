@@ -319,10 +319,20 @@ function ProjectDocsPanel({
               ) : (
                 !choosing && (
                   <>
-                    <p className="text-zinc-700">{d.none}</p>
-                    <button type="button" className={BUTTON} onClick={() => setChoosing(true)}>
-                      {d.change}
-                    </button>
+                    <p className="text-zinc-700">{docs.data.canCreate ? d.noneCreate : d.none}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {docs.data.canCreate && (
+                        <Link
+                          to={`/chat?projeto=${encodeURIComponent(projectKey)}&pedido=${encodeURIComponent(d.createRequest)}`}
+                          className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 font-medium text-white hover:bg-indigo-700"
+                        >
+                          {d.create}
+                        </Link>
+                      )}
+                      <button type="button" className={BUTTON} onClick={() => setChoosing(true)}>
+                        {d.change}
+                      </button>
+                    </div>
                   </>
                 )
               )}

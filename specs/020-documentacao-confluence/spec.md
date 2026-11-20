@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho (spec e plano prontos; depende da F19) |
+| **Status** | Em validação |
 | **Fase** | 4 — Evolução |
 | **Responsável** | PO |
 | **Dependências** | F19, F06, F10 |
@@ -11,6 +11,18 @@
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md) ·
 > [Metodologia](../../docs/metodologia/README.md) · [Modelos de página](../../docs/metodologia/modelos/README.md)
+
+**Revisão 2026-11-20 (contra o código, antes da implementação):**
+- **Tipos de ação:** `create_page`, `update_page` e `create_space`, no padrão de `create_issue`/`update_issue`. A confirmação da F06 despacha por tipo; a escrita no Confluence fica em `services/confluence_actions.py`.
+- **Registro:** a conclusão grava `users/{uid}/documents/{pageId}` na mesma transação da ação, como a F10 faz com `jira_issues`.
+- **Falha no meio da criação do espaço:** a ação vira `failed` com o código `confluence-partial` e a lista do que foi criado (sem status novo). Uma nova proposta completa o que falta.
+- **"Create space" em Projects:** abre o chat com o projeto fixado e o pedido já escrito. A confirmação é o cartão de sempre, não uma segunda tela.
+- **Ferramentas por turno:**
+  - as de escrita só entram com `CONFLUENCE_WRITE_ENABLED` e o projeto vinculado;
+  - `propor_criacao_espaco` só entra quando o projeto da conversa não tem espaço.
+- **Espaço:** criado por `POST /wiki/rest/api/space` (v1, estável). As páginas usam a REST v2.
+- **Modelos:** os 6 de `docs/metodologia/modelos/` são copiados para o backend, com teste de sincronia. Início, Arquitetura, Registro de mudanças e as páginas-pai "Decisões (ADR)" e "Features" têm esqueletos curtos no código.
+- **ADR aceita:** a ferramenta recusa atualizar uma página de ADR com status "Aceito"; a mudança vira ADR nova.
 
 ---
 
@@ -50,7 +62,7 @@
 ### 3. Requisitos funcionais
 | ID | Requisito | Prioridade |
 |---|---|---|
-| F20-RF-01 | Quando a F19 não acha espaço, o agente (ou o botão "Create space" em Projects) propõe criar o espaço "<Projeto> — Documentação", com chave igual à do projeto quando livre, e a árvore do modelo (páginas com os modelos vazios e rótulos). Depois do Confirm, o espaço é criado e vinculado | Must |
+| F20-RF-01 | Quando a F19 não acha espaço, o agente propõe criar o espaço (o botão "Create space" em Projects abre o chat do projeto com esse pedido) "<Projeto> — Documentação", com chave igual à do projeto quando livre, e a árvore do modelo (páginas com os modelos vazios e rótulos). Depois do Confirm, o espaço é criado e vinculado | Must |
 | F20-RF-02 | O agente propõe **criar** uma página de um tipo do modelo (Constituição, Glossário, Regras de negócio, Arquitetura, ADR, Roadmap, Feature) a partir da conversa, no lugar certo da árvore, com os rótulos `specflow` e `specflow-tipo-<tipo>` | Must |
 | F20-RF-03 | O agente propõe **atualizar** uma página existente; a proposta mostra o diff (antes/depois, por seção) e o resumo da mudança | Must |
 | F20-RF-04 | Se a página mudou no Confluence depois da proposta, o Confirm falha com "This page changed since the proposal. Ask the agent to review it again." e nada é sobrescrito | Must |
@@ -62,8 +74,8 @@
 ### 4. Requisitos técnicos / não funcionais
 | ID | Requisito | Como verificar |
 |---|---|---|
-| F20-RT-01 | As ferramentas `propor_criacao_pagina`, `propor_atualizacao_pagina` e `propor_criacao_espaco` só criam `ProposedAction` (`kind = confluence.*`); a execução fica em `services/confluence_actions.py`, chamada pela confirmação da F06, com o mesmo hash entre confirmado e executado (ADR-003) | `tests/unit/test_confluence_actions.py`, teste de hash |
-| F20-RT-02 | Escrita com Confluence REST v2: `POST /wiki/api/v2/spaces` (sem `roleAssignments`), `POST /wiki/api/v2/pages` (`spaceId`, `parentId`, `title`, `body.representation = storage`), `PUT /wiki/api/v2/pages/{id}` com `version.number = vista + 1`; rótulos por `POST /wiki/rest/api/content/{id}/label`. Sem retry em escrita; 409 → `confluence-version-conflict` | `tests/unit/test_confluence_client_write.py` (respx) |
+| F20-RT-01 | As ferramentas `propor_criacao_pagina`, `propor_atualizacao_pagina` e `propor_criacao_espaco` só criam `ProposedAction` (`kind` = `create_page`, `update_page`, `create_space`); a execução fica em `services/confluence_actions.py`, chamada pela confirmação da F06, com o mesmo hash entre confirmado e executado (ADR-003) | `tests/unit/test_confluence_actions.py`, teste de hash |
+| F20-RT-02 | Escrita: `POST /wiki/rest/api/space` (v1, `key`, `name`), `POST /wiki/api/v2/pages` (`spaceId`, `parentId`, `title`, `body.representation = storage`), `PUT /wiki/api/v2/pages/{id}` com `version.number = vista + 1`; rótulos por `POST /wiki/rest/api/content/{id}/label`. Sem retry em escrita; 409 → `confluence-version-conflict` | `tests/unit/test_confluence_client_write.py` (respx) |
 | F20-RT-03 | Markdown → storage format determinístico (mesmas entradas, mesmo XHTML), escapando HTML do conteúdo; sem macros além de `info`/`status`/`toc` | `tests/unit/test_confluence_storage.py` (ida e volta com o conversor da F19) |
 | F20-RT-04 | Diff por seção (títulos `##`) calculado no backend e guardado na proposta; o que o usuário vê é o que é executado | `tests/unit/test_page_diff.py` |
 | F20-RT-05 | Os modelos de `docs/metodologia/modelos/` são a fonte dos esqueletos (copiados para `backend/app/agent/templates/confluence/` no build e conferidos por teste de igualdade) | `tests/unit/test_templates_in_sync.py` |
@@ -124,16 +136,28 @@ Funcionalidade: Documentação no Confluence
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F20-RF-01 | AT-F20-01, `tests/unit/test_confluence_actions.py` | ⬜ |
-| F20-RF-02 | AT-F20-02, `tests/unit/test_confluence_page_tools.py` | ⬜ |
-| F20-RF-03 | AT-F20-03, `tests/unit/test_page_diff.py` | ⬜ |
-| F20-RF-04 | AT-F20-04, `tests/unit/test_confluence_client_write.py` | ⬜ |
-| F20-RF-05 | AT-F20-03, evals `confluence-converge-write-*` | ⬜ |
-| F20-RF-06 | evals `confluence-adr-*` | ⬜ |
-| F20-RF-07 | AT-F20-02, `tests/unit/test_confluence_actions.py` | ⬜ |
-| F20-RF-08 | `IssuesPage.test.tsx` | ⬜ |
+| F20-RF-01 | AT-F20-01 (`e2e/f20-confluence-escrita.spec.ts`), `test_confluence_actions.py` (espaço e falha no meio), `test_confluence_writer.py`, `test_confluence_links.py` (`can_create`), `test_chat_confluence.py` (ferramenta só sem vínculo), `ProjectsDocs.test.tsx`, `DocActionCard.test.tsx` | ✅ unidade · ⏳ AT no sandbox |
+| F20-RF-02 | AT-F20-02, `test_confluence_page_tools.py`, `test_confluence_writer.py`, `DocActionCard.test.tsx` | ✅ unidade · ⏳ AT |
+| F20-RF-03 | AT-F20-03, `test_page_diff.py`, `test_confluence_writer.py`, `test_confluence_actions.py`, `DocActionCard.test.tsx`, evals `docs_update_*` | ✅ unidade e evals · ⏳ AT |
+| F20-RF-04 | AT-F20-04, `test_confluence_client_write.py`, `test_confluence_actions.py`, `DocActionCard.test.tsx` | ✅ unidade · ⏳ AT |
+| F20-RF-05 | AT-F20-03, `test_confluence_page_tools.py` (instrução), evals `docs_converge_*` | ✅ evals · ⏳ AT |
+| F20-RF-06 | `test_confluence_writer.py` (número livre, ADR aceita), evals `docs_adr_*` | ✅ |
+| F20-RF-07 | AT-F20-02, `test_confluence_actions.py` (linha do Registro) | ✅ unidade · ⏳ AT |
+| F20-RF-08 | `IssuesPage.test.tsx`, `tests/integration/test_documents_repo.py` | ✅ |
+
+**Ajustes da implementação (2026-11-20):**
+- **Resultado da ação:** as ações do Confluence devolvem `DocResult` (`page_id`, `title`, `url`, `warning`); o `ActionResult` do Jira não muda.
+- **Atualização segura:** a ferramenta só aceita atualizar uma página lida no mesmo turno (a proposta substitui a página inteira) e recusa página com mais de 8 mil caracteres, o limite de leitura da F19.
+- **O que fica de fora:** o Registro de mudanças não é atualizado pelo agente (só pela confirmação), e páginas fora do modelo não são atualizadas.
+- **Chave de espaço já usada:** `propor_criacao_espaco` não cria um segundo espaço e pede o vínculo em Projects.
+- **Aviso em vez de falha:** falha nos rótulos ou no Registro não derruba a escrita principal; o cartão mostra o aviso.
+- **Instruções no prompt:** as instruções de escrita (Convergir, ADR, numeração) entram como seção dinâmica `WRITE_NOTE` só no turno com escrita. O `system_v2.md` só diz que, sem essa seção, o agente aponta o que ficou desatualizado. Com a flag desligada, o prompt de prd não muda de comportamento.
+- **Projetos:** `ProjectConfluenceOut.can_create` diz se "Create space" aparece em Projects (escrita ligada e nenhum espaço achado).
+- **Confirmação:** com a flag desligada, confirmar uma ação do Confluence responde 503 `docs-writes-disabled`, e a proposta fica guardada.
 
 ### 11. Evidências
 | Data | Versão/commit | Ambiente | Execução (link CI) | Resultado | Aceito por |
 |---|---|---|---|---|---|
-| | | | | | |
+| 2026-11-20 | este PR | local | `make lint`, `make test`, `make trace` | Backend: unidade, integração (emulador) e contrato. Frontend: Vitest (cartão com diff, conflito, Discard, "Create space", aba Docs). Terraform validate | — |
+| 2026-11-20 | este PR | Gemini `gemini-3.5-flash-lite`, Confluence simulado | `evals/run.py --prompt v2 --dataset evals/datasets/f20_v1.jsonl` | 1ª rodada 7/8 (pulou o RN-06); com a regra "maior ID + 1" no `WRITE_NOTE`, 8/8 em todas as métricas | — |
+| 2026-11-20 | este PR | idem, Jira e Confluence simulados | `evals/run.py --prompt v2` (F05) e `--dataset evals/datasets/f19_v1.jsonl` | Sem regressão com o prompt v2 alterado (fase 7): F05 e F19 com 100% em todas as métricas | — |

@@ -4,6 +4,7 @@ import { errorMessage, t } from '../i18n/en'
 import { ActionProblem } from '../product/actions'
 import { useProduct } from '../product/context'
 import type { ProposedAction } from '../product/types'
+import { DocActionBody } from './DocActionCard'
 import { Markdown } from './Markdown'
 import { Alert, Button } from './ui'
 
@@ -25,6 +26,7 @@ export function ActionCard({
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] }),
       queryClient.invalidateQueries({ queryKey: ['issues'] }),
+      queryClient.invalidateQueries({ queryKey: ['documents'] }),
     ])
   const confirm = useMutation({ mutationFn: product.confirmAction, onSettled })
   const reject = useMutation({ mutationFn: product.rejectAction, onSettled })
@@ -37,6 +39,22 @@ export function ActionCard({
     (failure instanceof ActionProblem ? failure.action : null) ??
     initial
   const status = confirm.isPending ? 'executing' : action.status
+  if (action.doc) {
+    return (
+      <DocActionBody
+        action={action}
+        status={status}
+        busy={busy}
+        failure={
+          failure && (!(failure instanceof ActionProblem) || action.status === 'pending')
+            ? problemText(failure)
+            : null
+        }
+        onConfirm={() => confirm.mutate(action.id)}
+        onReject={() => reject.mutate(action.id)}
+      />
+    )
+  }
   const creating = action.kind === 'create_issue'
   const a = t.chat.action
   const heading = creating

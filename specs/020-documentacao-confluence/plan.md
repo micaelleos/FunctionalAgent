@@ -2,13 +2,12 @@
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
-**Branch:** `feat/F20-documentacao-confluence` · **Data:** 2026-11-20 · **Status da spec:** Rascunho · **ADRs:** ADR-009, ADR-003
+**Branch:** `feat/F20-documentacao-confluence` · **Data:** 2026-11-20 · **Status da spec:** Em implementação (revisada contra o código em 2026-11-20) · **ADRs:** ADR-009, ADR-003
 
 ## Parte B — Plano técnico (Gate 1)
 
 ### Resumo (Summary)
-As ações propostas da F06 ganham três tipos novos (`confluence.space.create`, `confluence.page.create`,
-`confluence.page.update`). O agente monta o conteúdo em Markdown a partir dos modelos da metodologia. O
+As ações propostas da F06 ganham três tipos novos (`create_space`, `create_page`, `update_page`). O agente monta o conteúdo em Markdown a partir dos modelos da metodologia. O
 backend converte para storage format, calcula o diff e guarda tudo na proposta. A confirmação executa
 exatamente o que foi visto, com a versão da página como trava contra sobrescrita.
 
@@ -44,9 +43,9 @@ exatamente o que foi visto, com a versão da página como trava contra sobrescri
   7. acrescenta a linha no "Registro de mudanças" (outro `PUT`, com a versão lida na hora; se ele falhar, a
      ação principal fica `done` com aviso);
   8. grava `users/{uid}/documents/{pageId}` e o log `confluence_write`.
-- **Criação do espaço:** `POST /wiki/api/v2/spaces` (`key`, `name`), depois as páginas do modelo em ordem
-  (pai antes do filho) e os rótulos. Falha no meio: a ação fica `partial`, com a lista do que foi criado e o
-  link. Nunca se apaga o que já foi criado (sem DELETE).
+- **Criação do espaço:** `POST /wiki/rest/api/space` (`key`, `name`), depois as páginas do modelo em ordem
+  (pai antes do filho) e os rótulos; por fim o vínculo do projeto. Falha no meio: a ação fica `failed` com o
+  código `confluence-partial`, a lista do que foi criado e o link. Nunca se apaga o que já foi criado (sem DELETE).
 - **Contrato:**
   - payloads das ações (`kind`, `spaceId`, `parentId`, `title`, `storage`, `labels`, `pageId`, `version`, `diff`);
   - `GET /api/v1/documents?project=` para a aba "Docs";

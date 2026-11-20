@@ -149,11 +149,11 @@ Automação: AT-F19-01 no Playwright contra o stack local e o espaço `SCRUM` do
 |---|---|---|
 | F19-RF-01 | AT-F19-01 (`frontend/e2e/f19-confluence.spec.ts`), `tests/unit/test_confluence_links.py` | ✅ |
 | F19-RF-02 | AT-F19-01, `tests/unit/test_confluence_links.py`, `ProjectsDocs.test.tsx`, `http.test.ts` | ✅ |
-| F19-RF-03 | AT-F19-02 (pendente), `tests/unit/test_confluence_tools.py` | ✅ |
-| F19-RF-04 | AT-F19-02 (pendente), `tests/unit/test_chat_confluence.py` | ✅ |
+| F19-RF-03 | AT-F19-02 (`f19-confluence-agente.spec.ts`), `tests/unit/test_confluence_tools.py` | ✅ |
+| F19-RF-04 | AT-F19-02 (`f19-confluence-agente.spec.ts`), `tests/unit/test_chat_confluence.py` | ✅ |
 | F19-RF-05 | evals `docs_clarify_*`, `tests/unit/test_confluence_spec.py` | ✅ |
-| F19-RF-06 | AT-F19-02 (pendente), `tests/unit/test_confluence_spec.py`, `test_confluence_tools.py`, evals `docs_uses_*` | ✅ |
-| F19-RF-07 | AT-F19-03 (pendente), `tests/unit/test_confluence_tools.py`, `ActionCard.test.tsx`, evals `docs_conflict_*` | ✅ |
+| F19-RF-06 | AT-F19-02 (`f19-confluence-agente.spec.ts`), `Markdown.test.tsx`, `tests/unit/test_confluence_spec.py`, `test_confluence_tools.py`, evals `docs_uses_*` | ✅ |
+| F19-RF-07 | AT-F19-03 (`f19-confluence-agente.spec.ts`), `tests/unit/test_confluence_tools.py`, `ActionCard.test.tsx`, evals `docs_conflict_*` | ✅ |
 | F19-RF-08 | `tests/unit/test_confluence_spec.py` (fase Convergir no prompt v2) | ✅ |
 | F19-RF-09 | AT-F19-05 (`tests/unit/test_f19_at05.py`), `tests/unit/test_chat_confluence.py`, `test_confluence_links.py` | ✅ |
 
@@ -166,7 +166,7 @@ Automação: AT-F19-01 no Playwright contra o stack local e o espaço `SCRUM` do
 | 2026-11-20 | idem | Gemini `gemini-3.5-flash-lite`, Confluence simulado | — | Evals F19 (8 casos): v1 e v2 com 100% em todas as métricas (`evals/results/2026-11-20-*-f19-v{1,2}.json`) | — |
 | 2026-11-20 | idem | Gemini, Jira simulado | — | Evals F05 (33 casos), última rodada v1 → v2: `asks_project` 75 → 100, `splits_large` 50 → 100, `asks_missing` 100 → 80; demais iguais (100). Entre rodadas idênticas, cada métrica oscila um caso | — |
 | 2026-11-20 | `7f908fc65aca` | prd | — | `make deploy`: revisão `specflow-api-00020-rhv`, smoke `/health` ok, SPA publicada; `terraform apply` (1 add, 2 change, 0 destroy): `CONFLUENCE_ENABLED=true` e `PROMPT_VERSION=v2` na revisão `specflow-api-00021-xsz` (100% do tráfego), métrica `confluence_reads` e painel; `/health` ok, sem erros na revisão | — |
-| — | — | sandbox | — | AT-F19-02..04 pendentes: precisam das páginas de teste no espaço `SCRUM` (`scripts/confluence_fixture.py`), com aprovação do PO | — |
+| 2026-11-20 | `master` + este PR | local (API com Gemini real e prompt v2) + sandbox | — | Páginas de teste criadas no espaço `SCRUM` com aprovação do PO (`scripts/confluence_fixture.py`, rótulo `specflow-teste-f19`). AT-F19-01..04 ✅ no Playwright (4 passed); nada confirmado, nada escrito no Jira. Correções que o aceite revelou: links das Referências no cartão (antes, Markdown cru) e o teste do progresso transitório | — |
 
 **Decisão do PO (2026-11-20):** ligar em prd (`CONFLUENCE_ENABLED=true`, `PROMPT_VERSION=v2`). O
 critério "v2 ≥ v1" não se fecha com uma rodada de 3 a 4 casos por categoria, porque o flash-lite varia

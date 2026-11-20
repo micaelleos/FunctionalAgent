@@ -1,8 +1,8 @@
 import { Fragment, type ReactNode } from 'react'
 
 /**
- * Markdown mínimo das seções da spec (F06-RF-01): parágrafos, listas `- `, **negrito** e
- * `código`. Tudo vira texto do React (escapado); nenhum HTML vindo do agente é interpretado.
+ * Markdown mínimo das seções da spec (F06-RF-01): parágrafos, listas `- `, **negrito**,
+ * `código` e links `[título](https://…)` (Referências, F19-RF-06). Tudo vira texto do React (escapado); nenhum HTML vindo do agente é interpretado.
  */
 export function Markdown({ text }: { text: string }) {
   const blocks = text.split(/\n{2,}/).filter((b) => b.trim())
@@ -34,7 +34,8 @@ export function Markdown({ text }: { text: string }) {
   )
 }
 
-const TOKEN = /(\*\*[^*]+\*\*|`[^`]+`)/g
+const TOKEN = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https:\/\/[^\s)]+\))/g
+const LINK = /^\[([^\]]+)\]\((https:\/\/[^\s)]+)\)$/
 
 function inline(text: string): ReactNode[] {
   return text.split(TOKEN).map((part, i) => {
@@ -45,6 +46,19 @@ function inline(text: string): ReactNode[] {
         <code key={i} className="rounded bg-zinc-100 px-1 text-[0.85em]">
           {part.slice(1, -1)}
         </code>
+      )
+    const link = LINK.exec(part)
+    if (link)
+      return (
+        <a
+          key={i}
+          href={link[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-700 underline"
+        >
+          {link[1]}
+        </a>
       )
     return part
   })

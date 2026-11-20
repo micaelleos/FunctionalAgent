@@ -51,19 +51,29 @@ test('F19-RF-03 F19-RF-04 F19-RF-06 AT-F19-02 o issue usa a documentação', asy
   request,
 }) => {
   await linkedChat(page, request)
+  // O progresso aparece só enquanto cada página é lida (< 1 s): registra se ele chegou a aparecer.
+  await page.evaluate(`
+    window.seenDocsProgress = false
+    new MutationObserver(() => {
+      if (document.body.innerText.includes('Lendo a documentação do projeto…'))
+        window.seenDocsProgress = true
+    }).observe(document.body, { subtree: true, childList: true, characterData: true })
+  `)
   await send(
     page,
     'Story para o cliente finalizar pedidos: o pedido vai para faturamento ou para aprovação. ' +
       'Fora de escopo: tela do gerente. Testes de unidade e E2E. Pode propor sem perguntar.',
   )
-  await expect(page.getByText('Lendo a documentação do projeto…').first()).toBeVisible({
-    timeout: 120_000,
-  })
   const card = proposal(page)
   await expect(card).toBeVisible({ timeout: 180_000 })
+  expect(await page.evaluate('window.seenDocsProgress')).toBe(true)
   await card.getByText('What goes to Jira').click()
   await expect(card.getByText(/RN-03/).first()).toBeVisible()
-  await expect(card.getByRole('region', { name: 'Referências' })).toContainText('Regras de negócio')
+  await expect(
+    card
+      .getByRole('region', { name: 'Referências' })
+      .getByRole('link', { name: 'Regras de negócio' }),
+  ).toHaveAttribute('href', /\/wiki\/spaces\//)
 })
 
 test('F19-RF-07 AT-F19-03 conflito com a regra documentada', async ({ page, request }) => {

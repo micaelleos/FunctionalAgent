@@ -12,7 +12,7 @@
 
 ### Fase 1: Preparação (contrato primeiro)
 
-- [ ] T001 Rotas e esquemas `/api/v1/projects/{key}/confluence` e `/api/v1/confluence/spaces` em backend/app/api/v1/confluence.py (respostas 501 até a Fase 3) — teste: backend/tests/contract/test_confluence_api.py — 0,5 d
+- [ ] T001 Rotas e esquemas `/api/v1/jira/projects/{key}/confluence` e `/api/v1/confluence/spaces` em backend/app/api/v1/confluence.py (respostas 501 até a Fase 3) — teste: backend/tests/unit/test_confluence_api.py — 0,5 d
 - [ ] T002 [P] `AgentReadySpec` v2 (`references`, `conflicts` na proposta) em backend/app/agent/spec/schema.py e render.py; SSE `action_proposed.conflicts` em docs/api/sse-events.v1.json; `make api-types` — teste: backend/tests/unit/test_spec_schema.py, test_render.py — 0,5 d
 
 ---
@@ -61,7 +61,7 @@
 
 - [ ] T015 [P] `confluence_read` nos logs, métrica por log e painel em backend/app/agent/tools/confluence_tools.py e infra/terraform/modules/monitoring/main.tf — teste: backend/tests/unit/test_telemetry.py, scripts/test_monitoring.py — 0,5 d
 - [ ] T016 Emenda PATCH do Art. XII.5 (cita o Confluence) em .specify/memory/constitution.md e docs/modernizacao/02-constituicao.md; ADR-009 "Aceito" — teste: revisão do PO — 0,25 d
-- [ ] T017 AT-F19-01..05 (02 e 04 no sandbox com o Gemini real), rastreabilidade e evidências em spec.md — teste: `make trace`, Playwright — 0,5 d
+- [ ] T017 AT-F19-01..05: 01 no Playwright (stack local + espaço `SCRUM` do sandbox, só leitura), 02..04 com o Gemini real e páginas de teste (`scripts/confluence_fixture.py`, com aprovação do PO), 05 em backend/tests/acceptance/test_f19_confluence.py; rastreabilidade e evidências em spec.md — teste: `make trace`, Playwright — 0,5 d
 
 ## Dependências e paralelismo
 - Fases 1 → 2 → 3/4 (paralelas) → 5 → 6. A T010 depende da T009, e a T012 depende da T002.

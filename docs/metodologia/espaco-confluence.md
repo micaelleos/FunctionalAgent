@@ -48,7 +48,7 @@ pelo título do modelo.
   - o Roadmap traz a chave de cada épico;
   - os issues trazem a página em "Referências".
 - **Idioma:** o do time. O SpecFlow escreve as specs em pt-BR hoje (doc 10).
-- **Tamanho:** páginas do modelo cabem em ~20 mil caracteres. O agente lê até esse limite (F19-RT-04).
+- **Tamanho:** páginas do modelo cabem em ~8 mil caracteres, o limite que o agente lê (F19-RT-04).
   Detalhe longo vai para páginas filhas.
 
 ## 4. Como o agente usa cada página

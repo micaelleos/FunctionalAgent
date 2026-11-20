@@ -101,7 +101,7 @@ oferece criar o espaço com o modelo (F20).
 
 ## 7. Limites conhecidos
 
-- O agente lê no máximo 10 páginas por turno (F19-RT-04). Espaços grandes funcionam melhor seguindo o
+- O agente lê no máximo 6 páginas por turno, até 8 mil caracteres cada (F19-RT-04). Espaços grandes funcionam melhor seguindo o
   modelo, porque a fase 1 lê primeiro as páginas fixas (Constituição, Glossário, Regras, ADRs).
 - Páginas fora do modelo são encontradas por busca, não lidas por inteiro.
 - O SpecFlow nunca exclui páginas nem mexe em permissões do espaço.

@@ -2,7 +2,7 @@
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
-**Branch:** `feat/F19-contexto-confluence` · **Data:** 2026-11-20 · **Status da spec:** Rascunho · **ADRs:** ADR-009
+**Branch:** `feat/F19-contexto-confluence` · **Data:** 2026-11-20 · **Status da spec:** Em implementação · **ADRs:** ADR-009
 
 ## Parte B — Plano técnico (Gate 1)
 
@@ -23,7 +23,7 @@ Confluence (F20).
 | **Integrações** | Confluence Cloud REST v2 (`/wiki/api/v2`: spaces, pages, children) + v1 para busca CQL (`/wiki/rest/api/search`) e rótulos; httpx |
 | **Testes** | pytest + respx + emuladores; Vitest + MSW; Playwright (AT-F19-01, -03, -05 com o LLM de eco/roteirizado); evals com espaço fake |
 | **Metas de desempenho** | Fase Descobrir ≤ 4 s no p95 (4 leituras em paralelo); primeiro token p75 ≤ 3 s continua valendo depois da descoberta |
-| **Restrições** | ≤ 10 páginas/turno, ≤ 25 resultados/busca, 20 mil caracteres/página (F19-RT-04) |
+| **Restrições** | ≤ 6 páginas/turno, ≤ 10 resultados/busca, 8 mil caracteres/página, índice ≤ 30 itens (F19-RT-04) |
 | **Feature flag** | `CONFLUENCE_ENABLED` (padrão `false` até o aceite) e `PROMPT_VERSION` (já existe; `v1`/`v2`) |
 
 ### Conformidade com a Constituição (Constitution Check)
@@ -54,9 +54,9 @@ Confluence (F20).
   - `api/v1/confluence.py`;
   - frontend: `ProjectsPage` (cartão do espaço), `ChatPage` (aviso de conflito na proposta), `product/http.ts`.
 - **Contrato de API:**
-  - `GET /api/v1/projects/{key}/confluence` → `{link: Link | null, suggestion: Suggestion | null}`;
-  - `PUT /api/v1/projects/{key}/confluence` → body `{spaceId}`, devolve `Link`; antes, valida
-    `GET /wiki/api/v2/spaces/{id}`;
+  - `GET /api/v1/jira/projects/{key}/confluence` → `{link: Link | null, suggestion: Space | null}`;
+  - `PUT /api/v1/jira/projects/{key}/confluence` → body `{space_key}`, devolve `Link`; antes, valida
+    `GET /wiki/api/v2/spaces?keys=`;
   - `DELETE` → 204;
   - `GET /api/v1/confluence/spaces?q=` → `[{id, key, name, url}]`, no máximo 25;
   - erros: `confluence-forbidden` (403 do Confluence), `confluence-space-not-found`, `jira-not-connected`;
@@ -69,9 +69,11 @@ Confluence (F20).
   - Descoberta: primeiro `GET /wiki/api/v2/spaces?keys=<KEY>`; depois CQL
     `label = "specflow-projeto-<key>" AND type = page`. A descoberta roda ao abrir o projeto e no 1º turno
     com o projeto fixado; o resultado só aparece como sugestão.
-  - Fase Descobrir: o código lê as páginas fixas (rótulo `specflow-tipo-*`, ou o título do modelo) **antes**
-    do 1º turno da conversa e as injeta como mensagem de contexto não confiável. Isso é mais determinístico e
-    mais barato que esperar o modelo chamar a ferramenta. A busca por relação ao pedido fica com o modelo.
+  - Fase Descobrir: a cada turno com o projeto da conversa vinculado, o código monta o **índice** do espaço
+    (páginas do modelo por rótulo `specflow-tipo-*` ou título; títulos das ADRs; ≤ 30 itens, uma busca CQL)
+    e o injeta na instrução de sistema, delimitado como não confiável. O prompt v2 manda ler as páginas fixas
+    antes da primeira proposta. Injetar as páginas inteiras custaria até 20 mil tokens por turno, contra a
+    cota diária de 200 mil.
   - Conflitos: o modelo os declara, e o código filtra pelos IDs vistos (`RN-\d{2}`, `ADR-\d{3}`,
     `Art\. [IVX]+`) nas páginas lidas no turno.
 
@@ -107,7 +109,7 @@ infra/terraform/modules/cloud_run/main.tf
 |---|---|
 | Injeção de prompt via página | Tag de não confiável, regra no prompt, evals de injeção, propostas sempre confirmadas (Art. IV) |
 | Latência da fase Descobrir | Leituras em paralelo, cache por turno, só no 1º turno da conversa |
-| Custo de tokens (páginas grandes) | Truncagem em 20 mil caracteres; conta na cota diária e no teto mensal (F11/F12) |
+| Custo de tokens (páginas grandes) | Truncagem em 8 mil caracteres; conta na cota diária e no teto mensal (F11/F12) |
 | Token sem acesso ao Confluence | F19-RF-09: segue sem documentação e avisa |
 | Esquema v2 quebra propostas antigas | `references` opcional; specs v1 continuam válidas; hash da v1 inalterado quando a lista está vazia |
 

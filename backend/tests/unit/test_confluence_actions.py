@@ -10,7 +10,10 @@ from app.agent.spec.jira_payload import payload_hash
 from app.agent.tools.context import PageDraft
 from app.core.config import Settings
 from app.core.errors import ApiProblemError
-from app.integrations.confluence.client import ConfluenceConflictError, ConfluenceUncertainError
+from app.integrations.confluence.client import (
+    ConfluenceConflictError,
+    ConfluenceUncertainError,
+)
 from app.services.actions import ActionService, DocResult
 from app.services.chat import ACTION_TTL
 from app.services.confluence_actions import ConfluenceActionExecutor, append_row, translate

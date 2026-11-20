@@ -61,7 +61,7 @@
 
 - [x] T015 [P] `confluence_read` nos logs, métrica por log e painel em backend/app/agent/tools/confluence_tools.py e infra/terraform/modules/monitoring/main.tf — teste: backend/tests/unit/test_telemetry.py, scripts/test_monitoring.py — 0,5 d
 - [x] T016 Emenda PATCH do Art. XII.5 (cita o Confluence) em .specify/memory/constitution.md e docs/modernizacao/02-constituicao.md; ADR-009 "Aceito" — teste: revisão do PO — 0,25 d
-- [ ] T017 AT-F19-01..05: 01 no Playwright (stack local + espaço `SCRUM` do sandbox, só leitura), 02..04 com o Gemini real e páginas de teste (`scripts/confluence_fixture.py`, com aprovação do PO), 05 em backend/tests/acceptance/test_f19_confluence.py; rastreabilidade e evidências em spec.md — teste: `make trace`, Playwright — 0,5 d
+- [x] T017 AT-F19-01..05: 01 no Playwright (stack local + espaço `SCRUM` do sandbox, só leitura), 02..04 com o Gemini real e páginas de teste (`scripts/confluence_fixture.py`, com aprovação do PO), 05 em backend/tests/acceptance/test_f19_confluence.py; rastreabilidade e evidências em spec.md — teste: `make trace`, Playwright — 0,5 d
 
 ## Dependências e paralelismo
 - Fases 1 → 2 → 3/4 (paralelas) → 5 → 6. A T010 depende da T009, e a T012 depende da T002.
@@ -70,7 +70,5 @@
 **Situação em 2026-11-20:**
 - T001 a T015 feitas, com os caminhos finais dos testes na Rastreabilidade da spec.
 - T016: emenda PATCH 2.2.1 feita nos dois espelhos. O ADR-009 continua "Proposto" até o aceite do PO.
-- T017 em aberto:
-  - feitos: AT-F19-01 (Playwright, sandbox só leitura) e AT-F19-05 (em processo);
-  - pendentes: AT-F19-02..04, que precisam das páginas de teste criadas por `scripts/confluence_fixture.py` com aprovação do PO.
+- T017 feita: AT-F19-01..04 no Playwright (o 02..04 com o Gemini real e as páginas de teste do sandbox) e AT-F19-05 em processo.
 

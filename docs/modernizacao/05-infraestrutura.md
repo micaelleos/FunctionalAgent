@@ -52,7 +52,7 @@ flowchart TB
 | `cloud_run` | Serviço `api`, SA de runtime, envs (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_LOCATION`), `timeout=300s`, `concurrency=40`, CPU 1 / 1 GiB, *startup probe* em `/healthz` |
 | `artifact_registry` | Repositório Docker com política de limpeza (manter 20 últimas) |
 | `firebase` | `google_firebase_project`, web app, site de Hosting, provedores de Auth, App Check |
-| `wif` | Pool + provider OIDC do GitHub restrito a `repository == micaelleos/FunctionalAgent` e branch/ambiente |
+| `wif` | Pool + provider OIDC do GitHub restrito a `repository == micaelleos/SpecFlowAI` e branch/ambiente |
 | `monitoring` | Uptime check, alertas (5xx > 2%, p95 > 10 s, erros de LLM, orçamento), dashboard |
 | `domain` *(opcional)* | Mapeamento `api.<domínio>` no Cloud Run, domínio customizado no Hosting |
 

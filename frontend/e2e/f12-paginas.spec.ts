@@ -18,7 +18,7 @@ test('F12-RF-03 F12-RF-04 AT-F12-03 ajuda e privacidade públicas e acessíveis'
   const footer = page.getByRole('contentinfo')
   await expect(footer.getByRole('link', { name: /Help/ })).toHaveAttribute(
     'href',
-    /github\.com\/micaelleos\/FunctionalAgent\/issues$/,
+    /github\.com\/micaelleos\/SpecFlowAI\/issues$/,
   )
   await expect(footer.getByText('API: ok')).toBeVisible({ timeout: 20_000 })
 

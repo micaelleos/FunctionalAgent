@@ -12,7 +12,7 @@
 
 ### Fase 1: Preparação (contrato primeiro)
 
-- [ ] T001 `kind` e payloads `confluence.space.create`, `confluence.page.create`, `confluence.page.update` nas ações propostas (backend/app/services/actions.py) e `diff` no SSE `action_proposed` (docs/api/sse-events.v1.json) — teste: backend/tests/contract/test_actions_confluence.py — 0,5 d
+- [ ] T001 `kind` e payloads `create_space`, `create_page`, `update_page` nas ações propostas (backend/app/services/actions.py) e `diff` no SSE `action_proposed` (docs/api/sse-events.v1.json) — teste: backend/tests/unit/test_confluence_actions.py — 0,5 d
 
 ---
 
@@ -32,7 +32,7 @@
 
 - [ ] T007 [F20-RF-02] [F20-RF-03] Ferramentas `propor_criacao_pagina` e `propor_atualizacao_pagina` em backend/app/agent/tools/confluence_tools.py — teste: backend/tests/unit/test_confluence_page_tools.py — 0,5 d
 - [ ] T008 [F20-RF-04] [F20-RF-07] Execução na confirmação (hash, versão, 409, Registro de mudanças, auditoria) em backend/app/services/confluence_actions.py — teste: backend/tests/unit/test_confluence_actions.py — 1 d
-- [ ] T009 [P] [F20-RF-03] Cartão da proposta com diff e erro de conflito em frontend/src/pages/ChatPage.tsx — teste: ChatPage.test.tsx — 0,5 d
+- [ ] T009 [P] [F20-RF-03] Cartão da proposta com diff e erro de conflito em frontend/src/components/ActionCard.tsx — teste: ActionCard.test.tsx — 0,5 d
 
 ---
 
@@ -40,7 +40,7 @@
 
 **Aceitação:** AT-F20-01, AT-F20-03
 
-- [ ] T010 [F20-RF-01] `propor_criacao_espaco` + execução com o modelo (estado `partial`) e botão "Create space" em Projects — teste: backend/tests/unit/test_confluence_actions.py, ProjectsPage.test.tsx — 1 d
+- [ ] T010 [F20-RF-01] `propor_criacao_espaco` + execução com o modelo (`confluence-partial`) e botão "Create space" em Projects (abre o chat do projeto) — teste: backend/tests/unit/test_confluence_actions.py, ProjectsPage.test.tsx — 1 d
 - [ ] T011 [F20-RF-05] [F20-RF-06] Fase Convergir com escrita e ADR no `system_v2.md` — teste: evals `confluence-converge-write-*`, `confluence-adr-*`, `confluence-no-spam-*` — 0,5 d
 
 ---

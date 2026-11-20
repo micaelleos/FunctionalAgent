@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Rascunho (spec e plano prontos; depende da F19) |
+| **Status** | Em implementação |
 | **Fase** | 4 — Evolução |
 | **Responsável** | PO |
 | **Dependências** | F19, F06, F10 |
@@ -11,6 +11,18 @@
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md) ·
 > [Metodologia](../../docs/metodologia/README.md) · [Modelos de página](../../docs/metodologia/modelos/README.md)
+
+**Revisão 2026-11-20 (contra o código, antes da implementação):**
+- **Tipos de ação:** `create_page`, `update_page` e `create_space`, no padrão de `create_issue`/`update_issue`. A confirmação da F06 despacha por tipo; a escrita no Confluence fica em `services/confluence_actions.py`.
+- **Registro:** a conclusão grava `users/{uid}/documents/{pageId}` na mesma transação da ação, como a F10 faz com `jira_issues`.
+- **Falha no meio da criação do espaço:** a ação vira `failed` com o código `confluence-partial` e a lista do que foi criado (sem status novo). Uma nova proposta completa o que falta.
+- **"Create space" em Projects:** abre o chat com o projeto fixado e o pedido já escrito. A confirmação é o cartão de sempre, não uma segunda tela.
+- **Ferramentas por turno:**
+  - as de escrita só entram com `CONFLUENCE_WRITE_ENABLED` e o projeto vinculado;
+  - `propor_criacao_espaco` só entra quando o projeto da conversa não tem espaço.
+- **Espaço:** criado por `POST /wiki/rest/api/space` (v1, estável). As páginas usam a REST v2.
+- **Modelos:** os 6 de `docs/metodologia/modelos/` são copiados para o backend, com teste de sincronia. Início, Arquitetura, Registro de mudanças e as páginas-pai "Decisões (ADR)" e "Features" têm esqueletos curtos no código.
+- **ADR aceita:** a ferramenta recusa atualizar uma página de ADR com status "Aceito"; a mudança vira ADR nova.
 
 ---
 
@@ -50,7 +62,7 @@
 ### 3. Requisitos funcionais
 | ID | Requisito | Prioridade |
 |---|---|---|
-| F20-RF-01 | Quando a F19 não acha espaço, o agente (ou o botão "Create space" em Projects) propõe criar o espaço "<Projeto> — Documentação", com chave igual à do projeto quando livre, e a árvore do modelo (páginas com os modelos vazios e rótulos). Depois do Confirm, o espaço é criado e vinculado | Must |
+| F20-RF-01 | Quando a F19 não acha espaço, o agente propõe criar o espaço (o botão "Create space" em Projects abre o chat do projeto com esse pedido) "<Projeto> — Documentação", com chave igual à do projeto quando livre, e a árvore do modelo (páginas com os modelos vazios e rótulos). Depois do Confirm, o espaço é criado e vinculado | Must |
 | F20-RF-02 | O agente propõe **criar** uma página de um tipo do modelo (Constituição, Glossário, Regras de negócio, Arquitetura, ADR, Roadmap, Feature) a partir da conversa, no lugar certo da árvore, com os rótulos `specflow` e `specflow-tipo-<tipo>` | Must |
 | F20-RF-03 | O agente propõe **atualizar** uma página existente; a proposta mostra o diff (antes/depois, por seção) e o resumo da mudança | Must |
 | F20-RF-04 | Se a página mudou no Confluence depois da proposta, o Confirm falha com "This page changed since the proposal. Ask the agent to review it again." e nada é sobrescrito | Must |
@@ -62,8 +74,8 @@
 ### 4. Requisitos técnicos / não funcionais
 | ID | Requisito | Como verificar |
 |---|---|---|
-| F20-RT-01 | As ferramentas `propor_criacao_pagina`, `propor_atualizacao_pagina` e `propor_criacao_espaco` só criam `ProposedAction` (`kind = confluence.*`); a execução fica em `services/confluence_actions.py`, chamada pela confirmação da F06, com o mesmo hash entre confirmado e executado (ADR-003) | `tests/unit/test_confluence_actions.py`, teste de hash |
-| F20-RT-02 | Escrita com Confluence REST v2: `POST /wiki/api/v2/spaces` (sem `roleAssignments`), `POST /wiki/api/v2/pages` (`spaceId`, `parentId`, `title`, `body.representation = storage`), `PUT /wiki/api/v2/pages/{id}` com `version.number = vista + 1`; rótulos por `POST /wiki/rest/api/content/{id}/label`. Sem retry em escrita; 409 → `confluence-version-conflict` | `tests/unit/test_confluence_client_write.py` (respx) |
+| F20-RT-01 | As ferramentas `propor_criacao_pagina`, `propor_atualizacao_pagina` e `propor_criacao_espaco` só criam `ProposedAction` (`kind` = `create_page`, `update_page`, `create_space`); a execução fica em `services/confluence_actions.py`, chamada pela confirmação da F06, com o mesmo hash entre confirmado e executado (ADR-003) | `tests/unit/test_confluence_actions.py`, teste de hash |
+| F20-RT-02 | Escrita: `POST /wiki/rest/api/space` (v1, `key`, `name`), `POST /wiki/api/v2/pages` (`spaceId`, `parentId`, `title`, `body.representation = storage`), `PUT /wiki/api/v2/pages/{id}` com `version.number = vista + 1`; rótulos por `POST /wiki/rest/api/content/{id}/label`. Sem retry em escrita; 409 → `confluence-version-conflict` | `tests/unit/test_confluence_client_write.py` (respx) |
 | F20-RT-03 | Markdown → storage format determinístico (mesmas entradas, mesmo XHTML), escapando HTML do conteúdo; sem macros além de `info`/`status`/`toc` | `tests/unit/test_confluence_storage.py` (ida e volta com o conversor da F19) |
 | F20-RT-04 | Diff por seção (títulos `##`) calculado no backend e guardado na proposta; o que o usuário vê é o que é executado | `tests/unit/test_page_diff.py` |
 | F20-RT-05 | Os modelos de `docs/metodologia/modelos/` são a fonte dos esqueletos (copiados para `backend/app/agent/templates/confluence/` no build e conferidos por teste de igualdade) | `tests/unit/test_templates_in_sync.py` |

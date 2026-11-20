@@ -63,3 +63,20 @@ async def _sequential(usage: UsageService) -> list[str]:
         except ApiProblemError as exc:
             codes.append(exc.code)
     return codes
+
+
+@pytest.mark.req("F12-RF-05")
+async def test_teto_mensal_soma_incrementos_em_paralelo(db: firestore.Client) -> None:
+    month = "2099-01"  # mês isolado dos outros testes
+    db.collection("app_usage").document(month).delete()
+    now = datetime(2099, 1, 15, 12, tzinfo=UTC)
+    usage = UsageService(
+        UsageRepository(db), Settings(env="test", monthly_token_budget=1_000), clock=lambda: now
+    )
+
+    await asyncio.gather(*(usage.record_tokens(100) for _ in range(10)))
+
+    assert UsageRepository(db).month_tokens(month) == 1_000
+    with pytest.raises(ApiProblemError) as info:
+        await usage.reserve("u-beta")
+    assert info.value.code == "beta-budget-exhausted"

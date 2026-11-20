@@ -278,7 +278,8 @@ function TurnView({
           : (t.errors[turn.error?.code ?? ''] ?? turn.error?.message ?? t.chat.agentError)
       : null
   // Cota do dia acabou: tentar de novo não adianta até a renovação (F11-RF-02).
-  const canRetry = turn.error?.code !== 'quota-exceeded'
+  // Cota do dia e teto mensal do beta só renovam depois: tentar de novo não adianta.
+  const canRetry = !['quota-exceeded', 'beta-budget-exhausted'].includes(turn.error?.code ?? '')
   return (
     <>
       {reachedServer && <UserBubble text={turn.userText} />}

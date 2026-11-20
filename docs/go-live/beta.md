@@ -39,7 +39,9 @@
 
 ## Acompanhamento (PO)
 
-- Dashboard "specflow: operação" no Cloud Monitoring 1×/dia; alertas chegam por e-mail.
+- Dashboard "specflow: operação" no Cloud Monitoring 1×/dia (não há alertas por e-mail).
+- Teto do beta: 5 milhões de tokens do Gemini por mês para todos juntos; ao acabar, o chat avisa e
+  volta no dia 1º (`docs/runbooks/limites-e-app-check.md`).
 - Problema grave (perda de dado, escrita no Jira sem confirmação, vazamento): **Sev1** → rollback
   (`docs/runbooks/rollback.md`) e pausa do beta.
 - Correções em PRs `fix/F12-*`.

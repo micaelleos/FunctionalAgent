@@ -1,28 +1,17 @@
-# Observabilidade do SpecFlow AI (F11-RT-03/04): métricas por log, dashboard, uptime check, alertas
-# por e-mail e SLO. Tudo com o prefixo do app; nada compartilhado do projeto é alterado (F02-RT-09),
-# inclusive o budget do projeto: o alerta de custo usa o custo estimado que a API registra.
+# Observabilidade do SpecFlow AI (F11-RT-03/04): métricas por log, dashboard, uptime check e SLO.
+# Tudo com o prefixo do app; nada compartilhado do projeto é alterado (F02-RT-09). Os alertas por
+# e-mail saíram em 2026-11-20 por custo (decisão do PO); o custo do Gemini é limitado pelo teto
+# mensal do beta (F12-RF-05). Para recriá-los, veja docs/runbooks/monitoramento.md.
 
 variable "project_id" { type = string }
 variable "prefix" { type = string }
 variable "service_name" { type = string }
 variable "api_url" { type = string }
 
-variable "alert_email" {
-  description = "Quem recebe os alertas. Repo público: passe por TF_VAR_alert_email, nunca no tfvars."
-  type        = string
-  sensitive   = true
-}
-
 variable "uptime_path" {
   description = "Rota do uptime check (o ensaio do AT-F11-03 aponta para uma rota que falha)."
   type        = string
   default     = "/health"
-}
-
-variable "daily_cost_alert_usd" {
-  description = "Custo estimado de LLM por dia (USD) que dispara o alerta."
-  type        = number
-  default     = 2
 }
 
 locals {
@@ -100,7 +89,7 @@ resource "google_logging_metric" "counter" {
   label_extractors = each.value.labels
 }
 
-# ---- Uptime, canal e alertas -----------------------------------------------------------------
+# ---- Uptime check ------------------------------------------------------------------------------
 
 resource "google_monitoring_uptime_check_config" "api" {
   project      = var.project_id
@@ -117,161 +106,6 @@ resource "google_monitoring_uptime_check_config" "api" {
     type   = "uptime_url"
     labels = { project_id = var.project_id, host = local.api_host }
   }
-}
-
-resource "google_monitoring_notification_channel" "email" {
-  project      = var.project_id
-  display_name = "${var.prefix}-alerts"
-  type         = "email"
-  labels       = { email_address = var.alert_email }
-}
-
-locals {
-  channels = [google_monitoring_notification_channel.email.id]
-  docs     = "Runbooks: https://github.com/micaelleos/FunctionalAgent/tree/master/docs/runbooks"
-}
-
-resource "google_monitoring_alert_policy" "errors_5xx" {
-  project               = var.project_id
-  display_name          = "${var.prefix}: API 5xx > 2%"
-  combiner              = "OR"
-  notification_channels = local.channels
-  documentation { content = "Mais de 2% das respostas da API com 5xx em 5 min. ${local.docs}" }
-  conditions {
-    display_name = "5xx / total > 2%"
-    condition_threshold {
-      filter             = "metric.type=\"run.googleapis.com/request_count\" AND ${local.rev} AND metric.label.response_code_class=\"5xx\""
-      denominator_filter = "metric.type=\"run.googleapis.com/request_count\" AND ${local.rev}"
-      comparison         = "COMPARISON_GT"
-      threshold_value    = 0.02
-      duration           = "0s"
-      aggregations {
-        alignment_period     = "300s"
-        per_series_aligner   = "ALIGN_DELTA"
-        cross_series_reducer = "REDUCE_SUM"
-      }
-      denominator_aggregations {
-        alignment_period     = "300s"
-        per_series_aligner   = "ALIGN_DELTA"
-        cross_series_reducer = "REDUCE_SUM"
-      }
-    }
-  }
-}
-
-resource "google_monitoring_alert_policy" "turn_latency" {
-  project               = var.project_id
-  display_name          = "${var.prefix}: p95 do turno > 30 s"
-  combiner              = "OR"
-  notification_channels = local.channels
-  documentation { content = "O p95 da duração do turno do agente passou de 30 s em 10 min. ${local.docs}" }
-  conditions {
-    display_name = "p95 turn_latency_ms > 30000"
-    condition_threshold {
-      filter          = "metric.type=\"${local.metric}/turn_latency_ms\" AND resource.type=\"cloud_run_revision\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = 30000
-      duration        = "0s"
-      aggregations {
-        alignment_period     = "600s"
-        per_series_aligner   = "ALIGN_DELTA"
-        cross_series_reducer = "REDUCE_PERCENTILE_95"
-      }
-    }
-  }
-  depends_on = [google_logging_metric.distribution]
-}
-
-resource "google_monitoring_alert_policy" "llm_errors" {
-  project               = var.project_id
-  display_name          = "${var.prefix}: erro do modelo > 5%"
-  combiner              = "OR"
-  notification_channels = local.channels
-  documentation { content = "Mais de 5% dos turnos falharam no modelo (indisponível ou tempo esgotado) em 15 min. ${local.docs}" }
-  conditions {
-    display_name = "turnos com erro do modelo / turnos > 5%"
-    condition_threshold {
-      filter             = "metric.type=\"${local.metric}/chat_turns\" AND resource.type=\"cloud_run_revision\" AND metric.label.error=one_of(\"llm-unavailable\",\"turn-timeout\")"
-      denominator_filter = "metric.type=\"${local.metric}/chat_turns\" AND resource.type=\"cloud_run_revision\""
-      comparison         = "COMPARISON_GT"
-      threshold_value    = 0.05
-      duration           = "0s"
-      aggregations {
-        alignment_period     = "900s"
-        per_series_aligner   = "ALIGN_DELTA"
-        cross_series_reducer = "REDUCE_SUM"
-      }
-      denominator_aggregations {
-        alignment_period     = "900s"
-        per_series_aligner   = "ALIGN_DELTA"
-        cross_series_reducer = "REDUCE_SUM"
-      }
-    }
-  }
-  depends_on = [google_logging_metric.chat_turns]
-}
-
-resource "google_monitoring_alert_policy" "jira_failures" {
-  project               = var.project_id
-  display_name          = "${var.prefix}: falhas ao escrever no Jira"
-  combiner              = "OR"
-  notification_channels = local.channels
-  documentation { content = "3 ou mais ações confirmadas falharam no Jira em 15 min. ${local.docs}" }
-  conditions {
-    display_name = "jira_writes result=failed >= 3"
-    condition_threshold {
-      filter          = "metric.type=\"${local.metric}/jira_writes\" AND resource.type=\"cloud_run_revision\" AND metric.label.result=\"failed\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = 2
-      duration        = "0s"
-      aggregations {
-        alignment_period     = "900s"
-        per_series_aligner   = "ALIGN_DELTA"
-        cross_series_reducer = "REDUCE_SUM"
-      }
-    }
-  }
-  depends_on = [google_logging_metric.counter]
-}
-
-resource "google_monitoring_alert_policy" "uptime" {
-  project               = var.project_id
-  display_name          = "${var.prefix}: API fora do ar (uptime /health)"
-  combiner              = "OR"
-  notification_channels = local.channels
-  documentation { content = "O uptime check de ${var.uptime_path} falhou em mais de uma região por 10 min. ${local.docs}" }
-  conditions {
-    display_name = "uptime check falhando"
-    condition_threshold {
-      filter          = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND metric.label.check_id=\"${google_monitoring_uptime_check_config.api.uptime_check_id}\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = 1
-      duration        = "600s"
-      aggregations {
-        alignment_period     = "1200s"
-        per_series_aligner   = "ALIGN_NEXT_OLDER"
-        cross_series_reducer = "REDUCE_COUNT_FALSE"
-        group_by_fields      = ["resource.label.host"]
-      }
-    }
-  }
-}
-
-resource "google_monitoring_alert_policy" "daily_cost" {
-  project               = var.project_id
-  display_name          = "${var.prefix}: custo estimado de LLM > US$ ${var.daily_cost_alert_usd}/dia"
-  combiner              = "OR"
-  notification_channels = local.channels
-  documentation { content = "O custo estimado do Gemini nas últimas 24 h passou de US$ ${var.daily_cost_alert_usd}. Veja o runbook de custo. ${local.docs}" }
-  conditions {
-    display_name = "soma de cost_usd em 24 h"
-    condition_prometheus_query_language {
-      query               = "sum(increase(logging_googleapis_com:user_${var.prefix}_cost_usd_sum{monitored_resource=\"cloud_run_revision\"}[1d])) > ${var.daily_cost_alert_usd}"
-      duration            = "0s"
-      evaluation_interval = "3600s"
-    }
-  }
-  depends_on = [google_logging_metric.distribution]
 }
 
 # ---- SLO de disponibilidade ------------------------------------------------------------------

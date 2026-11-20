@@ -1,4 +1,4 @@
-"""Cota diária e rate limit (F11-RF-01..03, F11-RT-05/06)."""
+"""Cota diária e rate limit (F11-RF-01..03, F11-RT-05/06) e teto mensal do beta (F12-RF-05)."""
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -13,7 +13,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import ApiProblemError
 from app.main import create_app
 from app.services.chat import ChatService
-from app.services.usage import UsageService, resets_at, usage_day
+from app.services.usage import UsageService, resets_at, usage_day, usage_month
 from tests.chat_fakes import FakeJiraService, MemoryChatStore
 from tests.fakes import FakeVerifier
 
@@ -165,3 +165,105 @@ def test_rotas_429_antes_de_criar_conversa_e_consumo() -> None:
     body = me.json()
     assert (body["messages_today"], body["message_limit"]) == (1, 1)
     assert len(body["last_7_days"]) == 7
+
+
+# ---- F12-RF-05: teto mensal de tokens do beta (soma de todos os usuários) ----------------------
+
+
+def test_mes_e_renovacao_no_horario_de_brasilia() -> None:
+    from app.services.usage import month_resets_at, usage_month
+
+    # 01:30 UTC de 1º/12 ainda é 30/11 em Brasília.
+    late = datetime(2026, 12, 1, 1, 30, tzinfo=UTC)
+    assert usage_month(late) == "2026-11"
+    assert month_resets_at(late) == datetime(2026, 12, 1, 3, 0, tzinfo=UTC)
+    assert month_resets_at(datetime(2026, 12, 15, tzinfo=UTC)) == datetime(
+        2027, 1, 1, 3, 0, tzinfo=UTC
+    )
+
+
+@pytest.mark.req("F12-RF-05")
+async def test_teto_mensal_do_beta_soma_todos_os_usuarios_e_recusa_ao_atingir() -> None:
+    store, clock = MemoryChatStore(), Clock(datetime(2026, 11, 20, 12, 0, tzinfo=UTC))
+    usage = _usage(store, clock, monthly_token_budget=1_000)
+
+    await usage.reserve("uid-a")
+    await usage.record_tokens(600)
+    await usage.reserve("uid-b")
+    await usage.record_tokens(400)  # 1.000: atingiu o teto
+    problem = await _code(usage.reserve("uid-c"))
+
+    assert (problem.status, problem.code) == (429, "beta-budget-exhausted")
+    assert problem.extra["resets_at"] == "2026-12-01T03:00:00+00:00"
+    assert int(problem.headers["Retry-After"]) > 0
+    # A recusa não gasta a cota diária de ninguém.
+    assert ("uid-c", "2026-11-20") not in store.usage
+
+    clock.now = datetime(2026, 12, 1, 3, 0, tzinfo=UTC)  # novo mês em Brasília
+    await usage.reserve("uid-c")
+
+
+@pytest.mark.req("F12-RF-05")
+async def test_sem_teto_configurado_nao_conta_nem_recusa() -> None:
+    store, clock = MemoryChatStore(), Clock(datetime(2026, 11, 20, 12, 0, tzinfo=UTC))
+    usage = _usage(store, clock)  # monthly_token_budget = 0
+
+    await usage.record_tokens(10_000_000)
+    await usage.reserve(UID)
+
+    assert store.months == {}
+
+
+@pytest.mark.req("F12-RF-05")
+async def test_turno_do_chat_soma_os_tokens_no_mes() -> None:
+    store, clock = MemoryChatStore(), Clock(datetime(2026, 11, 20, 12, 0, tzinfo=UTC))
+    settings = Settings(env="test", monthly_token_budget=1_000_000)
+    usage = UsageService(store, settings, clock=clock)
+    llm = ScriptedChatModel(
+        responses=[
+            AIMessage(
+                content="Oi",
+                usage_metadata={"input_tokens": 120, "output_tokens": 30, "total_tokens": 150},
+            )
+        ]
+    )
+    service = ChatService(store, FakeJiraService(), llm, settings, clock=clock, usage=usage)  # type: ignore[arg-type]
+
+    _, events = await service.open_turn(UID, "new", "Olá")
+    async for _ in events:
+        pass
+
+    assert store.months == {"2026-11": 150}
+
+
+@pytest.mark.req("F12-RF-05")
+def test_rota_429_quando_o_beta_esgota_o_mes() -> None:
+    store = MemoryChatStore()
+    clock = Clock(datetime.now(UTC))
+    settings = Settings(env="test", monthly_token_budget=100)
+    usage = UsageService(store, settings, clock=clock)
+    chat = ChatService(
+        store,
+        FakeJiraService(),  # type: ignore[arg-type]
+        ScriptedChatModel(responses=[AIMessage("Oi")]),
+        settings,
+        usage=usage,
+    )
+    app = create_app()
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_verifier] = FakeVerifier
+    app.dependency_overrides[get_chat_service] = lambda: chat
+    app.dependency_overrides[get_usage_service] = lambda: usage
+    store.add_month_tokens(usage_month(clock.now), 100)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/conversations/new/messages",
+            json={"content": "Olá"},
+            headers={"Authorization": "Bearer ok:alice"},
+        )
+
+    assert response.status_code == 429
+    assert response.json()["code"] == "beta-budget-exhausted"
+    assert "retry-after" in response.headers
+    assert UID not in store.conversations

@@ -1,7 +1,8 @@
-"""Checagem estática do monitoramento (F11-RF-04): os alertas da spec existem no Terraform.
+"""Checagem estática do monitoramento (F11-RF-04): dashboard, uptime check e SLO no Terraform.
 
-O disparo de verdade é o AT-F11-03 (ensaio em prd, docs/runbooks/alertas.md); aqui garantimos que
-nenhum alerta some do módulo sem a spec mudar e que o e-mail do responsável nunca é versionado.
+Os alertas por e-mail saíram em 2026-11-20 por custo (decisão do PO, docs/runbooks/monitoramento.md);
+aqui garantimos que eles não voltam sem a spec mudar, que o que ficou continua lá e que nenhum
+e-mail pessoal é versionado (o repo é público).
 """
 
 import re
@@ -13,16 +14,6 @@ ROOT = Path(__file__).resolve().parent.parent
 TF = ROOT / "infra" / "terraform"
 MONITORING = (TF / "modules" / "monitoring" / "main.tf").read_text()
 
-# Alertas exigidos pela spec (F11-RF-04, §4) → recurso no módulo.
-ALERTS = {
-    "errors_5xx": "0.02",  # 5xx > 2% em 5 min
-    "turn_latency": "30000",  # p95 do turno > 30 s
-    "llm_errors": "0.05",  # erro do modelo > 5%
-    "jira_failures": "jira_writes",
-    "uptime": "uptime_check/check_passed",
-    "daily_cost": "daily_cost_alert_usd",
-}
-
 
 def _resource(kind: str, name: str) -> str:
     match = re.search(
@@ -32,24 +23,26 @@ def _resource(kind: str, name: str) -> str:
     return match.group(1)
 
 
-@pytest.mark.parametrize(("name", "marker"), sorted(ALERTS.items()))
-def test_f11_rf_04_alerta_existe_e_notifica_por_email(name: str, marker: str) -> None:
-    body = _resource("google_monitoring_alert_policy", name)
-    assert marker in body
-    assert "notification_channels = local.channels" in body
-    assert "documentation" in body  # aponta para os runbooks
-
-
-def test_f11_rf_04_uptime_e_slo() -> None:
+def test_f11_rf_04_uptime_slo_e_dashboard() -> None:
     uptime = _resource("google_monitoring_uptime_check_config", "api")
     assert re.search(r"path\s*=\s*var\.uptime_path", uptime)
     slo = _resource("google_monitoring_slo", "availability")
     assert re.search(r"goal\s*=\s*0\.995", slo)
     assert re.search(r"rolling_period_days\s*=\s*28", slo)
+    _resource("google_monitoring_dashboard", "app")
 
 
-def test_f11_rf_04_email_do_alerta_nunca_versionado() -> None:
-    # O repo é público: o e-mail só entra por TF_VAR_alert_email no apply.
+def test_f11_rf_04_sem_alertas_nem_canal_de_email() -> None:
+    for path in TF.rglob("*.tf"):
+        if ".terraform" in path.parts:
+            continue
+        text = path.read_text()
+        assert "google_monitoring_alert_policy" not in text, path.relative_to(ROOT)
+        assert "google_monitoring_notification_channel" not in text, path.relative_to(ROOT)
+        assert "alert_email" not in text, path.relative_to(ROOT)
+
+
+def test_f11_rf_04_nenhum_email_versionado() -> None:
     email = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
     for path in [*TF.rglob("*.tf"), *TF.rglob("*.tfvars")]:
         if ".terraform" in path.parts:
@@ -60,4 +53,3 @@ def test_f11_rf_04_email_do_alerta_nunca_versionado() -> None:
             if not m.endswith(".gserviceaccount.com")
         ]
         assert not found, f"e-mail versionado em {path.relative_to(ROOT)}"
-    assert re.search(r'variable "alert_email" \{[^}]*sensitive\s*=\s*true', MONITORING)

@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     tracing_sample_ratio: float = Field(default=0.1, ge=0, le=1, description="Sem trace do pai")
     daily_message_quota: int = Field(default=20, ge=1, description="Mensagens por dia (Brasília)")
     daily_token_quota: int = Field(default=200_000, ge=1, description="Tokens por dia (Brasília)")
+    # Teto global do beta (F12-RF-05): soma de todos os usuários no mês de Brasília; 0 desliga.
+    monthly_token_budget: int = Field(default=0, ge=0, description="Tokens do Gemini por mês (app)")
     rate_limit_per_minute: int = Field(default=10, ge=1, description="Mensagens em 60 s")
     app_check_mode: Literal["off", "monitor", "enforce"] = "off"
     firebase_project_number: str | None = Field(

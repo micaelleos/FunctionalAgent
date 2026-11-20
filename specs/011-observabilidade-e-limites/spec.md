@@ -10,6 +10,11 @@
 
 > [Spec](spec.md) · [Plano](plan.md) · [Tarefas](tasks.md) · [Roadmap](../ROADMAP.md)
 
+**Ajuste 2026-11-20 (PO):** os 6 alertas por e-mail e o canal de notificação saíram, por custo
+(≈ US$ 9/mês se a cobrança por condição estiver valendo). Ficam as métricas por log, o dashboard, o
+uptime check e o SLO; o custo do Gemini passa a ser limitado pelo teto mensal do beta (F12-RF-05).
+O AT-F11-03 rodou e foi aceito antes da remoção (evidência abaixo).
+
 ---
 
 ## Parte A — Especificação
@@ -33,7 +38,7 @@
 | F11-RF-01 | O usuário vê seu consumo do dia (mensagens) e o limite, e o histórico dos últimos 7 dias em "My account" | Should |
 | F11-RF-02 | Ao atingir a cota diária (mensagens ou tokens), o envio é recusado antes de chamar o modelo, com mensagem clara e o horário de renovação (00:00 de Brasília) | Must |
 | F11-RF-03 | Mensagens em excesso (rate limit) recebem "Too many messages. Wait N seconds and try again."; a mensagem não conta na cota | Must |
-| F11-RF-04 | O responsável recebe alerta (e-mail) em erro elevado, latência alta, falha de LLM/Jira, API fora do ar e custo estimado de LLM acima do limite diário | Must |
+| F11-RF-04 | O responsável acompanha a operação por um dashboard (erros, latência, falhas de LLM/Jira, custo estimado, limites), um uptime check da API e o SLO de disponibilidade. ~~Alerta por e-mail~~ removido pelo PO em 2026-11-20 | Must |
 
 ### 4. Requisitos técnicos
 | ID | Requisito | Verificação |
@@ -94,7 +99,7 @@ Funcionalidade: Limites e operação
 | F11-RF-01 | AT-F11-01 (`e2e/f11-limites.spec.ts`), `tests/unit/test_usage.py`, `http.test.ts`, `screens.test.tsx` | ✅ local |
 | F11-RF-02 | AT-F11-01, `tests/unit/test_usage.py`, `tests/integration/test_usage.py`, `ChatPage.test.tsx` | ✅ local |
 | F11-RF-03 | AT-F11-02 (`e2e/f11-limites.spec.ts`), `tests/unit/test_usage.py`, `ChatPage.test.tsx` | ✅ local |
-| F11-RF-04 | AT-F11-03 (ensaio em prd, `docs/runbooks/alertas.md`), `scripts/test_monitoring.py` | ✅ prd |
+| F11-RF-04 | `scripts/test_monitoring.py` (dashboard, uptime, SLO; sem alertas), AT-F11-03 (antes da remoção) | ✅ prd |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |

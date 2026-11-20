@@ -654,6 +654,8 @@ class ChatService:
         )
         day = usage_day(self._clock())  # o dia da cota é o de Brasília (F11-RT-05)
         await self._run_sync(self._store.add_usage, uid, day, turn.input_tokens, turn.output_tokens)
+        if self._usage is not None:
+            await self._usage.record_tokens(turn.input_tokens + turn.output_tokens)
         log.info(
             "chat_turn",
             extra={

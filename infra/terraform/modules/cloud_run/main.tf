@@ -14,6 +14,7 @@ variable "project_number" { type = string }
 variable "app_check_mode" { type = string }
 variable "daily_message_quota" { type = number }
 variable "daily_token_quota" { type = number }
+variable "monthly_token_budget" { type = number }
 
 # O Terraform cria o serviço e a configuração (F02-RT-05); a imagem e o tráfego pertencem ao
 # `make deploy` (scripts/deploy.sh), que publica sempre por digest. Por isso image/traffic são ignorados.
@@ -105,6 +106,10 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "DAILY_TOKEN_QUOTA"
         value = tostring(var.daily_token_quota)
+      }
+      env {
+        name  = "MONTHLY_TOKEN_BUDGET"
+        value = tostring(var.monthly_token_budget)
       }
 
       startup_probe {

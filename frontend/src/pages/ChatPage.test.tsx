@@ -195,6 +195,27 @@ describe('F08-RF-07 erros', () => {
   })
 })
 
+describe('F12-RF-05 teto mensal do beta no chat', () => {
+  it('mensagem do teto mensal, sem "Try again", texto de volta ao campo', async () => {
+    const api = createDemoProductApi(() => NOW)
+    api.streamMessage = vi.fn().mockRejectedValue(
+      new ApiError(429, 'beta-budget-exhausted', 'Limite mensal do beta atingido', {
+        code: 'beta-budget-exhausted',
+        resets_at: '2026-12-01T03:00:00+00:00',
+      }),
+    )
+    renderApp('/chat/c1', api)
+    await typeAndSend('Oi')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(
+      "The beta has used this month's usage limit. Chat is back on the 1st (Brasília time).",
+    )
+    expect(within(alert).queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Message')).toHaveValue('Oi')
+  })
+})
+
 describe('F11-RF-02 F11-RF-03 limites de uso no chat', () => {
   it('cota do dia: mensagem com a renovação, sem "Try again", e o uso é relido', async () => {
     const api = createDemoProductApi(() => NOW)

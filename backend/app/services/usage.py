@@ -1,7 +1,9 @@
-"""Cota diária e rate limit por usuário (F11-RF-01..03, F11-RT-05/06).
+"""Cota diária e rate limit por usuário (F11-RF-01..03, F11-RT-05/06) e teto mensal do beta
+(F12-RF-05).
 
-`reserve` roda antes de o turno chamar o modelo: confere a janela de 60 s e a cota do dia de
-Brasília e já conta a mensagem. Os tokens do turno entram depois, em `add_usage` (F05).
+`reserve` roda antes de o turno chamar o modelo: confere o teto do mês (soma de todos os
+usuários), a janela de 60 s e a cota do dia de Brasília, e já conta a mensagem. Os tokens do turno
+entram depois, em `add_usage` (F05) e em `record_tokens` (mês).
 """
 
 import logging
@@ -28,6 +30,16 @@ def usage_day(now: datetime) -> str:
     return now.astimezone(BRASILIA).date().isoformat()
 
 
+def usage_month(now: datetime) -> str:
+    return now.astimezone(BRASILIA).strftime("%Y-%m")
+
+
+def month_resets_at(now: datetime) -> datetime:
+    local = now.astimezone(BRASILIA).date()
+    first = date(local.year + (local.month == 12), local.month % 12 + 1, 1)
+    return datetime.combine(first, time(0, 0), BRASILIA).astimezone(UTC)
+
+
 def resets_at(now: datetime) -> datetime:
     tomorrow = now.astimezone(BRASILIA).date() + timedelta(days=1)
     return datetime.combine(tomorrow, time(0, 0), BRASILIA).astimezone(UTC)
@@ -41,12 +53,15 @@ class UsageStore(Protocol):
         decide: Callable[[dict[str, Any]], tuple[dict[str, Any] | None, Any]],
     ) -> Any: ...
     def usage_days(self, uid: str, days: list[str]) -> dict[str, dict[str, Any]]: ...
+    def month_tokens(self, month: str) -> int: ...
+    def add_month_tokens(self, month: str, tokens: int) -> None: ...
 
 
 class UsageLimits(Protocol):
     daily_message_quota: int
     daily_token_quota: int
     rate_limit_per_minute: int
+    monthly_token_budget: int
 
 
 class QuotaExceededError(ApiProblemError):
@@ -59,6 +74,23 @@ class QuotaExceededError(ApiProblemError):
             "Você atingiu o limite diário. Ele renova às 00:00 (horário de Brasília).",
             resets_at=reset.isoformat(),
             limit=limit,
+        )
+        self.headers = {
+            "Retry-After": str(max(1, math.ceil((reset - datetime.now(UTC)).total_seconds())))
+        }
+
+
+class BetaBudgetExhaustedError(ApiProblemError):
+    """O beta usou todos os tokens do mês (F12-RF-05): o chat para para todos até o dia 1º."""
+
+    def __init__(self, now: datetime) -> None:
+        reset = month_resets_at(now)
+        super().__init__(
+            429,
+            "beta-budget-exhausted",
+            "Limite mensal do beta atingido",
+            "O beta usou todo o limite deste mês. O chat volta no dia 1º (horário de Brasília).",
+            resets_at=reset.isoformat(),
         )
         self.headers = {
             "Retry-After": str(max(1, math.ceil((reset - datetime.now(UTC)).total_seconds())))
@@ -112,6 +144,11 @@ class UsageService:
         mensagem recusada pelo rate limit não gasta cota)."""
         now = self._clock()
         limits = self._limits
+        if limits.monthly_token_budget:
+            used = await in_thread(self._store.month_tokens, usage_month(now))
+            if used >= limits.monthly_token_budget:
+                self._log_limit(uid, "beta-budget-exhausted")
+                raise BetaBudgetExhaustedError(now)
 
         def decide(doc: dict[str, Any]) -> tuple[dict[str, Any] | None, Any]:
             recent = sorted(
@@ -137,19 +174,23 @@ class UsageService:
         if refused is None:
             return
         kind, value = refused
-        log.info(  # métrica de limites atingidos (F11-RT-03)
-            "usage_limit",
-            extra={
-                "fields": {
-                    "event": "usage_limit",
-                    "uid_hash": uid_hash(uid),
-                    "limit": "rate-limited" if kind == "rate" else "quota-exceeded",
-                }
-            },
-        )
+        self._log_limit(uid, "rate-limited" if kind == "rate" else "quota-exceeded")
         if kind == "rate":
             raise RateLimitedError(value)
         raise QuotaExceededError(now, value)
+
+    async def record_tokens(self, tokens: int) -> None:
+        """Soma os tokens do turno ao mês do app (F12-RF-05). Turnos já em andamento quando o teto
+        é atingido ainda terminam: o excesso é de no máximo alguns turnos."""
+        if self._limits.monthly_token_budget and tokens > 0:
+            await in_thread(self._store.add_month_tokens, usage_month(self._clock()), tokens)
+
+    @staticmethod
+    def _log_limit(uid: str, limit: str) -> None:
+        log.info(  # métrica de limites atingidos (F11-RT-03)
+            "usage_limit",
+            extra={"fields": {"event": "usage_limit", "uid_hash": uid_hash(uid), "limit": limit}},
+        )
 
     async def usage(self, uid: str) -> UsageOut:
         now = self._clock()

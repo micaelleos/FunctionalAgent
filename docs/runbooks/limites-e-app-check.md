@@ -9,6 +9,17 @@
   (`users/<uid>/usage/<dia>`); o `uid` vem do pedido do usuário, não dos logs (lá só há `uid_hash`).
 - Métrica: dashboard "Cota e rate limit atingidos".
 
+## Teto mensal do beta (F12-RF-05)
+
+- Soma de todos os usuários em `app_usage/{AAAA-MM}` (mês de Brasília, campo `tokens`), conferida
+  antes de cada turno; o turno soma os seus tokens ao terminar. Turnos já em andamento quando o teto
+  é atingido terminam, então o excesso é de no máximo alguns turnos.
+- Atingido: 429 `beta-budget-exhausted` com `resets_at` (dia 1º, 00:00 de Brasília) e `Retry-After`;
+  o chat mostra a mensagem e não oferece "Try again". O log `usage_limit` traz
+  `limit="beta-budget-exhausted"` (dashboard "Cota e rate limit atingidos").
+- Liberar antes do dia 1º: subir `MONTHLY_TOKEN_BUDGET` ([custo.md](custo.md)) ou, só com aprovação
+  do PO, apagar o documento do mês no console do Firestore (banco `specflow`).
+
 ## App Check (F11-RT-07)
 
 O SPA manda o token do reCAPTCHA Enterprise; a API decide pelo `APP_CHECK_MODE`:

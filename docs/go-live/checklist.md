@@ -5,7 +5,7 @@ todos marcados. Revisão final: PO.
 
 | # | Item | Status | Evidência |
 |---|---|---|---|
-| 1 | SLO de disponibilidade e alertas ativos | ✅ | F11: `terraform apply` 2026-11-18; AT-F11-03 (e-mail do alerta recebido pelo PO) |
+| 1 | SLO de disponibilidade, dashboard e uptime check ativos (alertas por e-mail removidos pelo PO em 2026-11-20, por custo) | ✅ | F11: `terraform apply` 2026-11-18; AT-F11-03 (e-mail recebido antes da remoção) |
 | 2 | Restauração do Firestore ensaiada (PITR → banco temporário) | ⬜ | `docs/runbooks/firestore-restauracao.md`; registrar horário, documento conferido e a limpeza |
 | 3 | Runbooks revisados | ⬜ | `docs/runbooks/` lidos pelo PO depois do ensaio de restauração |
 | 4 | Evals ≥ baseline | ⬜ | `uv run --project backend python evals/run.py --compare evals/results/<baseline>.json evals/results/<novo>.json` |
@@ -28,7 +28,6 @@ Recursos do app no projeto compartilhado `pcb-inspect`. As faixas gratuitas são
 | Cloud Run | `min_instances = 0`, 1 vCPU, 1 GiB | faixa gratuita na escala do beta |
 | Firestore, Hosting, Logging, Trace, uptime | uso baixo | faixa gratuita |
 | reCAPTCHA Enterprise (App Check) | 10 mil avaliações/mês grátis | US$ 0 |
-| Alertas do Monitoring (6 condições) | se a cobrança por condição estiver valendo | ≈ US$ 9 |
 | KMS (1 chave) | US$ 0,06/versão + operações | < US$ 0,10 |
 
-O alerta "custo estimado de LLM > US$ 2/dia" avisa antes de qualquer surpresa (`docs/runbooks/custo.md`).
+O teto mensal do beta (5 milhões de tokens ≈ US$ 3,50, F12-RF-05) limita o Gemini; o custo estimado aparece no dashboard (`docs/runbooks/custo.md`).

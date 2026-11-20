@@ -372,6 +372,8 @@ export const t = {
     'tool-limit': 'The agent used too many tools in this turn. Rephrase or split the request.',
     'llm-unavailable': 'The model is unavailable right now. Try again in a moment.',
     'quota-exceeded': "You've reached today's limit. It renews at 00:00 (Brasília time).",
+    'beta-budget-exhausted':
+      "The beta has used this month's usage limit. Chat is back on the 1st (Brasília time).",
     'rate-limited': 'Too many messages. Wait a few seconds and try again.',
     'app-check-required': "This request didn't come from the SpecFlow AI app. Reload the page.",
   } as Record<string, string>,

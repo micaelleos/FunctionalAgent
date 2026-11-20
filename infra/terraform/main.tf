@@ -95,7 +95,9 @@ module "cloud_run" {
   app_check_mode      = var.app_check_mode
   daily_message_quota = var.daily_message_quota
   daily_token_quota   = var.daily_token_quota
-  depends_on          = [module.project_services, google_project_iam_member.api_runtime]
+  # F12: teto mensal do beta.
+  monthly_token_budget = var.monthly_token_budget
+  depends_on           = [module.project_services, google_project_iam_member.api_runtime]
 }
 
 module "firebase" {
@@ -106,17 +108,15 @@ module "firebase" {
   depends_on      = [module.project_services]
 }
 
-# Observabilidade (F11): métricas por log, dashboard, uptime, alertas por e-mail e SLO.
+# Observabilidade (F11): métricas por log, dashboard, uptime e SLO (sem alertas desde 2026-11-20).
 module "monitoring" {
-  source               = "./modules/monitoring"
-  project_id           = var.project_id
-  prefix               = local.p
-  service_name         = module.cloud_run.service_name
-  api_url              = module.cloud_run.url
-  alert_email          = var.alert_email
-  uptime_path          = var.uptime_path
-  daily_cost_alert_usd = var.daily_cost_alert_usd
-  depends_on           = [module.project_services]
+  source       = "./modules/monitoring"
+  project_id   = var.project_id
+  prefix       = local.p
+  service_name = module.cloud_run.service_name
+  api_url      = module.cloud_run.url
+  uptime_path  = var.uptime_path
+  depends_on   = [module.project_services]
 }
 
 # Web app e site de Hosting já existiam (criados no console); passam a ser gerenciados aqui.

@@ -33,6 +33,9 @@ lista de convite em código: a URL já é pública e cotas (F11) + App Check lim
 - **Fora de escopo:** migração de dados do Streamlit (não há dados persistidos); domínio próprio;
   redirecionamento (o Streamlit não estava publicado); lista de convite no código.
 
+**Ajuste 2026-11-20 (PO):** entra o teto mensal de tokens do beta para o app inteiro (F12-RF-05), e os
+alertas por e-mail da F11 saem por custo (dashboard, uptime check e SLO ficam).
+
 **Ajuste 2026-11-18 (PO):** a página "About" saiu ("não tem nada de relevante"). O status e a versão da
 API (F01-RF-03, F02-RF-03), o link de ajuda e o de privacidade ficam no rodapé da página inicial;
 `/about` leva à página inicial. No chat, em telas largas, mensagens e lista de conversas rolam cada uma
@@ -45,6 +48,7 @@ no seu contêiner; o ícone da aba é o logo da landing.
 | F12-RF-02 | Quem chega pelo repositório (README, descrição do GitHub) é levado ao app novo; o Streamlit sai do repositório | Should |
 | F12-RF-03 | O rodapé da página inicial diz onde pedir ajuda ("Help", issues do GitHub), liga a privacidade e mostra o status da API; `/about` (antigo) leva à página inicial | Must |
 | F12-RF-04 | Página pública "Privacy" (`/privacy`, ligada no rodapé da página inicial e no cadastro): que dados guardamos (conta, conexão Jira com token cifrado, conversas, issues criados, uso diário), com quem são processados (Google Gemini no Vertex AI, Atlassian), o que os logs têm (`uid_hash`, nunca o conteúdo), e como apagar tudo (Account → Delete my data) | Must |
+| F12-RF-05 | Teto global do beta: o app inteiro (soma de todos os usuários) usa no máximo `MONTHLY_TOKEN_BUDGET` tokens do Gemini por mês de Brasília (5 milhões ≈ US$ 3,50). Atingido, o chat responde 429 `beta-budget-exhausted` com a data de volta (dia 1º, 00:00 de Brasília) para todos, sem gastar a cota diária; o chat mostra a mensagem sem "Try again". `0` desliga | Must |
 
 **Matriz de paridade**
 
@@ -68,7 +72,7 @@ no seu contêiner; o ícone da aba é o logo da landing.
 | F12-RT-04 | Tag `legacy-streamlit-final` no último commit com `legacy/`; README novo (o que é, link do app, arquitetura, como rodar); CLAUDE.md, CONTRIBUTING e Constituição (Art. com `legacy/`, nos dois espelhos) sem o Streamlit | revisão |
 
 **Checklist de prontidão** (`docs/go-live/checklist.md`, um item por linha com a evidência):
-SLOs e alertas ativos (F11, AT-F11-03) · restauração do Firestore ensaiada (PITR para um banco temporário,
+SLO, dashboard e uptime check ativos (F11; alertas por e-mail removidos pelo PO em 2026-11-20) · restauração do Firestore ensaiada (PITR para um banco temporário,
 `docs/runbooks/firestore-restauracao.md`) · runbooks revisados · evals ≥ baseline (`evals/run.py --compare`)
 · ZAP sem achados altos (F11-RT-10) · custo estimado por mês aprovado pelo PO · privacidade publicada
 (F12-RF-04) · App Check em `enforce` (F11-T008) · HTTPS (Hosting e Cloud Run; sem domínio próprio) ·
@@ -96,6 +100,13 @@ Funcionalidade: Go-live
     Então vou para a página inicial
     E o rodapé tem "Help" (issues do GitHub), "Privacy" e "API: ok"
     E "Privacy" abre /privacy sem login
+
+  Cenário: AT-F12-04 Teto mensal do beta                       # F12-RF-05
+    Dado o teto do mês já atingido pela soma dos usuários
+    Quando envio uma mensagem no chat
+    Então recebo 429 "beta-budget-exhausted" com Retry-After
+    E vejo "The beta has used this month's usage limit. Chat is back on the 1st (Brasília time)." sem "Try again"
+    E no dia 1º (Brasília) o chat volta a responder
 ```
 
 ### 6. Conformidade com a Constituição
@@ -105,7 +116,7 @@ Funcionalidade: Go-live
 | III Segredos | Conta de teste e debug token do App Check só no `.env.local`; nunca em logs nem no repo |
 | IV Humano no circuito | AT-F12-01 confirma as duas ações pela UI |
 | VI Testes | Cada RF tem teste (E2E em prd, componentes, checagem do legado no CI) |
-| VIII Infra | Debug token registrado fora do repo; nenhuma infra nova |
+| VIII Infra | Debug token registrado fora do repo; nenhuma infra nova (o teto mensal é uma variável do Cloud Run e um documento no Firestore do app; os alertas saem do Terraform) |
 
 ---
 
@@ -117,6 +128,7 @@ Funcionalidade: Go-live
 | F12-RF-02 | AT-F12-02, `scripts/test_no_legacy.py` | ⬜ |
 | F12-RF-03 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `LandingPage.test.tsx` | ✅ local |
 | F12-RF-04 | AT-F12-03 (`e2e/f12-paginas.spec.ts`), `PrivacyPage.test.tsx` | ✅ local |
+| F12-RF-05 | AT-F12-04: `tests/unit/test_usage.py`, `tests/integration/test_usage.py`, `ChatPage.test.tsx` | ✅ local |
 
 ### 11. Evidências
 | Data | Commit | Ambiente | Execução | Resultado | Aceito por |

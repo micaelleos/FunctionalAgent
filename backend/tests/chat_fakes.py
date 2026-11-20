@@ -115,6 +115,7 @@ class MemoryChatStore:
         self.messages: dict[tuple[str, str], list[dict[str, Any]]] = {}
         self.actions: dict[str, list[dict[str, Any]]] = {}
         self.usage: dict[tuple[str, str], dict[str, int]] = {}
+        self.months: dict[str, int] = {}
         self.issues: dict[str, dict[str, dict[str, Any]]] = {}
         self._next = 0
         self._lock = threading.Lock()
@@ -299,6 +300,14 @@ class MemoryChatStore:
 
     def usage_days(self, uid: str, days: list[str]) -> dict[str, dict[str, Any]]:
         return {d: copy.deepcopy(self.usage[(uid, d)]) for d in days if (uid, d) in self.usage}
+
+    # ---- F12: teto mensal do beta (mesma interface do UsageRepository)
+    def month_tokens(self, month: str) -> int:
+        return self.months.get(month, 0)
+
+    def add_month_tokens(self, month: str, tokens: int) -> None:
+        with self._lock:
+            self.months[month] = self.months.get(month, 0) + tokens
 
 
 JiraHandler = Callable[[httpx.Request], httpx.Response]

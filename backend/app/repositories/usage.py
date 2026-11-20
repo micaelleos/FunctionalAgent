@@ -48,6 +48,17 @@ class UsageRepository:
                 time.sleep(random.uniform(0.05, 0.2) * (round_ + 1))  # noqa: S311 - só espera
         raise UsageConflictError(uid)
 
+    # ---- Teto global do beta (F12-RF-05): `app_usage/{AAAA-MM}`, fora de `users/{uid}` porque é a
+    # soma de todos os usuários (não é dado pessoal). Um documento por mês, incrementado por turno.
+    def month_tokens(self, month: str) -> int:
+        snapshot = self._db.collection("app_usage").document(month).get()
+        return int((snapshot.to_dict() or {}).get("tokens", 0)) if snapshot.exists else 0
+
+    def add_month_tokens(self, month: str, tokens: int) -> None:
+        self._db.collection("app_usage").document(month).set(
+            {"tokens": firestore.Increment(tokens)}, merge=True
+        )
+
     def usage_days(self, uid: str, days: list[str]) -> dict[str, dict[str, Any]]:
         refs = [self._usage(uid).document(d) for d in days]
         return {s.id: s.to_dict() or {} for s in self._db.get_all(refs) if s.exists}

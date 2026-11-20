@@ -30,7 +30,7 @@
 
 **Aceitação:** AT-F11-03
 
-- [x] T004 [F11-RF-04] Métricas por log, dashboard, alertas, uptime, SLO (Terraform) — teste: `scripts/test_monitoring.py`, AT-F11-03 (ensaio em prd) — 1 d
+- [x] T004 [F11-RF-04] Métricas por log, dashboard, alertas, uptime, SLO (Terraform) — teste: `scripts/test_monitoring.py`, AT-F11-03 (ensaio em prd) — 1 d (alertas removidos pelo PO em 2026-11-20, F12-T008)
 
 ### Fase 4: Validação e entrega
 

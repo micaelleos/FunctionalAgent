@@ -10,7 +10,7 @@
 - **[P]**: pode rodar em paralelo · **[Fxx-RF-nn]**: requisito atendido · **teste:** o teste que
   acompanha a tarefa · caminhos dos arquivos: ver plan.md §7
 
-**Total:** 7 tarefas · 4 d + 1 semana de beta. Revisão 2026-11-18: sem redirecionamento (o Streamlit
+**Total:** 8 tarefas · 4 d + 1 semana de beta. Revisão 2026-11-18: sem redirecionamento (o Streamlit
 não estava publicado), página de privacidade (T002), AT-F12-01 com debug token do App Check (T004),
 checklist e restauração separados (T005), remoção do legado em PR próprio (T006/T007).
 
@@ -26,6 +26,12 @@ checklist e restauração separados (T005), remoção do legado em PR próprio (
 - [x] T002 [P] [F12-RF-04] Página pública `/privacy` ligada no cadastro e na landing — teste: `PrivacyPage.test.tsx`, AT-F12-03 — 0,5 d
 - [x] T003 [P] Checklist de prontidão e roteiro do beta (`docs/go-live/`) — teste: revisão do PO — 0,5 d
 - [x] T004 [F12-RF-01] AT-F12-01 em Playwright para prd com debug token do App Check — teste: `e2e/f12-golive.spec.ts` (escrito; roda no Dia D, T005) — 0,5 d
+
+### Ajuste do PO (2026-11-20): custo do beta
+
+**Aceitação:** AT-F12-04
+
+- [x] T008 [F12-RF-05] Teto mensal global de tokens do beta (`MONTHLY_TOKEN_BUDGET`, `app_usage/{AAAA-MM}`, 429 `beta-budget-exhausted`) e remoção dos alertas por e-mail da F11 (ajuste do PO 2026-11-20) — teste: `tests/unit/test_usage.py`, `tests/integration/test_usage.py`, `ChatPage.test.tsx`, `scripts/test_monitoring.py` — 0,5 d
 
 ---
 

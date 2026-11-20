@@ -186,6 +186,78 @@
         "title": "ClientError",
         "type": "object"
       },
+      "ConfluenceLinkOut": {
+        "properties": {
+          "linked_at": {
+            "format": "date-time",
+            "title": "Linked At",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "same-key",
+              "label",
+              "manual"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "space": {
+            "$ref": "#/components/schemas/ConfluenceSpaceOut"
+          }
+        },
+        "required": [
+          "space",
+          "source",
+          "linked_at"
+        ],
+        "title": "ConfluenceLinkOut",
+        "type": "object"
+      },
+      "ConfluenceSpaceOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "url"
+        ],
+        "title": "ConfluenceSpaceOut",
+        "type": "object"
+      },
+      "ConfluenceSuggestionOut": {
+        "properties": {
+          "source": {
+            "enum": [
+              "same-key",
+              "label"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "space": {
+            "$ref": "#/components/schemas/ConfluenceSpaceOut"
+          }
+        },
+        "required": [
+          "space",
+          "source"
+        ],
+        "title": "ConfluenceSuggestionOut",
+        "type": "object"
+      },
       "ConversationCreate": {
         "additionalProperties": false,
         "properties": {
@@ -701,6 +773,22 @@
         "title": "JiraProjectOut",
         "type": "object"
       },
+      "LinkInput": {
+        "properties": {
+          "space_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9~_-]+$",
+            "title": "Space Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_key"
+        ],
+        "title": "LinkInput",
+        "type": "object"
+      },
       "MessageInput": {
         "properties": {
           "content": {
@@ -838,6 +926,41 @@
           "locale"
         ],
         "title": "Profile",
+        "type": "object"
+      },
+      "ProjectConfluenceOut": {
+        "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfluenceLinkOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suggestion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfluenceSuggestionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "link",
+          "suggestion"
+        ],
+        "title": "ProjectConfluenceOut",
         "type": "object"
       },
       "StatusOut": {
@@ -1162,6 +1285,86 @@
         "summary": "Relata um erro do SPA",
         "tags": [
           "observabilidade"
+        ]
+      }
+    },
+    "/api/v1/confluence/spaces": {
+      "get": {
+        "operationId": "list_spaces_api_v1_confluence_spaces_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConfluenceSpaceOut"
+                  },
+                  "title": "Response List Spaces Api V1 Confluence Spaces Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Espaços do Confluence do site (até 25), filtrados por nome ou chave",
+        "tags": [
+          "confluence"
         ]
       }
     },
@@ -2603,6 +2806,230 @@
         "summary": "Projetos visíveis para a conta do Jira, com issues abertas e total (cache de 5 min)",
         "tags": [
           "jira"
+        ]
+      }
+    },
+    "/api/v1/jira/projects/{key}/confluence": {
+      "delete": {
+        "operationId": "delete_link_api_v1_jira_projects__key__confluence_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z][A-Z0-9_]{1,9}$",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desvincula o espaço do Confluence (nada muda no Confluence)",
+        "tags": [
+          "confluence"
+        ]
+      },
+      "get": {
+        "operationId": "get_link_api_v1_jira_projects__key__confluence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z][A-Z0-9_]{1,9}$",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectConfluenceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Espaço do Confluence vinculado ao projeto ou, sem vínculo, a sugestão descoberta",
+        "tags": [
+          "confluence"
+        ]
+      },
+      "put": {
+        "operationId": "put_link_api_v1_jira_projects__key__confluence_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z][A-Z0-9_]{1,9}$",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfluenceLinkOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Vincula o projeto a um espaço do Confluence (confere o acesso antes)",
+        "tags": [
+          "confluence"
         ]
       }
     },

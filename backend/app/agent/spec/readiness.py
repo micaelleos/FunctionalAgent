@@ -200,7 +200,8 @@ def evaluate(spec: WorkItemSpec | EpicSpec, config: ReadinessConfig | None = Non
     Para épicos, P-03 vira critérios do épico + decomposição; P-04 e P-06 não se aplicam.
     """
     cfg = config or load_config()
-    body = to_markdown(spec)
+    # "Referências" (F19) é complemento: os links dela não contam para P-09/P-10 (RA-09).
+    body = to_markdown(spec.model_copy(update={"references": []}))
     text = f"{spec.title}\n{body}"
     if isinstance(spec, EpicSpec):
         structural = [_p01_title(spec, cfg), _p02_objective(spec), _p03_epic(spec)]

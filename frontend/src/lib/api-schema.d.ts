@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/confluence/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Espaços do Confluence do site (até 25), filtrados por nome ou chave */
+        get: operations["list_spaces_api_v1_confluence_spaces_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conversations": {
         parameters: {
             query?: never;
@@ -251,6 +268,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jira/projects/{key}/confluence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Espaço do Confluence vinculado ao projeto ou, sem vínculo, a sugestão descoberta */
+        get: operations["get_link_api_v1_jira_projects__key__confluence_get"];
+        /** Vincula o projeto a um espaço do Confluence (confere o acesso antes) */
+        put: operations["put_link_api_v1_jira_projects__key__confluence_put"];
+        post?: never;
+        /** Desvincula o espaço do Confluence (nada muda no Confluence) */
+        delete: operations["delete_link_api_v1_jira_projects__key__confluence_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -428,6 +464,38 @@ export interface components {
              * @default
              */
             url: string;
+        };
+        /** ConfluenceLinkOut */
+        ConfluenceLinkOut: {
+            /**
+             * Linked At
+             * Format: date-time
+             */
+            linked_at: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "same-key" | "label" | "manual";
+            space: components["schemas"]["ConfluenceSpaceOut"];
+        };
+        /** ConfluenceSpaceOut */
+        ConfluenceSpaceOut: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+        };
+        /** ConfluenceSuggestionOut */
+        ConfluenceSuggestionOut: {
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "same-key" | "label";
+            space: components["schemas"]["ConfluenceSpaceOut"];
         };
         /** ConversationCreate */
         ConversationCreate: {
@@ -618,6 +686,11 @@ export interface components {
             /** Url */
             url: string;
         };
+        /** LinkInput */
+        LinkInput: {
+            /** Space Key */
+            space_key: string;
+        };
         /** MessageInput */
         MessageInput: {
             /** Content */
@@ -675,6 +748,16 @@ export interface components {
             locale: string;
             /** Uid */
             uid: string;
+        };
+        /** ProjectConfluenceOut */
+        ProjectConfluenceOut: {
+            /**
+             * Available
+             * @default true
+             */
+            available: boolean;
+            link: components["schemas"]["ConfluenceLinkOut"] | null;
+            suggestion: components["schemas"]["ConfluenceSuggestionOut"] | null;
         };
         /** StatusOut */
         StatusOut: {
@@ -862,6 +945,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_spaces_api_v1_confluence_spaces_get: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfluenceSpaceOut"][];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -1506,6 +1623,110 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["JiraProjectList"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_link_api_v1_jira_projects__key__confluence_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectConfluenceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_link_api_v1_jira_projects__key__confluence_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfluenceLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_link_api_v1_jira_projects__key__confluence_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Firebase-AppCheck"?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

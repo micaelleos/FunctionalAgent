@@ -80,3 +80,20 @@ class MemoryProjectCache:
 
     def set_projects(self, uid: str, data: dict[str, Any]) -> None:
         self.docs[uid] = copy.deepcopy(data)
+
+
+class MemoryLinkStore:
+    """`users/{uid}/project_links/{projectKey}` em memória (F19)."""
+
+    def __init__(self) -> None:
+        self.docs: dict[tuple[str, str], dict[str, Any]] = {}
+
+    def get(self, uid: str, project_key: str) -> dict[str, Any] | None:
+        doc = self.docs.get((uid, project_key))
+        return dict(doc) if doc else None
+
+    def set(self, uid: str, project_key: str, data: dict[str, Any]) -> None:
+        self.docs[(uid, project_key)] = dict(data)
+
+    def delete(self, uid: str, project_key: str) -> None:
+        self.docs.pop((uid, project_key), None)

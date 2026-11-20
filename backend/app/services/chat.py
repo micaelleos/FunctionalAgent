@@ -29,8 +29,15 @@ from pydantic import BaseModel
 
 from app.agent.graph import Agent, AgentState, build_agent, project_note, system_prompt
 from app.agent.spec.jira_payload import payload_hash
-from app.agent.tools.context import ActionKind, ProposedAction, ToolContext
-from app.agent.tools.jira_tools import PROGRESS, TOOLS
+from app.agent.tools.confluence_tools import CONFLUENCE_TOOLS, index_note
+from app.agent.tools.context import (
+    ActionKind,
+    ConfluenceReader,
+    ConfluenceToolError,
+    ProposedAction,
+    ToolContext,
+)
+from app.agent.tools.jira_tools import JIRA_TOOLS, PROGRESS
 from app.core.errors import ApiProblemError
 from app.core.logging import uid_hash
 from app.core.telemetry import in_thread
@@ -62,6 +69,12 @@ SUMMARY_PROMPT = (
     "decisões, nomes, projetos do Jira, specs em andamento e perguntas pendentes. Só fatos ditos "
     "na conversa. Responda apenas com os itens."
 )
+NO_DOCS_NOTE = (
+    "## Documentação do projeto\n"
+    "O projeto desta conversa não tem espaço do Confluence vinculado (ou a conta não tem acesso "
+    "a ele). Siga sem a documentação; diga uma única vez na conversa que o vínculo é feito em "
+    "Projects, se ajudar."
+)
 ERRORS = {
     "turn-timeout": "A resposta demorou demais. Tente de novo.",
     "tool-limit": (
@@ -84,6 +97,18 @@ class ChatStore(Protocol):
     def add_usage(self, uid: str, day: str, input_tokens: int, output_tokens: int) -> None: ...
 
 
+class Closable(Protocol):
+    async def aclose(self) -> None: ...
+
+
+class DocsLinks(Protocol):
+    """Vínculo projeto ↔ espaço do Confluence (F19); `ConfluenceLinkService` implementa."""
+
+    async def reader_for(
+        self, uid: str, project_key: str, connection_id: str
+    ) -> tuple[ConfluenceReader, Closable] | None: ...
+
+
 class ChatSettings(Protocol):
     llm_model: str
     prompt_version: str
@@ -92,6 +117,7 @@ class ChatSettings(Protocol):
     history_token_budget: int
     llm_price_input_per_mtok: float
     llm_price_output_per_mtok: float
+    confluence_enabled: bool
 
 
 class ConversationNotFoundError(ApiProblemError):
@@ -258,6 +284,9 @@ class FirestoreActionSink:
                     "uid_hash": uid_hash(self._uid),
                     "action_id": action_id,
                     "kind": kind,
+                    # Indicador da F19: propostas que citam a documentação do projeto.
+                    "references": len((payload.get("spec") or {}).get("references") or []),
+                    "conflicts": len(preview.get("conflicts") or []),
                 }
             },
         )
@@ -279,18 +308,19 @@ class _Turn:
         self.output_tokens += int(usage.get("output_tokens", 0))
 
 
-_agents: dict[tuple[int, int], tuple[BaseChatModel, Agent]] = {}
+_agents: dict[tuple[int, int, bool], tuple[BaseChatModel, Agent]] = {}
 
 
-def shared_agent(llm: BaseChatModel, max_iterations: int) -> Agent:
+def shared_agent(llm: BaseChatModel, max_iterations: int, *, docs: bool = False) -> Agent:
     """Grafo compilado uma vez por modelo compartilhado (F11-RT-08).
 
     Só para modelos que vivem o processo todo (o de `api/deps.py`); guarda o modelo junto para o
     `id` nunca ser reaproveitado por outro objeto.
     """
-    key = (id(llm), max_iterations)
+    key = (id(llm), max_iterations, docs)
     if key not in _agents:
-        _agents[key] = (llm, build_agent(llm, TOOLS, max_iterations=max_iterations))
+        tools = [*JIRA_TOOLS, *CONFLUENCE_TOOLS] if docs else JIRA_TOOLS
+        _agents[key] = (llm, build_agent(llm, tools, max_iterations=max_iterations))
     return _agents[key][1]
 
 
@@ -307,11 +337,17 @@ class ChatService:
         title_llm: BaseChatModel | None = None,
         usage: UsageService | None = None,
         agent: Agent | None = None,
+        docs_agent: Agent | None = None,
+        confluence: DocsLinks | None = None,
     ) -> None:
         self._store = store
+        # Documentação do projeto no Confluence (F19); `None` ou flag desligada: sem leitura.
+        self._confluence = confluence
         # Grafo já compilado e compartilhado (F11-RT-08): compilar custa ~metade da CPU de um turno.
         # O estado vem em cada invocação, então o mesmo grafo serve requisições simultâneas.
         self._agent = agent
+        # O mesmo grafo com as ferramentas do Confluence, para turnos com espaço vinculado (F19).
+        self._docs_agent = docs_agent
         # Cota diária e rate limit (F11); `None` nos testes que não tratam disso.
         self._usage = usage
         # Título automático (F07-RT-05); `None` desliga (testes com LLM roteirizado).
@@ -319,7 +355,7 @@ class ChatService:
         self._jira = jira
         self._llm = llm
         self._settings = settings
-        self._tools = tools if tools is not None else TOOLS
+        self._tools = tools if tools is not None else JIRA_TOOLS
         self._clock = clock or (lambda: datetime.now(UTC))
 
     async def _run_sync[T](self, fn: Callable[..., T], *args: Any) -> T:
@@ -407,6 +443,37 @@ class ChatService:
 
         return JiraReaderAdapter(client, on_auth_error), client
 
+    def _agent_for(self, *, docs: bool) -> Agent:
+        shared = self._docs_agent if docs else self._agent
+        if shared is not None:
+            return shared
+        tools = [*self._tools, *CONFLUENCE_TOOLS] if docs else self._tools
+        return build_agent(self._llm, tools, max_iterations=self._settings.agent_max_iterations)
+
+    async def _docs_note(
+        self, uid: str, project_key: str | None, sink: FirestoreActionSink, ctx: ToolContext
+    ) -> tuple[str, Any]:
+        """Fase Descobrir (F19-RF-04): leitor do espaço vinculado e o índice dele para a instrução
+        de sistema. Sem vínculo ou sem acesso, o turno segue sem documentação (F19-RF-09)."""
+        if (
+            self._confluence is None
+            or not self._settings.confluence_enabled
+            or not project_key
+            or sink.connection_id is None
+        ):
+            return "", None
+        found = await self._confluence.reader_for(uid, project_key, sink.connection_id)
+        if found is None:
+            return NO_DOCS_NOTE, None
+        reader, client = found
+        try:
+            pages = await reader.index()
+        except ConfluenceToolError:
+            await client.aclose()
+            return NO_DOCS_NOTE, None
+        ctx.confluence = reader
+        return index_note(reader.space, pages), client
+
     async def _summarize(
         self, uid: str, conversation: dict[str, Any], dropped: list[dict[str, Any]], turn: _Turn
     ) -> str:
@@ -445,7 +512,7 @@ class ChatService:
             else None
         )
         error: str | None = None
-        reader, client = None, None
+        reader, client, docs_client = None, None, None
         sink = FirestoreActionSink(self._store, uid, conversation_id, self._clock)
         ctx = ToolContext(uid=uid, conversation_id=conversation_id, jira=None, actions=sink)
         reported = 0
@@ -477,17 +544,21 @@ class ChatService:
                     actions = await self._run_sync(self._store.list_actions, uid, conversation_id)
                     if note := actions_note(actions, self._clock()):
                         instructions.append(note)
-                    if project_key := conversation.get("projectKey"):
+                    project_key = conversation.get("projectKey")
+                    if project_key:
                         instructions.append(project_note(str(project_key)))
+                    docs_note, docs_client = await self._docs_note(
+                        uid, str(project_key) if project_key else None, sink, ctx
+                    )
+                    if docs_note:
+                        instructions.append(docs_note)
                     # Uma única instrução de sistema: o Gemini só aceita uma, no início.
                     messages: list[BaseMessage] = [
                         SystemMessage("\n\n".join(instructions)),
                         *window.messages,
                         HumanMessage(with_events(text, window.pending_events)),
                     ]
-                    agent = self._agent or build_agent(
-                        self._llm, self._tools, max_iterations=self._settings.agent_max_iterations
-                    )
+                    agent = self._agent_for(docs=ctx.confluence is not None)
                     state: AgentState = {
                         "messages": cast(list[AnyMessage], messages),
                         "iterations": 0,
@@ -547,6 +618,8 @@ class ChatService:
             finally:
                 if client is not None:
                     await client.aclose()
+                if docs_client is not None:
+                    await docs_client.aclose()
                 if titling is not None and interrupted:
                     titling.cancel()
                 elif titling is not None:

@@ -55,6 +55,16 @@ class SpecType(StrEnum):
     EPIC = "epic"
 
 
+class Reference(_Strict):
+    """Página usada como fonte (F19-RF-06): complementa o texto da spec, nunca o substitui."""
+
+    title: Title
+    url: Annotated[str, StringConstraints(pattern=r"^https://[^\s]+$", max_length=1000)]
+
+
+MAX_REFERENCES = 10
+
+
 class _Common(_Strict):
     title: Title
     objective: Text = ""
@@ -63,6 +73,8 @@ class _Common(_Strict):
     # RA-24: mudança não indicada para agente de código (segurança, dados pessoais, autenticação…).
     human_only: bool = False
     human_only_reason: Text = ""
+    # Fontes da documentação do projeto (Confluence, F19); seção "Referências" no fim do issue.
+    references: list[Reference] = Field(default_factory=list, max_length=MAX_REFERENCES)
 
     @model_validator(mode="after")
     def _human_only_has_reason(self) -> "_Common":

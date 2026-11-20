@@ -30,6 +30,7 @@ const base: ProposedAction = {
     { title: 'Como verificar', markdown: '- Unidade e E2E do filtro.' },
   ],
   readiness: { ready: true, rules: [] },
+  conflicts: [],
   changes: [],
   expiresAt: '2026-11-17T12:00:00Z',
   status: 'pending',
@@ -193,5 +194,20 @@ describe('F06-RF-02 confirmar e recusar', () => {
     renderCard({ status: 'expired' })
     expect(screen.getByRole('status')).toHaveTextContent('Expired without confirmation')
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+})
+
+describe('F19-RF-07 conflito com a documentação do projeto', () => {
+  it('mostra cada conflito com o ID e o motivo', () => {
+    renderCard({ conflicts: [{ id: 'RN-03', reason: 'aprova pedidos de qualquer valor' }] })
+    const box = screen.getByRole('group', { name: 'Conflicts with the project documentation' })
+    expect(box).toHaveTextContent('Conflicts with RN-03: aprova pedidos de qualquer valor')
+  })
+
+  it('sem conflito, nada aparece', () => {
+    renderCard()
+    expect(
+      screen.queryByRole('group', { name: 'Conflicts with the project documentation' }),
+    ).not.toBeInTheDocument()
   })
 })

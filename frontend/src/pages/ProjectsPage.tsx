@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { Alert, PageHeader } from '../components/ui'
 import { errorMessage, t } from '../i18n/en'
 import { useProduct } from '../product/context'
-import type { JiraProject } from '../product/types'
+import type { DocSpace, JiraProject } from '../product/types'
 
 const AVATAR_COLORS = ['bg-indigo-600', 'bg-teal-700', 'bg-amber-700', 'bg-pink-700', 'bg-blue-700']
 const KEY = ['jira-projects']
@@ -205,6 +205,175 @@ function ProjectCard({ project: p, color }: { project: JiraProject; color: strin
           {t.projects.openInJira}
         </a>
       </div>
+      <ProjectDocsPanel projectKey={p.key} projectName={p.name} />
     </li>
+  )
+}
+
+const BUTTON =
+  'inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm hover:bg-zinc-50 disabled:opacity-60'
+
+/**
+ * Vínculo com o espaço do Confluence (F19-RF-01/02): carrega só quando o usuário abre (cada
+ * abertura consulta o Confluence) e só salva depois do clique em "Link" (Constituição IV).
+ */
+function ProjectDocsPanel({
+  projectKey,
+  projectName,
+}: {
+  projectKey: string
+  projectName: string
+}) {
+  const product = useProduct()
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [choosing, setChoosing] = useState(false)
+  const [query, setQuery] = useState('')
+  const key = ['project-docs', projectKey]
+  const docs = useQuery({
+    queryKey: key,
+    queryFn: () => product.getProjectDocs(projectKey),
+    enabled: open && product.features.docs,
+    retry: false,
+  })
+  const spaces = useQuery({
+    queryKey: ['doc-spaces', query.trim()],
+    queryFn: () => product.searchDocSpaces(query.trim()),
+    enabled: open && choosing,
+    retry: false,
+  })
+  const link = useMutation({
+    mutationFn: (spaceKey: string) => product.linkProjectDocs(projectKey, spaceKey),
+    onSuccess: (data) => {
+      queryClient.setQueryData(key, data)
+      setChoosing(false)
+    },
+  })
+  const unlink = useMutation({
+    mutationFn: () => product.unlinkProjectDocs(projectKey),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+  if (!product.features.docs) return null
+  const d = t.projects.docs
+  const busy = link.isPending || unlink.isPending
+  const error = link.error ?? unlink.error ?? docs.error ?? spaces.error
+
+  return (
+    <div className="border-t border-zinc-100 pt-3 text-sm">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="font-medium text-indigo-700 hover:underline"
+      >
+        {d.toggle}
+      </button>
+      {open && (
+        <section aria-label={d.title(projectName)} className="mt-2 flex flex-col gap-2">
+          {docs.isPending && <p className="text-zinc-600">{d.loading}</p>}
+          {error && <Alert kind="error">{errorMessage(error)}</Alert>}
+          {docs.data && !docs.data.available && <p className="text-zinc-700">{d.unavailable}</p>}
+          {docs.data?.link && (
+            <>
+              <p className="text-zinc-700">{d.linked}</p>
+              <SpaceLink space={docs.data.link.space} />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={BUTTON}
+                  disabled={busy}
+                  onClick={() => unlink.mutate()}
+                >
+                  {d.unlink}
+                </button>
+                {!choosing && (
+                  <button type="button" className={BUTTON} onClick={() => setChoosing(true)}>
+                    {d.change}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+          {docs.data && docs.data.available && !docs.data.link && (
+            <>
+              {docs.data.suggestion ? (
+                <>
+                  <p className="text-zinc-700">{d.found[docs.data.suggestion.source]}</p>
+                  <SpaceLink space={docs.data.suggestion.space} />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => link.mutate(docs.data.suggestion!.space.key)}
+                      className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+                    >
+                      {d.link}
+                    </button>
+                    {!choosing && (
+                      <button type="button" className={BUTTON} onClick={() => setChoosing(true)}>
+                        {d.change}
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                !choosing && (
+                  <>
+                    <p className="text-zinc-700">{d.none}</p>
+                    <button type="button" className={BUTTON} onClick={() => setChoosing(true)}>
+                      {d.change}
+                    </button>
+                  </>
+                )
+              )}
+            </>
+          )}
+          {choosing && (
+            <div className="flex flex-col gap-2">
+              <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                {d.search}
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="min-h-11 rounded-lg border border-zinc-300 px-3 text-sm text-zinc-900"
+                />
+              </label>
+              {spaces.data?.length === 0 && <p className="text-zinc-600">{d.noSpaces}</p>}
+              <ul className="flex flex-col gap-1">
+                {spaces.data?.map((s) => (
+                  <li key={s.key} className="flex items-center justify-between gap-2">
+                    <span className="truncate">
+                      {s.name} <span className="text-zinc-500">({s.key})</span>
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      aria-label={d.linkSpace(s.name)}
+                      onClick={() => link.mutate(s.key)}
+                      className={BUTTON}
+                    >
+                      {d.link}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  )
+}
+
+function SpaceLink({ space }: { space: DocSpace }) {
+  return (
+    <a
+      href={space.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-indigo-700 hover:underline"
+    >
+      {space.name} ({space.key})
+    </a>
   )
 }

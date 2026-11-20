@@ -17,7 +17,7 @@ variable "uptime_path" {
 locals {
   api_host = trimprefix(var.api_url, "https://")
   run      = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${var.service_name}\""
-  event    = { for e in ["chat_turn", "jira_write", "action_proposed", "usage_limit", "app_check", "client_error"] : e => "${local.run} AND jsonPayload.event=\"${e}\"" }
+  event    = { for e in ["chat_turn", "jira_write", "action_proposed", "usage_limit", "app_check", "client_error", "confluence_read"] : e => "${local.run} AND jsonPayload.event=\"${e}\"" }
   metric   = "logging.googleapis.com/user/${var.prefix}"
   rev      = "resource.type=\"cloud_run_revision\" AND resource.label.service_name=\"${var.service_name}\""
 }
@@ -72,6 +72,7 @@ resource "google_logging_metric" "counter" {
     usage_limits     = { event = "usage_limit", labels = { limit = "EXTRACT(jsonPayload.limit)" } }
     app_check        = { event = "app_check", labels = { result = "EXTRACT(jsonPayload.result)" } }
     client_errors    = { event = "client_error", labels = { kind = "EXTRACT(jsonPayload.kind)" } }
+    confluence_reads = { event = "confluence_read", labels = { tool = "EXTRACT(jsonPayload.tool)" } }
   }
   project = var.project_id
   name    = "${var.prefix}/${each.key}"
@@ -144,6 +145,7 @@ locals {
     jira      = { title = "Escritas no Jira por resultado", filter = "metric.type=\"${local.metric}/jira_writes\" AND resource.type=\"cloud_run_revision\"", aligner = "ALIGN_DELTA", reducer = "REDUCE_SUM", group = ["metric.label.result", "metric.label.code"] }
     limits    = { title = "Cota e rate limit atingidos", filter = "metric.type=\"${local.metric}/usage_limits\" AND resource.type=\"cloud_run_revision\"", aligner = "ALIGN_DELTA", reducer = "REDUCE_SUM", group = ["metric.label.limit"] }
     appcheck  = { title = "App Check sem token válido", filter = "metric.type=\"${local.metric}/app_check\" AND resource.type=\"cloud_run_revision\"", aligner = "ALIGN_DELTA", reducer = "REDUCE_SUM", group = ["metric.label.result"] }
+    docs      = { title = "Leituras do Confluence (F19)", filter = "metric.type=\"${local.metric}/confluence_reads\" AND resource.type=\"cloud_run_revision\"", aligner = "ALIGN_DELTA", reducer = "REDUCE_SUM", group = ["metric.label.tool"] }
     client    = { title = "Erros do front", filter = "metric.type=\"${local.metric}/client_errors\" AND resource.type=\"cloud_run_revision\"", aligner = "ALIGN_DELTA", reducer = "REDUCE_SUM", group = ["metric.label.kind"] }
     } : k => {
     title = v.title
@@ -164,7 +166,7 @@ locals {
       }]
     }
   } }
-  order = ["requests", "turns", "p95", "ttft", "tokens", "proposals", "jira", "limits", "appcheck", "client"]
+  order = ["requests", "turns", "p95", "ttft", "tokens", "proposals", "jira", "limits", "appcheck", "client", "docs"]
 }
 
 resource "google_monitoring_dashboard" "app" {

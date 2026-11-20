@@ -22,6 +22,8 @@ export interface Features {
   chat: boolean
   /** F11: uso diário e limite. */
   usage: boolean
+  /** F19: vincular o projeto a um espaço do Confluence. */
+  docs: boolean
 }
 
 /** `invalid`: o Jira recusou o token guardado; o app pede reconexão (F04-RF-06). */
@@ -134,6 +136,26 @@ export interface FieldChange {
   after: string
 }
 
+export interface DocSpace {
+  key: string
+  name: string
+  url: string
+}
+
+/** Vínculo do projeto com o espaço do Confluence ou, sem vínculo, a sugestão (F19-RF-01/02). */
+export interface ProjectDocs {
+  link: { space: DocSpace; source: 'same-key' | 'label' | 'manual'; linkedAt: string } | null
+  suggestion: { space: DocSpace; source: 'same-key' | 'label' } | null
+  /** `false`: a conta não tem acesso ao Confluence do site (F19-RF-09). */
+  available: boolean
+}
+
+/** Regra, ADR ou artigo da documentação do projeto que a proposta contradiz (F19-RF-07). */
+export interface DocConflict {
+  id: string
+  reason: string
+}
+
 /** Ação proposta pelo agente; só vira escrita no Jira depois de confirmada (ADR-003, F06). */
 export interface ProposedAction {
   id: string
@@ -151,6 +173,8 @@ export interface ProposedAction {
   /** A spec por seção, na ordem fixa (F06-RF-01). */
   sections: SpecSection[]
   readiness: Readiness | null
+  /** Avisos de conflito com a documentação no Confluence; não mudam o que vai ao Jira. */
+  conflicts: DocConflict[]
   changes: FieldChange[]
   expiresAt: string
   status: ActionStatus
@@ -219,4 +243,9 @@ export interface ProductApi {
   confirmAction(actionId: string): Promise<ProposedAction>
   rejectAction(actionId: string): Promise<ProposedAction>
   getUsage(): Promise<Usage | null>
+  getProjectDocs(projectKey: string): Promise<ProjectDocs>
+  linkProjectDocs(projectKey: string, spaceKey: string): Promise<ProjectDocs>
+  unlinkProjectDocs(projectKey: string): Promise<void>
+  /** Até 25 espaços do site, filtrados por nome ou chave. */
+  searchDocSpaces(query: string): Promise<DocSpace[]>
 }

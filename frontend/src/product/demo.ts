@@ -1,4 +1,6 @@
 import type {
+  DocSpace,
+  ProjectDocs,
   ChatMessage,
   ConversationSummary,
   CreatedIssue,
@@ -81,6 +83,7 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
         { id: 'P-01', label: 'Título de ação', severity: 'obrigatória', passed: true, detail: '' },
       ],
     },
+    conflicts: [{ id: 'RN-04', reason: 'Pix above R$ 5,000 needs the fraud review' }],
     changes: [],
     expiresAt: new Date(now() + 24 * HOUR).toISOString(),
     status: 'pending',
@@ -190,9 +193,18 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
     return summary
   }
   let usedToday = 18
+  const docSpaces: DocSpace[] = [
+    {
+      key: 'PAG',
+      name: 'Pagamentos — Documentação',
+      url: 'https://demo.atlassian.net/wiki/spaces/PAG',
+    },
+    { key: 'AUTH', name: 'Autenticação', url: 'https://demo.atlassian.net/wiki/spaces/AUTH' },
+  ]
+  const docLinks = new Map<string, NonNullable<ProjectDocs['link']>>()
 
   return {
-    features: { jira: true, projects: true, chat: true, usage: true },
+    features: { jira: true, projects: true, chat: true, usage: true, docs: true },
     demo: true,
     getJiraConnection: async () => connection,
     connectJira: async ({ site, email, token }) => {
@@ -362,6 +374,32 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
         { label: 'today', count: usedToday },
       ],
     }),
+    getProjectDocs: async (key) => {
+      const link = docLinks.get(key) ?? null
+      const same = docSpaces.find((d) => d.key === key)
+      return {
+        link,
+        suggestion: !link && same ? { space: same, source: 'same-key' } : null,
+        available: true,
+      }
+    },
+    linkProjectDocs: async (key, spaceKey) => {
+      const space = docSpaces.find((d) => d.key === spaceKey)
+      if (!space)
+        throw Object.assign(new Error('not found'), { code: 'confluence-space-not-found' })
+      const link = {
+        space,
+        source: spaceKey === key ? ('same-key' as const) : ('manual' as const),
+        linkedAt: new Date(now()).toISOString(),
+      }
+      docLinks.set(key, link)
+      return { link, suggestion: null, available: true }
+    },
+    unlinkProjectDocs: async (key) => {
+      docLinks.delete(key)
+    },
+    searchDocSpaces: async (query) =>
+      docSpaces.filter((d) => `${d.key} ${d.name}`.toLowerCase().includes(query.toLowerCase())),
   }
 }
 

@@ -156,6 +156,9 @@ export const t = {
       warning: (label: string, id: string, detail: string) =>
         `Warning: ${label} (${id})${detail ? ` — ${detail}` : ''}`,
       humanOnly: 'Marked human-only: not recommended for a coding agent.',
+      conflicts: 'Conflicts with the project documentation',
+      conflictWith: (id: string, reason: string) =>
+        `Conflicts with ${id}${reason ? `: ${reason}` : ''}`,
       changes: 'Changes',
       fields: {
         summary: 'Title',
@@ -199,6 +202,24 @@ export const t = {
       business: 'Business',
       service_desk: 'Service management',
     } as Record<string, string>,
+    docs: {
+      toggle: 'Project docs',
+      title: (project: string) => `Confluence docs for ${project}`,
+      loading: 'Looking for the Confluence space…',
+      unavailable: 'Your Atlassian account has no access to Confluence on this site.',
+      linked: 'The agent reads this space before proposing issues:',
+      found: {
+        'same-key': 'Found a space with the same key:',
+        label: 'Found a space labelled for this project:',
+      } as Record<string, string>,
+      none: 'No space found. Pick one to link.',
+      link: 'Link',
+      unlink: 'Unlink',
+      change: 'Choose another space',
+      search: 'Search spaces',
+      noSpaces: 'No space matches.',
+      linkSpace: (name: string) => `Link ${name}`,
+    },
     soonTitle: 'The project list arrives in the next release',
     soonBody: (site: string) =>
       `Your Jira (${site}) is already connected. In the next release, the projects your account can see show up here.`,
@@ -361,6 +382,10 @@ export const t = {
     'jira-connection-not-found': 'This connection no longer exists. Reload the page.',
     'conversation-not-found': 'This conversation no longer exists.',
     'jira-not-connected': 'Connect your Jira account in Settings.',
+    'confluence-forbidden':
+      'Your Atlassian account has no access to Confluence on this site (or to this space).',
+    'confluence-space-not-found':
+      'That Confluence space does not exist or your account cannot see it.',
     'jira-credential-rejected': 'Jira rejected your saved token. Replace it in Settings.',
     'spec-unavailable':
       'SpecFlow AI only updated fields of this issue, so there is no spec to copy.',

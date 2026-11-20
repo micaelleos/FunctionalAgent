@@ -22,11 +22,13 @@ from app.core.logging import bind, uid_hash
 from app.repositories.actions import ActionRepository
 from app.repositories.jira_cache import JiraCacheRepository
 from app.repositories.jira_connections import JiraConnectionRepository
+from app.repositories.project_links import ProjectLinkRepository
 from app.repositories.usage import UsageRepository
 from app.repositories.users import UserRepository
 from app.services.account import AccountService
 from app.services.actions import ActionService
 from app.services.chat import ChatService, shared_agent
+from app.services.confluence_links import ConfluenceLinkService
 from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
 from app.services.jira_issues import JiraIssueService
@@ -100,6 +102,14 @@ def get_jira_service(settings: Annotated[Settings, Depends(get_settings)]) -> Ji
     )
 
 
+def get_confluence_link_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
+) -> ConfluenceLinkService:
+    db = _firestore(settings.gcp_project, settings.firestore_database)
+    return ConfluenceLinkService(ProjectLinkRepository(db), jira)
+
+
 def get_jira_project_service(
     settings: Annotated[Settings, Depends(get_settings)],
     jira: Annotated[JiraConnectionService, Depends(get_jira_service)],
@@ -148,6 +158,8 @@ def get_chat_service(
         title_llm=title_llm,
         usage=usage,
         agent=shared_agent(llm, settings.agent_max_iterations),
+        docs_agent=shared_agent(llm, settings.agent_max_iterations, docs=True),
+        confluence=ConfluenceLinkService(ProjectLinkRepository(db), jira),
     )
 
 
@@ -229,5 +241,6 @@ Chat = Annotated[ChatService, Depends(get_chat_service)]
 Actions = Annotated[ActionService, Depends(get_action_service)]
 Conversations = Annotated[ConversationService, Depends(get_conversation_service)]
 JiraProjects = Annotated[JiraProjectService, Depends(get_jira_project_service)]
+ConfluenceLinks = Annotated[ConfluenceLinkService, Depends(get_confluence_link_service)]
 JiraIssues = Annotated[JiraIssueService, Depends(get_jira_issue_service)]
 Usage = Annotated[UsageService, Depends(get_usage_service)]

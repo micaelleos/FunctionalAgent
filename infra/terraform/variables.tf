@@ -92,3 +92,19 @@ variable "monthly_token_budget" {
   type        = number
   default     = 5000000
 }
+
+variable "confluence_enabled" {
+  description = "Agente lê a documentação do projeto no Confluence (F19); liga depois do aceite."
+  type        = bool
+  default     = false
+}
+
+variable "prompt_version" {
+  description = "Versão do prompt de sistema do agente (backend/app/agent/prompts/system_<v>.md)."
+  type        = string
+  default     = "v1"
+  validation {
+    condition     = can(regex("^v[0-9]+$", var.prompt_version))
+    error_message = "Use v1, v2..."
+  }
+}

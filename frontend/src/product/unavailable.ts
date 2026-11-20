@@ -15,7 +15,7 @@ export class NotAvailableError extends Error {
  * Cada feature substitui os métodos dela pela chamada à API real.
  */
 export const unavailableProductApi: ProductApi = {
-  features: { jira: false, projects: false, chat: false, usage: false },
+  features: { jira: false, projects: false, chat: false, usage: false, docs: false },
   demo: false,
   getJiraConnection: async () => null,
   connectJira: async () => {
@@ -57,4 +57,12 @@ export const unavailableProductApi: ProductApi = {
     throw new NotAvailableError('Action confirmation')
   },
   getUsage: async () => null,
+  getProjectDocs: async () => ({ link: null, suggestion: null, available: false }),
+  linkProjectDocs: async () => {
+    throw new NotAvailableError('The Confluence link')
+  },
+  unlinkProjectDocs: async () => {
+    throw new NotAvailableError('The Confluence link')
+  },
+  searchDocSpaces: async () => [],
 }

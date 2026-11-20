@@ -23,6 +23,8 @@ from app.agent.spec.readiness import (
 )
 from app.agent.spec.render import section_markdown, to_markdown
 from app.agent.spec.schema import EpicSpec, IssueKey, Title, WorkItemSpec
+from app.agent.tools.confluence_tools import CONFLUENCE_TOOLS, seen_ids
+from app.agent.tools.confluence_tools import PROGRESS as CONFLUENCE_PROGRESS
 from app.agent.tools.context import (
     REVIEW_PREFIX,
     Issue,
@@ -51,6 +53,7 @@ PROGRESS = {
     "propor_criacao_issue": "Preparando a proposta de criação…",
     "propor_criacao_epico": "Preparando a proposta do épico…",
     "propor_atualizacao_issue": "Preparando a proposta de atualização…",
+    **CONFLUENCE_PROGRESS,
 }
 
 
@@ -223,6 +226,27 @@ async def avaliar_prontidao(key: IssueKey, config: RunnableConfig) -> str:
 Priority = Annotated[str, StringConstraints(min_length=1, max_length=30)]
 
 
+class Conflict(BaseModel):
+    """Conflito da spec com a documentação do projeto (F19-RF-07): o ID tem de estar numa página
+    lida neste turno (RN-nn, ADR-nnn, Art. N da Constituição)."""
+
+    id: Annotated[str, StringConstraints(pattern=r"^(RN-\d{2,3}|ADR-\d{3}|Art\. [IVXLC]+)$")]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
+
+
+Conflicts = Annotated[
+    list[Conflict],
+    Field(
+        default_factory=list,
+        max_length=10,
+        description=(
+            "Regras (RN-nn), ADRs (ADR-nnn) ou artigos da Constituição (Art. N) do Confluence "
+            "que a spec contradiz, com o motivo; vazio quando não há conflito"
+        ),
+    ),
+]
+
+
 class CreateIssueArgs(BaseModel):
     project_key: ProjectKey = Field(description="Chave do projeto no Jira (ex.: ABC)")
     spec: WorkItemSpec = Field(description="A história ou tarefa completa, pronta para agente")
@@ -232,6 +256,7 @@ class CreateIssueArgs(BaseModel):
     priority: Priority | None = Field(
         default=None, description="Só quando o usuário pedir; sem ela vale o padrão do projeto"
     )
+    conflicts: Conflicts
 
 
 class CreateEpicArgs(BaseModel):
@@ -240,6 +265,7 @@ class CreateEpicArgs(BaseModel):
     priority: Priority | None = Field(
         default=None, description="Só quando o usuário pedir; sem ela vale o padrão do projeto"
     )
+    conflicts: Conflicts
 
 
 class UpdateIssueArgs(BaseModel):
@@ -259,6 +285,7 @@ class UpdateIssueArgs(BaseModel):
     labels: list[Annotated[str, StringConstraints(pattern=r"^\S{1,50}$")]] | None = Field(
         default=None, max_length=20
     )
+    conflicts: Conflicts
 
 
 def _before(current: Issue, payload: dict[str, Any]) -> dict[str, Any]:
@@ -353,12 +380,43 @@ def _review_once(ctx: ToolContext, spec: WorkItemSpec | EpicSpec | None) -> str 
     )
 
 
+def _references_ok(ctx: ToolContext, spec: WorkItemSpec | EpicSpec) -> WorkItemSpec | EpicSpec:
+    """Só referências de páginas do site Atlassian do usuário (F19-RT-09); o resto sai."""
+    if not spec.references:
+        return spec
+    prefix = f"{ctx.confluence.space.site_url}/wiki/" if ctx.confluence else None
+    kept = [r for r in spec.references if prefix and r.url.startswith(prefix)]
+    return spec if kept == spec.references else spec.model_copy(update={"references": kept})
+
+
+def _conflicts_ok(ctx: ToolContext, conflicts: list[Conflict] | None) -> list[dict[str, str]]:
+    """Conflitos declarados pelo modelo, só com IDs vistos nas páginas lidas no turno (RT-10)."""
+    seen = seen_ids(ctx)
+    out: dict[str, dict[str, str]] = {}
+    for c in conflicts or []:
+        item = c if isinstance(c, Conflict) else Conflict.model_validate(c)
+        if item.id in seen:
+            out.setdefault(item.id, {"id": item.id, "reason": item.reason})
+    return list(out.values())
+
+
+def _conflicts_text(conflicts: list[dict[str, str]]) -> str:
+    if not conflicts:
+        return ""
+    return (
+        " Conflitos mostrados ao usuário: "
+        + "; ".join(f"{c['id']} ({c['reason']})" for c in conflicts)
+        + "."
+    )
+
+
 async def _propose_create(
     ctx: ToolContext,
     project_key: str,
     spec: WorkItemSpec | EpicSpec,
     parent_key: str | None,
     priority: str | None,
+    conflicts: list[Conflict] | None = None,
 ) -> str:
     if problem := (
         _gherkin_problem(spec) or _sensitive_check(ctx, spec) or _review_once(ctx, spec)
@@ -368,6 +426,8 @@ async def _propose_create(
         return NO_JIRA
     if problem := await _check_project(ctx, project_key):
         return problem
+    spec = _references_ok(ctx, spec)
+    found = _conflicts_ok(ctx, conflicts)
     readiness = evaluate(spec)
     labels = sorted(labels_for(spec, readiness))
     payload = create_payload(spec, project_key, labels, parent_key, priority)
@@ -379,14 +439,16 @@ async def _propose_create(
         preview["parent_key"] = parent_key
     if priority:
         preview["priority"] = priority
+    if found:
+        preview["conflicts"] = found
     action = await ctx.actions.propose(
         "create_issue", payload, _readiness_dict(readiness), labels, preview
     )
     ctx.proposed.append(action)
     return (
         f"Ação proposta {action.id} (criar {ISSUE_TYPES[spec.type]} em {project_key}) aguardando "
-        f"confirmação do usuário no cartão. Prontidão: {_readiness_text(readiness)}. "
-        "Não diga que a issue foi criada."
+        f"confirmação do usuário no cartão. Prontidão: {_readiness_text(readiness)}."
+        f"{_conflicts_text(found)} Não diga que a issue foi criada."
     )
 
 
@@ -397,19 +459,26 @@ async def propor_criacao_issue(
     config: RunnableConfig,
     parent_key: str | None = None,
     priority: str | None = None,
+    conflicts: list[Conflict] | None = None,
 ) -> str:
     """Propõe criar uma história (story) ou tarefa (task) no Jira. NÃO cria: o usuário vê um
     cartão com a prévia e confirma. Use só com o projeto definido e a spec completa."""
-    return await _propose_create(tool_context(config), project_key, spec, parent_key, priority)
+    return await _propose_create(
+        tool_context(config), project_key, spec, parent_key, priority, conflicts
+    )
 
 
 @tool(args_schema=CreateEpicArgs)
 async def propor_criacao_epico(
-    project_key: str, spec: EpicSpec, config: RunnableConfig, priority: str | None = None
+    project_key: str,
+    spec: EpicSpec,
+    config: RunnableConfig,
+    priority: str | None = None,
+    conflicts: list[Conflict] | None = None,
 ) -> str:
     """Propõe criar um épico no Jira, com a decomposição em histórias. NÃO cria: o usuário
     confirma no cartão. Proponha depois cada história com `propor_criacao_issue`."""
-    return await _propose_create(tool_context(config), project_key, spec, None, priority)
+    return await _propose_create(tool_context(config), project_key, spec, None, priority, conflicts)
 
 
 @tool(args_schema=UpdateIssueArgs)
@@ -421,6 +490,7 @@ async def propor_atualizacao_issue(
     summary: str | None = None,
     priority: str | None = None,
     labels: list[str] | None = None,
+    conflicts: list[Conflict] | None = None,
 ) -> str:
     """Propõe atualizar uma issue existente: a spec inteira (título e descrição), só o título
     (`summary`), a prioridade e/ou as labels. NÃO atualiza: o usuário confirma no cartão."""
@@ -442,6 +512,9 @@ async def propor_atualizacao_issue(
         return f"A issue {key} não existe ou o usuário não tem acesso a ela."
     except JiraToolError as exc:
         return f"Erro ao consultar o Jira: {exc}"
+    if new_spec is not None:
+        new_spec = _references_ok(ctx, new_spec)
+    found = _conflicts_ok(ctx, conflicts)
     readiness = evaluate(new_spec) if new_spec is not None else None
     if new_spec is not None and readiness is not None:
         # Labels do SpecFlow recalculadas; as outras labels da issue são mantidas.
@@ -459,6 +532,8 @@ async def propor_atualizacao_issue(
         preview["priority"] = priority
     if summary:
         preview["summary"] = summary
+    if found:
+        preview["conflicts"] = found
     action = await ctx.actions.propose(
         "update_issue",
         payload,
@@ -468,13 +543,15 @@ async def propor_atualizacao_issue(
     )
     ctx.proposed.append(action)
     detail = f" Prontidão: {_readiness_text(readiness)}." if readiness else ""
+    detail += _conflicts_text(found)
     return (
         f"Ação proposta {action.id} (atualizar {key}) aguardando confirmação do usuário.{detail} "
         "Não diga que a issue foi atualizada."
     )
 
 
-TOOLS: list[BaseTool] = [
+# Sem espaço do Confluence vinculado, o modelo nem vê as ferramentas dele (F19-RF-04).
+JIRA_TOOLS: list[BaseTool] = [
     listar_projetos,
     consultar_issue,
     buscar_issues_jql,
@@ -484,3 +561,4 @@ TOOLS: list[BaseTool] = [
     propor_criacao_epico,
     propor_atualizacao_issue,
 ]
+TOOLS: list[BaseTool] = [*JIRA_TOOLS, *CONFLUENCE_TOOLS]

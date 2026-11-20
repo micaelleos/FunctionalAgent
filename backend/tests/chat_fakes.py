@@ -14,6 +14,7 @@ from langchain_core.runnables import RunnableConfig
 
 from app.agent.tools.context import (
     ActionKind,
+    ConfluenceReader,
     Issue,
     IssueNotFoundError,
     JiraToolError,
@@ -93,8 +94,12 @@ class MemorySink:
         return ProposedAction(action_id, kind, preview)
 
 
-def tool_config(jira: FakeJiraReader | None, sink: MemorySink | None = None) -> RunnableConfig:
-    ctx = ToolContext("uid-alice", "conv-1", jira, sink or MemorySink())
+def tool_config(
+    jira: FakeJiraReader | None,
+    sink: MemorySink | None = None,
+    confluence: ConfluenceReader | None = None,
+) -> RunnableConfig:
+    ctx = ToolContext("uid-alice", "conv-1", jira, sink or MemorySink(), confluence=confluence)
     return {"configurable": {"ctx": ctx}}
 
 

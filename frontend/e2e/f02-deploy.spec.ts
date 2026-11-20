@@ -27,6 +27,14 @@ test.describe('F02 infraestrutura e deploy', () => {
 
     expect(headers['content-security-policy']).toContain("default-src 'self'")
     expect(headers['content-security-policy']).toContain("frame-ancestors 'none'")
+    // App Check (F11) usa o reCAPTCHA Enterprise; sem ele na CSP, o token nunca sai e o login com
+    // Google (que espera o App Check) não abre o popup.
+    expect(headers['content-security-policy']).toMatch(
+      /script-src [^;]*https:\/\/www\.google\.com\/recaptcha\//,
+    )
+    expect(headers['content-security-policy']).toMatch(
+      /frame-src [^;]*https:\/\/www\.google\.com\/recaptcha\//,
+    )
     // O Firebase Hosting impõe o próprio HSTS (max-age=31556926); exigimos ao menos 1 ano.
     const maxAge = Number(
       /max-age=(\d+)/.exec(headers['strict-transport-security'] ?? '')?.[1] ?? 0,

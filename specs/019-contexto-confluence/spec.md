@@ -165,9 +165,10 @@ Automação: AT-F19-01 no Playwright contra o stack local e o espaço `SCRUM` do
 | 2026-11-20 | idem | em processo | — | AT-F19-05 ✅ (`test_f19_at05.py`): Confluence 403, story proposta, conexão do Jira continua `ok` | — |
 | 2026-11-20 | idem | Gemini `gemini-3.5-flash-lite`, Confluence simulado | — | Evals F19 (8 casos): v1 e v2 com 100% em todas as métricas (`evals/results/2026-11-20-*-f19-v{1,2}.json`) | — |
 | 2026-11-20 | idem | Gemini, Jira simulado | — | Evals F05 (33 casos), última rodada v1 → v2: `asks_project` 75 → 100, `splits_large` 50 → 100, `asks_missing` 100 → 80; demais iguais (100). Entre rodadas idênticas, cada métrica oscila um caso | — |
+| 2026-11-20 | `7f908fc65aca` | prd | — | `make deploy`: revisão `specflow-api-00020-rhv`, smoke `/health` ok, SPA publicada; `terraform apply` (1 add, 2 change, 0 destroy): `CONFLUENCE_ENABLED=true` e `PROMPT_VERSION=v2` na revisão `specflow-api-00021-xsz` (100% do tráfego), métrica `confluence_reads` e painel; `/health` ok, sem erros na revisão | — |
 | — | — | sandbox | — | AT-F19-02..04 pendentes: precisam das páginas de teste no espaço `SCRUM` (`scripts/confluence_fixture.py`), com aprovação do PO | — |
 
-**Decisão pendente do PO:** `PROMPT_VERSION=v2` em prd. O critério "v2 ≥ v1" não se fecha com uma
-rodada de 3 a 4 casos por categoria, porque o flash-lite varia um caso para cima ou para baixo entre
-execuções iguais. Até a decisão, prd segue com `v1` e `CONFLUENCE_ENABLED=false`; o ambiente local
-usa `v2` e `true`.
+**Decisão do PO (2026-11-20):** ligar em prd (`CONFLUENCE_ENABLED=true`, `PROMPT_VERSION=v2`). O
+critério "v2 ≥ v1" não se fecha com uma rodada de 3 a 4 casos por categoria, porque o flash-lite varia
+um caso entre execuções iguais; o PO aceitou o v2 com os resultados acima. Rollback: `prompt_version
+= "v1"` e/ou `confluence_enabled = false` em `envs/prd.tfvars` e `terraform apply`.

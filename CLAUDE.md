@@ -93,7 +93,7 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   (`/api/v1/jira/projects/{key}/confluence`); the chat injects the space index and hands the agent the Confluence
   tools only when the conversation's project is linked (`docs_agent` vs `agent` graphs). Proposals keep only
   same-site `references` and conflicts whose IDs were read this turn. Flags: `CONFLUENCE_ENABLED`, `PROMPT_VERSION`
-  (prd: `false`/`v1` until acceptance; local compose: `true`/`v2`). Evals: `evals/run.py --prompt v2 --dataset
+  (prd: `true`/`v2` since 2026-11-20 via `envs/prd.tfvars`; local compose: `true`/`v2`). Evals: `evals/run.py --prompt v2 --dataset
   evals/datasets/f19_v1.jsonl`.
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.

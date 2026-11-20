@@ -20,7 +20,7 @@ Confluence (F20).
 | **Frontend** | React 19 + TypeScript strict, Vite, TanStack Query |
 | **Agente** | LangGraph com Gemini no Vertex AI; `system_v2.md`; ferramentas novas em `agent/tools/confluence_tools.py` |
 | **Dados** | Firestore `users/{uid}/project_links/{projectKey}` |
-| **Integrações** | Confluence Cloud REST v2 (`/wiki/api/v2`: spaces, pages, children) + v1 para busca CQL (`/wiki/rest/api/search`) e rótulos; httpx |
+| **Integrações** | Confluence Cloud REST v2 (`/wiki/api/v2`: spaces, pages) + v1 para busca CQL (índice e busca) (`/wiki/rest/api/search`) e rótulos; httpx |
 | **Testes** | pytest + respx + emuladores; Vitest + MSW; Playwright (AT-F19-01, -03, -05 com o LLM de eco/roteirizado); evals com espaço fake |
 | **Metas de desempenho** | Fase Descobrir ≤ 4 s no p95 (4 leituras em paralelo); primeiro token p75 ≤ 3 s continua valendo depois da descoberta |
 | **Restrições** | ≤ 6 páginas/turno, ≤ 10 resultados/busca, 8 mil caracteres/página, índice ≤ 30 itens (F19-RT-04) |
@@ -89,7 +89,7 @@ backend/app/
 ├── integrations/confluence/{client,markdown,errors}.py
 └── repositories/project_links.py
 backend/tests/{unit,integration,contract}/…confluence…
-evals/datasets/confluence-*, evals/datasets/confluence_space/
+evals/datasets/f19_v1.jsonl (espaço simulado por caso), evals/run.py (--prompt, --dataset)
 frontend/src/pages/{ProjectsPage,ChatPage}.tsx, frontend/src/product/{http,demo,types}.ts
 frontend/e2e/f19-confluence.spec.ts
 infra/terraform/modules/cloud_run/main.tf

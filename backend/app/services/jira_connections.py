@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, SecretStr, field_validator
 from app.core.crypto import Cipher
 from app.core.errors import ApiProblemError
 from app.core.telemetry import in_thread
+from app.integrations.confluence.client import ConfluenceClient
 from app.integrations.jira.client import (
     JiraAccount,
     JiraAuthError,
@@ -127,10 +128,12 @@ class JiraConnectionService:
         cipher: Cipher,
         client_factory: ClientFactory = JiraClient,
         clock: Callable[[], datetime] | None = None,
+        confluence_factory: Callable[[str, str, str], ConfluenceClient] = ConfluenceClient,
     ) -> None:
         self._store = store
         self._cipher = cipher
         self._client_factory = client_factory
+        self._confluence_factory = confluence_factory
         self._clock = clock or (lambda: datetime.now(UTC))
 
     # Firestore e KMS são síncronos: rodam numa thread para não travar o event loop.
@@ -233,3 +236,11 @@ class JiraConnectionService:
         current = doc or await self._get(uid, connection_id)
         token = await self._run(self._cipher.decrypt, current["tokenCiphertext"])
         return self._client_factory(current["siteUrl"], current["email"], token)
+
+    async def confluence_client_for(
+        self, uid: str, connection_id: str, *, doc: dict[str, Any] | None = None
+    ) -> ConfluenceClient:
+        """Cliente do Confluence no mesmo site, com a mesma credencial (F19-RT-01, ADR-009)."""
+        current = doc or await self._get(uid, connection_id)
+        token = await self._run(self._cipher.decrypt, current["tokenCiphertext"])
+        return self._confluence_factory(current["siteUrl"], current["email"], token)

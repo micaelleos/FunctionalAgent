@@ -269,3 +269,53 @@ describe('F11-RF-01 uso pela API', () => {
     })
   })
 })
+
+describe('F19-RT-08 vínculo com o Confluence pela API', () => {
+  const space = {
+    key: 'SCRUM',
+    name: 'Minha equipe',
+    url: 'https://x.atlassian.net/wiki/spaces/SCRUM',
+  }
+
+  it('lê a sugestão, vincula com PUT, desvincula e busca espaços', async () => {
+    const calls: string[] = []
+    const path = '/api/v1/jira/projects/SCRUM/confluence'
+    server.use(
+      http.get(api(path), () =>
+        HttpResponse.json({
+          link: null,
+          suggestion: { space, source: 'same-key' },
+          available: true,
+        }),
+      ),
+      http.put(api(path), async ({ request }) => {
+        calls.push(`PUT ${JSON.stringify(await request.json())}`)
+        return HttpResponse.json({ space, source: 'same-key', linked_at: '2026-11-20T12:00:00Z' })
+      }),
+      http.delete(api(path), () => {
+        calls.push('DELETE')
+        return new HttpResponse(null, { status: 204 })
+      }),
+      http.get(api('/api/v1/confluence/spaces'), ({ request }) => {
+        calls.push(`GET ${new URL(request.url).search}`)
+        return HttpResponse.json([space])
+      }),
+    )
+    const p = product()
+
+    expect(await p.getProjectDocs('SCRUM')).toEqual({
+      link: null,
+      suggestion: { space, source: 'same-key' },
+      available: true,
+    })
+    expect((await p.linkProjectDocs('SCRUM', 'SCRUM')).link).toEqual({
+      space,
+      source: 'same-key',
+      linkedAt: '2026-11-20T12:00:00Z',
+    })
+    await p.unlinkProjectDocs('SCRUM')
+    expect(await p.searchDocSpaces('min')).toEqual([space])
+    expect(calls).toEqual(['PUT {"space_key":"SCRUM"}', 'DELETE', 'GET ?q=min'])
+    expect(p.features.docs).toBe(true)
+  })
+})

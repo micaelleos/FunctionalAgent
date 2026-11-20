@@ -85,6 +85,7 @@ export function ActionCard({
       </dl>
 
       <ReadinessBox action={action} />
+      <Conflicts action={action} />
       {action.changes.length > 0 && <Changes action={action} />}
       {action.sections.length > 0 && (
         <details className="border-t border-zinc-100 px-5 py-3 text-sm" open={creating}>
@@ -203,6 +204,26 @@ function ReadinessBox({ action }: { action: ProposedAction }) {
         </ul>
       )}
       {humanOnly && <p className="mt-1 text-zinc-700">{a.humanOnly}</p>}
+    </div>
+  )
+}
+
+/** Conflitos com a documentação do projeto (F19-RF-07): avisa; quem decide é o usuário. */
+function Conflicts({ action }: { action: ProposedAction }) {
+  if (action.conflicts.length === 0) return null
+  const a = t.chat.action
+  return (
+    <div
+      role="group"
+      aria-label={a.conflicts}
+      className="border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900"
+    >
+      <p className="font-medium">{a.conflicts}</p>
+      <ul className="mt-1 list-disc pl-5">
+        {action.conflicts.map((c) => (
+          <li key={c.id}>{a.conflictWith(c.id, c.reason)}</li>
+        ))}
+      </ul>
     </div>
   )
 }

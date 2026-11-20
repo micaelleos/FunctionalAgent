@@ -49,6 +49,40 @@ class JiraReader(Protocol):
     async def search(self, jql: str, limit: int) -> list[Issue]: ...
 
 
+@dataclass(frozen=True)
+class DocPage:
+    """Página do Confluence vista pelo agente (F19): resumo de busca ou página lida."""
+
+    id: str
+    title: str
+    url: str
+    kind: str = ""  # tipo do modelo da metodologia (rótulo `specflow-tipo-<tipo>`), se houver
+    excerpt: str = ""
+    markdown: str = ""
+
+
+@dataclass(frozen=True)
+class DocSpace:
+    key: str
+    name: str
+    url: str
+    site_url: str  # https://<site>.atlassian.net: referências só deste site (F19-RT-09)
+
+
+class ConfluenceToolError(Exception):
+    """Falha ao consultar o Confluence; a mensagem é segura para o modelo e para o usuário."""
+
+
+class ConfluenceReader(Protocol):
+    """Leitura do espaço vinculado ao projeto da conversa (F19-RT-02); nada fora dele."""
+
+    space: DocSpace
+
+    async def index(self) -> list[DocPage]: ...
+    async def search(self, text: str, limit: int) -> list[DocPage]: ...
+    async def page(self, page_id: str) -> DocPage: ...
+
+
 ActionKind = Literal["create_issue", "update_issue"]
 
 
@@ -78,6 +112,8 @@ class ToolContext:
     conversation_id: str
     jira: JiraReader | None
     actions: ActionSink
+    # Espaço do Confluence vinculado ao projeto da conversa (F19); `None` sem vínculo ou sem acesso.
+    confluence: ConfluenceReader | None = None
     proposed: list[ProposedAction] = field(default_factory=list)
     # Memória do turno (ex.: lista de projetos), descartada no fim da requisição.
     turn_cache: dict[str, Any] = field(default_factory=dict)

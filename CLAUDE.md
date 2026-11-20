@@ -88,6 +88,13 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   (discover → clarify → specify → plan → verify → propose → converge) with each project's docs in a Confluence
   space (`docs/metodologia/`, page templates in `docs/metodologia/modelos/`). Confluence content is untrusted data;
   writes are proposed actions like Jira.
+- **Confluence reading (F19):** same Atlassian credential (`JiraConnectionService.confluence_client_for`), client in
+  `integrations/confluence/` (storage → Markdown). Link project ↔ space in `users/{uid}/project_links/{key}`
+  (`/api/v1/jira/projects/{key}/confluence`); the chat injects the space index and hands the agent the Confluence
+  tools only when the conversation's project is linked (`docs_agent` vs `agent` graphs). Proposals keep only
+  same-site `references` and conflicts whose IDs were read this turn. Flags: `CONFLUENCE_ENABLED`, `PROMPT_VERSION`
+  (prd: `false`/`v1` until acceptance; local compose: `true`/`v2`). Evals: `evals/run.py --prompt v2 --dataset
+  evals/datasets/f19_v1.jsonl`.
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 

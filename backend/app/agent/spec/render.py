@@ -39,6 +39,7 @@ EPIC_SECTIONS: tuple[str, ...] = (
     "Perguntas em aberto",
 )
 HUMAN_ONLY_NOTE = "Não indicada para agente de código"
+REFERENCES = "Referências"  # opcional, sempre a última seção (F19-RF-06)
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,10 @@ def _bullets(items: list[str], *, required: bool, empty: str = EMPTY) -> tuple[B
     return (Paragraph(empty),) if required else None
 
 
+def _link_text(title: str) -> str:
+    return title.replace("[", "(").replace("]", ")")
+
+
 def _work_item_blocks(spec: WorkItemSpec) -> dict[str, tuple[Block, ...] | None]:
     criteria: tuple[Block, ...] = tuple(_criterion(s) for s in spec.acceptance_criteria) or (
         Paragraph(EMPTY),
@@ -137,6 +142,9 @@ def sections(spec: WorkItemSpec | EpicSpec) -> tuple[Section, ...]:
     else:
         order, blocks = WORK_ITEM_SECTIONS, _work_item_blocks(spec)
     result = [Section(title, content) for title in order if (content := blocks[title]) is not None]
+    if spec.references:
+        links = tuple(f"[{_link_text(r.title)}]({r.url})" for r in spec.references)
+        result.append(Section(REFERENCES, (Bullets(links),)))
     if spec.human_only:
         note = Section(HUMAN_ONLY_NOTE, (Paragraph(spec.human_only_reason),))
         result.insert(0, note)

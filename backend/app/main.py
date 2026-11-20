@@ -8,6 +8,7 @@ from app.api.v1 import (
     actions,
     chat,
     client_errors,
+    confluence,
     conversations,
     jira,
     jira_issues,
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(me.router)
     app.include_router(jira.router)
     app.include_router(jira_projects.router)
+    app.include_router(confluence.router)
     app.include_router(jira_issues.router)
     app.include_router(chat.router)
     app.include_router(actions.router)

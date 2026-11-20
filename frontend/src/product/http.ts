@@ -5,12 +5,14 @@ import type {
   ChatMessage,
   ConversationSummary,
   CreatedIssue,
+  DocSpace,
   IssueFilters,
   IssueStatus,
   JiraConnection,
   JiraConnectionInput,
   JiraProject,
   ProductApi,
+  ProjectDocs,
   Usage,
 } from './types'
 import { type ApiAction, fromApiAction, toActionProblem } from './actions'
@@ -27,6 +29,9 @@ type ApiIssuePage = components['schemas']['IssuePage']
 type ApiStatuses = components['schemas']['StatusOut']
 type ApiPrompt = components['schemas']['AgentPrompt']
 type ApiUsage = components['schemas']['UsageOut']
+type ApiProjectDocs = components['schemas']['ProjectConfluenceOut']
+type ApiLink = components['schemas']['ConfluenceLinkOut']
+type ApiSpace = components['schemas']['ConfluenceSpaceOut']
 
 const ISSUES = '/api/v1/jira/issues'
 const ISSUE_PAGE = 25
@@ -92,6 +97,20 @@ export const usageFromApi = (u: ApiUsage): Usage => ({
   })),
 })
 
+const spaceFromApi = (s: ApiSpace): DocSpace => ({ key: s.key, name: s.name, url: s.url })
+const linkFromApi = (l: ApiLink): NonNullable<ProjectDocs['link']> => ({
+  space: spaceFromApi(l.space),
+  source: l.source,
+  linkedAt: l.linked_at,
+})
+export const projectDocsFromApi = (d: ApiProjectDocs): ProjectDocs => ({
+  link: d.link ? linkFromApi(d.link) : null,
+  suggestion: d.suggestion
+    ? { space: spaceFromApi(d.suggestion.space), source: d.suggestion.source }
+    : null,
+  available: d.available ?? true,
+})
+
 const fromApi = (c: ApiConnection): JiraConnection => ({
   id: c.id,
   site: c.site_url.replace(/^https:\/\//, ''),
@@ -148,6 +167,7 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
     }))
   }
 
+  const projectDocs = (key: string) => `/api/v1/jira/projects/${encodeURIComponent(key)}/confluence`
   const conversation = (id: string) => `${CONVERSATIONS}/${encodeURIComponent(id)}`
 
   return {
@@ -158,7 +178,24 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
       projects: true,
       chat: CHAT_ENABLED,
       usage: true,
+      docs: true,
     },
+    // F19: documentação do projeto no Confluence.
+    getProjectDocs: async (key) => projectDocsFromApi(await json<ApiProjectDocs>(projectDocs(key))),
+    linkProjectDocs: async (key, spaceKey) => ({
+      link: linkFromApi(
+        await json<ApiLink>(projectDocs(key), send('PUT', { space_key: spaceKey })),
+      ),
+      suggestion: null,
+      available: true,
+    }),
+    unlinkProjectDocs: async (key) => {
+      await apiFetch(projectDocs(key), getToken, { method: 'DELETE' })
+    },
+    searchDocSpaces: async (query) =>
+      (
+        await json<ApiSpace[]>(`/api/v1/confluence/spaces?${new URLSearchParams({ q: query })}`)
+      ).map(spaceFromApi),
     // F11: consumo do dia e limite.
     getUsage: async () => usageFromApi(await json<ApiUsage>('/api/v1/me/usage')),
     getJiraConnection: current,

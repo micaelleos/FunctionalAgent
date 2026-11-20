@@ -97,7 +97,10 @@ module "cloud_run" {
   daily_token_quota   = var.daily_token_quota
   # F12: teto mensal do beta.
   monthly_token_budget = var.monthly_token_budget
-  depends_on           = [module.project_services, google_project_iam_member.api_runtime]
+  # F19: documentação do projeto no Confluence.
+  confluence_enabled = var.confluence_enabled
+  prompt_version     = var.prompt_version
+  depends_on         = [module.project_services, google_project_iam_member.api_runtime]
 }
 
 module "firebase" {

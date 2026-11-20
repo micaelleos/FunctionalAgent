@@ -9,8 +9,14 @@ import re
 from typing import Any
 
 from app.agent.spec.render import EMPTY as EMPTY_TEXT
-from app.agent.spec.render import EPIC_SECTIONS, HUMAN_ONLY_NOTE, NO_QUESTIONS, WORK_ITEM_SECTIONS
-from app.agent.spec.schema import MAX_ITEMS, EpicSpec, WorkItemSpec
+from app.agent.spec.render import (
+    EPIC_SECTIONS,
+    HUMAN_ONLY_NOTE,
+    NO_QUESTIONS,
+    REFERENCES,
+    WORK_ITEM_SECTIONS,
+)
+from app.agent.spec.schema import MAX_ITEMS, MAX_REFERENCES, EpicSpec, WorkItemSpec
 
 _HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$")
 _CRITERION = re.compile(r"^\*\*(CA-\d{2})\s+\((principal|alternativo|erro|borda)\)\s*(.*?)\*\*$")
@@ -27,7 +33,9 @@ def _clip(text: str) -> str:
 
 def _split_sections(markdown: str) -> tuple[list[str], dict[str, list[str]]]:
     """Linhas antes do primeiro título conhecido e as linhas de cada seção conhecida."""
-    known = {s.lower(): s for s in (*WORK_ITEM_SECTIONS, *EPIC_SECTIONS, HUMAN_ONLY_NOTE)}
+    known = {
+        s.lower(): s for s in (*WORK_ITEM_SECTIONS, *EPIC_SECTIONS, HUMAN_ONLY_NOTE, REFERENCES)
+    }
     preamble: list[str] = []
     sections: dict[str, list[str]] = {}
     current: list[str] = preamble
@@ -112,6 +120,17 @@ def _decomposition(lines: list[str]) -> list[dict[str, Any]]:
     return out
 
 
+_LINK = re.compile(r"^\[([^\]]+)\]\((https://\S+)\)$")
+
+
+def _references(lines: list[str]) -> list[dict[str, str]]:
+    refs = []
+    for item in _items(lines):
+        if match := _LINK.match(item):
+            refs.append({"title": match.group(1)[:255], "url": match.group(2)[:1000]})
+    return refs[:MAX_REFERENCES]
+
+
 def _title(summary: str) -> str:
     return summary.strip()[:255] or "(sem título)"
 
@@ -127,6 +146,7 @@ def parse_issue(summary: str, issue_type: str, markdown: str) -> WorkItemSpec | 
         "open_questions": _items(sec.get("Perguntas em aberto", [])),
         "human_only": bool(human_reason),
         "human_only_reason": human_reason,
+        "references": _references(sec.get(REFERENCES, [])),
     }
     if issue_type.lower() in {"epic", "épico", "epico"}:
         return EpicSpec.model_validate(

@@ -1,6 +1,7 @@
 import { ApiError } from '../lib/api'
 import type { components } from '../lib/api-schema'
 import type {
+  DocConflict,
   FieldChange,
   IssueType,
   ProposedAction,
@@ -38,6 +39,14 @@ function readiness(raw: Preview): Readiness | null {
     }),
   )
   return { ready: raw.ready, rules }
+}
+
+function conflicts(preview: Preview): DocConflict[] {
+  const raw = Array.isArray(preview.conflicts) ? (preview.conflicts as Preview[]) : []
+  return raw.flatMap((c) => {
+    const id = str(c.id)
+    return id ? [{ id, reason: str(c.reason) ?? '' }] : []
+  })
 }
 
 /** Antes/depois só dos campos que a atualização muda (F06-RF-06). */
@@ -87,6 +96,7 @@ export function fromApiAction(action: ApiAction): ProposedAction {
     labels: action.labels,
     sections: sections(preview),
     readiness: readiness(action.readiness),
+    conflicts: conflicts(preview),
     changes: changes(preview, action),
     expiresAt: action.expires_at,
     status: action.status,

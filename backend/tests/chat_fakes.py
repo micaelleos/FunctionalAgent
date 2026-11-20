@@ -122,6 +122,7 @@ class MemoryChatStore:
         self.usage: dict[tuple[str, str], dict[str, int]] = {}
         self.months: dict[str, int] = {}
         self.issues: dict[str, dict[str, dict[str, Any]]] = {}
+        self.documents: dict[str, dict[str, dict[str, Any]]] = {}
         self._next = 0
         self._lock = threading.Lock()
 
@@ -247,6 +248,28 @@ class MemoryChatStore:
             else:
                 record.update(copy.deepcopy(issue))
 
+    # ---- F20: documentos do Confluence
+    def complete_doc_action(
+        self, uid: str, action_id: str, change: dict[str, Any], documents: dict[str, dict[str, Any]]
+    ) -> None:
+        with self._lock:  # uma transação no Firestore
+            self.update_action(uid, action_id, change)
+            mine = self.documents.setdefault(uid, {})
+            for page_id, record in documents.items():
+                data = copy.deepcopy(record)
+                if page_id in mine:
+                    data.pop("createdAt", None)
+                    mine[page_id].update(data)
+                else:
+                    mine[page_id] = data
+
+    def list_documents(self, uid: str, project_key: str | None = None) -> list[dict[str, Any]]:
+        docs = [
+            {"pageId": pid, **copy.deepcopy(d)} for pid, d in self.documents.get(uid, {}).items()
+        ]
+        docs = [d for d in docs if not project_key or d.get("projectKey") == project_key]
+        return sorted(docs, key=lambda d: d["updatedAt"], reverse=True)
+
     # ---- F10: histórico de issues
     def get_issue(self, uid: str, key: str) -> dict[str, Any] | None:
         doc = self.issues.get(uid, {}).get(key)
@@ -358,6 +381,7 @@ class FakeJiraService:
         self.handler = handler or jira_handler()
         self.invalidated: list[str] = []
         self.requests: list[httpx.Request] = []
+        self.wiki: Any = None
 
     async def list(self, uid: str) -> list[JiraConnection]:
         if not self.connected:
@@ -383,6 +407,10 @@ class FakeJiraService:
 
     async def mark_invalid(self, uid: str, connection_id: str) -> None:
         self.invalidated.append(connection_id)
+
+    async def confluence_client_for(self, uid: str, connection_id: str) -> Any:
+        """Confluence simulado (F20): `self.wiki` é um `tests.confluence_fake.FakeWiki`."""
+        return self.wiki.client()
 
 
 def args_json(message: AIMessage) -> str:

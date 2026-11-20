@@ -83,7 +83,38 @@ class ConfluenceReader(Protocol):
     async def page(self, page_id: str) -> DocPage: ...
 
 
-ActionKind = Literal["create_issue", "update_issue"]
+@dataclass(frozen=True)
+class PageDraft:
+    """Escrita no Confluence pronta para virar ação proposta (F20): `payload` é o que a confirmação
+    executa (com hash); `preview` é o que o cartão mostra, com o diff (F20-RT-04)."""
+
+    kind: "ActionKind"
+    payload: dict[str, Any]
+    preview: dict[str, Any]
+
+
+class DocsWriter(Protocol):
+    """Prepara escritas de páginas no espaço vinculado (F20-RF-02, F20-RF-03); não escreve nada."""
+
+    space: DocSpace
+
+    async def draft_create(
+        self, kind: str, title: str, markdown: str, summary: str
+    ) -> PageDraft: ...
+    async def draft_update(
+        self, page_id: str, markdown: str, summary: str, title: str | None
+    ) -> PageDraft: ...
+
+
+class SpaceCreator(Protocol):
+    """Prepara a criação do espaço do projeto com o modelo (F20-RF-01); não escreve nada."""
+
+    project_key: str
+
+    async def draft_space(self, project_name: str) -> PageDraft: ...
+
+
+ActionKind = Literal["create_issue", "update_issue", "create_page", "update_page", "create_space"]
 
 
 @dataclass(frozen=True)
@@ -114,6 +145,9 @@ class ToolContext:
     actions: ActionSink
     # Espaço do Confluence vinculado ao projeto da conversa (F19); `None` sem vínculo ou sem acesso.
     confluence: ConfluenceReader | None = None
+    # Escrita por ação proposta (F20); `None` com a flag desligada ou sem vínculo/espaço livre.
+    docs_writer: DocsWriter | None = None
+    space_creator: SpaceCreator | None = None
     proposed: list[ProposedAction] = field(default_factory=list)
     # Memória do turno (ex.: lista de projetos), descartada no fim da requisição.
     turn_cache: dict[str, Any] = field(default_factory=dict)

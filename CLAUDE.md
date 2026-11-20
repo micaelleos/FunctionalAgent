@@ -95,6 +95,13 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   same-site `references` and conflicts whose IDs were read this turn. Flags: `CONFLUENCE_ENABLED`, `PROMPT_VERSION`
   (prd: `true`/`v2` since 2026-11-20 via `envs/prd.tfvars`; local compose: `true`/`v2`). Evals: `evals/run.py --prompt v2 --dataset
   evals/datasets/f19_v1.jsonl`.
+- **Confluence writing (F20):** action kinds `create_page`/`update_page`/`create_space` reuse the F06 confirmation
+  (`ActionService` → `services/confluence_actions.py`; same hash; update sends the version seen, 409 →
+  `confluence-version-conflict`; no DELETE). Proposals are prepared by `services/confluence_writer.py` (Markdown →
+  storage in `integrations/confluence/storage.py`, section diff in `services/page_diff.py`); templates in
+  `agent/templates/confluence/` mirror `docs/metodologia/modelos/` (sync test). Tool sets per turn: `jira`, `docs`,
+  `docs_write` (linked + flag), `space` (no link + flag). Records in `users/{uid}/documents/{pageId}` (`/api/v1/documents`,
+  "Docs" tab). Flag `CONFLUENCE_WRITE_ENABLED` (default `false`; local compose `true`). Evals: `evals/datasets/f20_v1.jsonl`.
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 

@@ -168,3 +168,29 @@ describe('F10-RF-06 copiar para agente de código', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('no spec to copy')
   })
 })
+
+describe('F20-RF-08 aba Docs', () => {
+  it('lista as páginas escritas pelo SpecFlow com link, tipo e versão', async () => {
+    const { api, user } = setup([issue('SCRUM-1')])
+    const spy = vi.spyOn(api, 'listDocuments')
+
+    await user.click(await screen.findByRole('tab', { name: 'Docs' }))
+
+    const link = await screen.findByRole('link', { name: 'Glossário' })
+    expect(link).toHaveAttribute('href', 'https://demo.atlassian.net/wiki/spaces/PAG/pages/9001')
+    const item = link.closest('li') as HTMLElement
+    expect(item).toHaveTextContent('Glossary')
+    expect(item).toHaveTextContent('PAG')
+    expect(item).toHaveTextContent('Updated')
+    expect(item).toHaveTextContent('v3')
+    expect(spy).toHaveBeenCalled()
+    expect(screen.getByRole('tab', { name: 'Docs' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('sem páginas, explica de onde elas vêm', async () => {
+    const { api, user } = setup([])
+    api.listDocuments = async () => []
+    await user.click(await screen.findByRole('tab', { name: 'Docs' }))
+    expect(await screen.findByText(/No pages yet/)).toBeInTheDocument()
+  })
+})

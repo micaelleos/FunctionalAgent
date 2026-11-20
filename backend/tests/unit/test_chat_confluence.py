@@ -6,9 +6,10 @@ import pytest
 from langchain_core.messages import AIMessage, ToolMessage
 
 from app.agent.fake_llm import ScriptedChatModel
-from app.agent.tools.context import ConfluenceReader
+from app.agent.tools.confluence_write_tools import WRITE_NOTE
+from app.agent.tools.context import ConfluenceReader, DocsWriter, SpaceCreator
 from app.core.config import Settings
-from app.services.chat import NO_DOCS_NOTE, ChatService
+from app.services.chat import NO_DOCS_NOTE, SPACE_NOTE, ChatService
 from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
 from tests.chat_fakes import NOW, FakeJiraService, MemoryChatStore, call
@@ -24,8 +25,11 @@ class _Client:
 
 
 class FakeLinks:
-    def __init__(self, reader: FakeConfluenceReader | None) -> None:
+    def __init__(
+        self, reader: FakeConfluenceReader | None, creator: SpaceCreator | None = None
+    ) -> None:
         self.reader = reader
+        self.creator = creator
         self.client = _Client()
         self.asked: list[tuple[str, str, str]] = []
 
@@ -35,16 +39,29 @@ class FakeLinks:
         self.asked.append((uid, project_key, connection_id))
         return (self.reader, self.client) if self.reader else None
 
+    def writer_for(self, reader: Any, client: Any, project_key: str) -> DocsWriter | None:
+        return cast(DocsWriter, object())
+
+    async def space_creator_for(
+        self, uid: str, project_key: str, connection_id: str
+    ) -> tuple[SpaceCreator, _Client] | None:
+        return (self.creator, self.client) if self.creator else None
+
 
 async def _run(
-    llm: ScriptedChatModel, links: FakeLinks, *, enabled: bool = True, project: str | None = "SCRUM"
+    llm: ScriptedChatModel,
+    links: FakeLinks,
+    *,
+    enabled: bool = True,
+    project: str | None = "SCRUM",
+    write: bool = False,
 ) -> tuple[MemoryChatStore, FakeJiraService]:
     store, jira = MemoryChatStore(), FakeJiraService()
     service = ChatService(
         store,
         cast(JiraConnectionService, jira),
         llm,
-        Settings(env="test", confluence_enabled=enabled),
+        Settings(env="test", confluence_enabled=enabled, confluence_write_enabled=write),
         clock=lambda: NOW,
         confluence=links,
     )
@@ -116,3 +133,42 @@ async def test_ferramentas_do_confluence_so_com_espaco_vinculado(
     await _run(llm, FakeLinks(FakeConfluenceReader() if reader else None))
     assert ("ler_pagina_confluence" in llm.bound_tools) is sees_docs
     assert "propor_criacao_issue" in llm.bound_tools
+
+
+class _Creator:
+    project_key = "SCRUM"
+
+    async def draft_space(self, project_name: str) -> Any:
+        raise AssertionError("não chamado")
+
+
+@pytest.mark.req("F20-RT-01")
+@pytest.mark.req("F20-RF-01")
+@pytest.mark.parametrize(
+    ("write", "linked", "expected", "absent"),
+    [
+        (True, True, ["ler_pagina_confluence", "propor_criacao_pagina"], ["propor_criacao_espaco"]),
+        (False, True, ["ler_pagina_confluence"], ["propor_criacao_pagina"]),
+        (
+            True,
+            False,
+            ["propor_criacao_espaco"],
+            ["ler_pagina_confluence", "propor_criacao_pagina"],
+        ),
+        (False, False, [], ["propor_criacao_espaco", "propor_criacao_pagina"]),
+    ],
+)
+async def test_ferramentas_de_escrita_so_com_a_flag(
+    write: bool, linked: bool, expected: list[str], absent: list[str]
+) -> None:
+    llm = ScriptedChatModel(responses=[AIMessage("ok")])
+    links = FakeLinks(FakeConfluenceReader() if linked else None, _Creator())
+    await _run(llm, links, write=write)
+    for name in expected:
+        assert name in llm.bound_tools
+    for name in absent:
+        assert name not in llm.bound_tools
+    if write and not linked:
+        assert SPACE_NOTE in _system(llm)
+        assert links.client.closed
+    assert (WRITE_NOTE in _system(llm)) is (write and linked)

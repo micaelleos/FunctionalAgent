@@ -37,6 +37,9 @@ const base: ProposedAction = {
   resultKey: null,
   resultUrl: null,
   error: null,
+  errorCode: null,
+  doc: null,
+  warning: null,
 }
 
 function renderCard(action: Partial<ProposedAction> = {}, api: Partial<ProductApi> = {}) {

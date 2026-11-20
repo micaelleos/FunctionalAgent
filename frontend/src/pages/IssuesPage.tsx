@@ -33,8 +33,83 @@ const dateTime = (iso: string) =>
 const selectClass =
   'min-h-11 min-w-40 rounded-lg border border-zinc-300 bg-white px-2 text-sm text-zinc-900'
 
-/** Issues criadas ou atualizadas pelo SpecFlow (F10): filtros, links, status e "Copiar para agente". */
+/**
+ * Tela "Issues": o que o SpecFlow escreveu por confirmação. Aba "Issues" (F10, Jira) e aba "Docs"
+ * (F20-RF-08, páginas do Confluence).
+ */
 export function IssuesPage() {
+  const [tab, setTab] = useState<'issues' | 'docs'>('issues')
+  const tabClass = (active: boolean) =>
+    `min-h-11 border-b-2 px-3 text-sm font-medium ${
+      active ? 'border-indigo-600 text-indigo-800' : 'border-transparent text-zinc-600'
+    }`
+  return (
+    <main className="flex flex-col gap-6 px-4 py-8 md:px-10">
+      <PageHeader title={t.issues.title} subtitle={t.issues.subtitle} />
+      <div
+        role="tablist"
+        aria-label={t.issues.title}
+        className="flex gap-2 border-b border-zinc-200"
+      >
+        {(['issues', 'docs'] as const).map((name) => (
+          <button
+            key={name}
+            type="button"
+            role="tab"
+            aria-selected={tab === name}
+            className={tabClass(tab === name)}
+            onClick={() => setTab(name)}
+          >
+            {t.issues.tabs[name]}
+          </button>
+        ))}
+      </div>
+      {tab === 'issues' ? <IssuesList /> : <DocsList />}
+    </main>
+  )
+}
+
+/** Páginas do Confluence escritas pelo SpecFlow (F20-RF-08): link, tipo, data e versão. */
+function DocsList() {
+  const product = useProduct()
+  const docs = useQuery({ queryKey: ['documents'], queryFn: () => product.listDocuments() })
+  const d = t.issues.docs
+  if (docs.isError) return <Alert kind="error">{errorMessage(docs.error)}</Alert>
+  if (docs.isSuccess && docs.data.length === 0)
+    return (
+      <section className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-zinc-400 bg-white p-6">
+        <p className="text-sm text-zinc-700">{d.empty}</p>
+      </section>
+    )
+  return (
+    <ul className="flex flex-col divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white">
+      {(docs.data ?? []).map((doc) => (
+        <li
+          key={doc.pageId}
+          className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 text-sm"
+        >
+          <a
+            href={doc.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 font-medium text-indigo-700 underline"
+          >
+            {doc.title}
+          </a>
+          <span className="text-zinc-700">{t.chat.doc.types[doc.type] ?? doc.type}</span>
+          <span className="text-zinc-600">{doc.projectKey ?? '—'}</span>
+          <span className="text-zinc-600">
+            {doc.operation === 'updated' ? d.updated : d.created} {dateTime(doc.updatedAt)}
+          </span>
+          <span className="text-zinc-600">{d.version(doc.version)}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** Issues criadas ou atualizadas pelo SpecFlow (F10): filtros, links, status e "Copiar para agente". */
+function IssuesList() {
   const product = useProduct()
   const [project, setProject] = useState('')
   const [type, setType] = useState<IssueType | ''>('')
@@ -110,9 +185,7 @@ export function IssuesPage() {
   const empty = issues.isSuccess && all.length === 0
 
   return (
-    <main className="flex flex-col gap-6 px-4 py-8 md:px-10">
-      <PageHeader title={t.issues.title} subtitle={t.issues.subtitle} />
-
+    <div className="flex flex-col gap-6">
       {issues.isError && <Alert kind="error">{errorMessage(issues.error)}</Alert>}
       {refresh.isError && <Alert kind="error">{errorMessage(refresh.error)}</Alert>}
       {copy.isError && <Alert kind="error">{errorMessage(copy.error)}</Alert>}
@@ -331,6 +404,6 @@ export function IssuesPage() {
           {t.issues.loadMore}
         </Button>
       )}
-    </main>
+    </div>
   )
 }

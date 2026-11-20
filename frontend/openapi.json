@@ -53,7 +53,10 @@
           "kind": {
             "enum": [
               "create_issue",
-              "update_issue"
+              "update_issue",
+              "create_page",
+              "update_page",
+              "create_space"
             ],
             "title": "Kind",
             "type": "string"
@@ -81,9 +84,13 @@
                 "$ref": "#/components/schemas/ActionResult"
               },
               {
+                "$ref": "#/components/schemas/DocResult"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Result"
           },
           "status": {
             "enum": [
@@ -414,6 +421,119 @@
           "messages"
         ],
         "title": "DayUsage",
+        "type": "object"
+      },
+      "DocResult": {
+        "description": "Resultado de uma ação do Confluence (F20): a página (ou a inicial do espaço) e um aviso.",
+        "properties": {
+          "page_id": {
+            "title": "Page Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning"
+          }
+        },
+        "required": [
+          "page_id",
+          "title",
+          "url"
+        ],
+        "title": "DocResult",
+        "type": "object"
+      },
+      "DocumentOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "created",
+              "updated"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "page_id": {
+            "title": "Page Id",
+            "type": "string"
+          },
+          "project_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Key"
+          },
+          "space_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Key"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page_id",
+          "project_key",
+          "space_key",
+          "type",
+          "title",
+          "url",
+          "version",
+          "operation",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DocumentOut",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -933,6 +1053,11 @@
           "available": {
             "default": true,
             "title": "Available",
+            "type": "boolean"
+          },
+          "can_create": {
+            "default": false,
+            "title": "Can Create",
             "type": "boolean"
           },
           "link": {
@@ -2035,6 +2160,93 @@
         "summary": "Envia uma mensagem e recebe a resposta do agente em SSE",
         "tags": [
           "chat"
+        ]
+      }
+    },
+    "/api/v1/documents": {
+      "get": {
+        "operationId": "list_documents_api_v1_documents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "pattern": "^[A-Z][A-Z0-9_]{1,9}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Firebase-AppCheck",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Firebase-Appcheck"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentOut"
+                  },
+                  "title": "Response List Documents Api V1 Documents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Páginas do Confluence criadas ou atualizadas pelo SpecFlow",
+        "tags": [
+          "confluence"
         ]
       }
     },

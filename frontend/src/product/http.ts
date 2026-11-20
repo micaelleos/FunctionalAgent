@@ -30,6 +30,7 @@ type ApiStatuses = components['schemas']['StatusOut']
 type ApiPrompt = components['schemas']['AgentPrompt']
 type ApiUsage = components['schemas']['UsageOut']
 type ApiProjectDocs = components['schemas']['ProjectConfluenceOut']
+type ApiDocument = components['schemas']['DocumentOut']
 type ApiLink = components['schemas']['ConfluenceLinkOut']
 type ApiSpace = components['schemas']['ConfluenceSpaceOut']
 
@@ -109,6 +110,7 @@ export const projectDocsFromApi = (d: ApiProjectDocs): ProjectDocs => ({
     ? { space: spaceFromApi(d.suggestion.space), source: d.suggestion.source }
     : null,
   available: d.available ?? true,
+  canCreate: d.can_create ?? false,
 })
 
 const fromApi = (c: ApiConnection): JiraConnection => ({
@@ -201,6 +203,22 @@ export function createHttpProductApi(getToken: TokenGetter): ProductApi {
     getJiraConnection: current,
     listProjects,
     // F10: histórico de issues.
+    listDocuments: async (projectKey) => {
+      const query = projectKey ? `?project=${encodeURIComponent(projectKey)}` : ''
+      const docs = await json<ApiDocument[]>(`/api/v1/documents${query}`)
+      return docs.map((d) => ({
+        pageId: d.page_id,
+        projectKey: d.project_key ?? null,
+        spaceKey: d.space_key ?? null,
+        type: d.type,
+        title: d.title,
+        url: d.url,
+        version: d.version,
+        operation: d.operation,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+      }))
+    },
     listIssues: async (filters, cursor) => {
       const page = await json<ApiIssuePage>(issueQuery(filters, cursor))
       return { items: page.items.map(issueFromApi), nextCursor: page.next_cursor ?? null }

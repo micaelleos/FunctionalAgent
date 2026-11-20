@@ -11,7 +11,7 @@ import time
 from collections.abc import AsyncGenerator, AsyncIterator, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Protocol, cast
+from typing import Any, Literal, Protocol, cast
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
@@ -30,18 +30,21 @@ from pydantic import BaseModel
 from app.agent.graph import Agent, AgentState, build_agent, project_note, system_prompt
 from app.agent.spec.jira_payload import payload_hash
 from app.agent.tools.confluence_tools import CONFLUENCE_TOOLS, index_note
+from app.agent.tools.confluence_write_tools import PAGE_WRITE_TOOLS, SPACE_TOOLS, WRITE_NOTE
 from app.agent.tools.context import (
     ActionKind,
     ConfluenceReader,
     ConfluenceToolError,
+    DocsWriter,
     ProposedAction,
+    SpaceCreator,
     ToolContext,
 )
 from app.agent.tools.jira_tools import JIRA_TOOLS, PROGRESS
 from app.core.errors import ApiProblemError
 from app.core.logging import uid_hash
 from app.core.telemetry import in_thread
-from app.services.actions import describe, to_out
+from app.services.actions import ActionResult, DocResult, describe, to_out
 from app.services.chat_events import (
     ActionProposedEvent,
     DoneEvent,
@@ -108,6 +111,13 @@ class DocsLinks(Protocol):
         self, uid: str, project_key: str, connection_id: str
     ) -> tuple[ConfluenceReader, Closable] | None: ...
 
+    # Escrita por ação proposta (F20).
+    def writer_for(self, reader: Any, client: Any, project_key: str) -> DocsWriter | None: ...
+
+    async def space_creator_for(
+        self, uid: str, project_key: str, connection_id: str
+    ) -> tuple[SpaceCreator, Closable] | None: ...
+
 
 class ChatSettings(Protocol):
     llm_model: str
@@ -118,6 +128,25 @@ class ChatSettings(Protocol):
     llm_price_input_per_mtok: float
     llm_price_output_per_mtok: float
     confluence_enabled: bool
+    confluence_write_enabled: bool
+
+
+# Ferramentas por turno: sem espaço vinculado, o modelo nem vê as do Confluence (F19-RF-04); as de
+# escrita só existem com a flag da F20 (rollback: desligar a flag).
+ToolSet = Literal["jira", "docs", "docs_write", "space"]
+TOOLSETS: dict[str, list[BaseTool]] = {
+    "jira": JIRA_TOOLS,
+    "docs": [*JIRA_TOOLS, *CONFLUENCE_TOOLS],
+    "docs_write": [*JIRA_TOOLS, *CONFLUENCE_TOOLS, *PAGE_WRITE_TOOLS],
+    "space": [*JIRA_TOOLS, *SPACE_TOOLS],
+}
+SPACE_NOTE = (
+    "## Documentação do projeto\n"
+    "O projeto desta conversa não tem espaço do Confluence vinculado. Se o usuário pedir para "
+    "documentar o projeto (constituição, regras, ADRs, roadmap), proponha criar o espaço com "
+    "`propor_criacao_espaco`; depois do Confirm, as páginas são propostas nos próximos turnos. Sem "
+    "esse pedido, siga sem a documentação e não proponha o espaço por conta própria."
+)
 
 
 class ConversationNotFoundError(ApiProblemError):
@@ -215,13 +244,19 @@ def actions_note(docs: list[dict[str, Any]], now: datetime) -> str:
     lines = []
     for doc in docs[-MAX_ACTIONS_NOTE:]:
         action = to_out(doc, now)
-        if action.status == "done" and action.result:
+        result = action.result
+        if action.status == "done" and isinstance(result, DocResult):
+            state = f'confirmada pelo usuário; página "{result.title}" escrita ({result.url})'
+            if result.warning:
+                state += f"; aviso: {result.warning}"
+        elif action.status == "done" and isinstance(result, ActionResult):
             verb = "criada" if action.kind == "create_issue" else "atualizada"
-            state = (
-                f"confirmada pelo usuário; {action.result.issue_key} {verb} ({action.result.url})"
-            )
+            state = f"confirmada pelo usuário; {result.issue_key} {verb} ({result.url})"
         elif action.status == "failed" and action.error:
-            state = f"confirmada, mas falhou no Jira: {action.error.message}"
+            where = (
+                "no Jira" if action.kind in ("create_issue", "update_issue") else "no Confluence"
+            )
+            state = f"confirmada, mas falhou {where}: {action.error.message}"
         else:
             state = _ACTION_STATE[action.status]
         lines.append(f"- {action.id}: {describe(doc)} — {state}")
@@ -308,18 +343,18 @@ class _Turn:
         self.output_tokens += int(usage.get("output_tokens", 0))
 
 
-_agents: dict[tuple[int, int, bool], tuple[BaseChatModel, Agent]] = {}
+_agents: dict[tuple[int, int, str], tuple[BaseChatModel, Agent]] = {}
 
 
-def shared_agent(llm: BaseChatModel, max_iterations: int, *, docs: bool = False) -> Agent:
+def shared_agent(llm: BaseChatModel, max_iterations: int, toolset: ToolSet = "jira") -> Agent:
     """Grafo compilado uma vez por modelo compartilhado (F11-RT-08).
 
     Só para modelos que vivem o processo todo (o de `api/deps.py`); guarda o modelo junto para o
     `id` nunca ser reaproveitado por outro objeto.
     """
-    key = (id(llm), max_iterations, docs)
+    key = (id(llm), max_iterations, toolset)
     if key not in _agents:
-        tools = [*JIRA_TOOLS, *CONFLUENCE_TOOLS] if docs else JIRA_TOOLS
+        tools = TOOLSETS[toolset]
         _agents[key] = (llm, build_agent(llm, tools, max_iterations=max_iterations))
     return _agents[key][1]
 
@@ -337,7 +372,7 @@ class ChatService:
         title_llm: BaseChatModel | None = None,
         usage: UsageService | None = None,
         agent: Agent | None = None,
-        docs_agent: Agent | None = None,
+        agents: dict[str, Agent] | None = None,
         confluence: DocsLinks | None = None,
     ) -> None:
         self._store = store
@@ -346,8 +381,8 @@ class ChatService:
         # Grafo já compilado e compartilhado (F11-RT-08): compilar custa ~metade da CPU de um turno.
         # O estado vem em cada invocação, então o mesmo grafo serve requisições simultâneas.
         self._agent = agent
-        # O mesmo grafo com as ferramentas do Confluence, para turnos com espaço vinculado (F19).
-        self._docs_agent = docs_agent
+        # Os mesmos grafos com as ferramentas do Confluence (F19) e de escrita (F20), por `ToolSet`.
+        self._agents = agents or {}
         # Cota diária e rate limit (F11); `None` nos testes que não tratam disso.
         self._usage = usage
         # Título automático (F07-RT-05); `None` desliga (testes com LLM roteirizado).
@@ -443,12 +478,19 @@ class ChatService:
 
         return JiraReaderAdapter(client, on_auth_error), client
 
-    def _agent_for(self, *, docs: bool) -> Agent:
-        shared = self._docs_agent if docs else self._agent
+    def _agent_for(self, toolset: ToolSet) -> Agent:
+        shared = self._agent if toolset == "jira" else self._agents.get(toolset)
         if shared is not None:
             return shared
-        tools = [*self._tools, *CONFLUENCE_TOOLS] if docs else self._tools
+        extra = [t for t in TOOLSETS[toolset] if t not in JIRA_TOOLS]
+        tools = [*self._tools, *extra]
         return build_agent(self._llm, tools, max_iterations=self._settings.agent_max_iterations)
+
+    @staticmethod
+    def _toolset(ctx: ToolContext) -> ToolSet:
+        if ctx.confluence is not None:
+            return "docs_write" if ctx.docs_writer is not None else "docs"
+        return "space" if ctx.space_creator is not None else "jira"
 
     async def _docs_note(
         self, uid: str, project_key: str | None, sink: FirestoreActionSink, ctx: ToolContext
@@ -462,8 +504,16 @@ class ChatService:
             or sink.connection_id is None
         ):
             return "", None
+        write = self._settings.confluence_write_enabled
         found = await self._confluence.reader_for(uid, project_key, sink.connection_id)
         if found is None:
+            if write:
+                creator = await self._confluence.space_creator_for(
+                    uid, project_key, sink.connection_id
+                )
+                if creator is not None:
+                    ctx.space_creator, space_client = creator
+                    return SPACE_NOTE, space_client
             return NO_DOCS_NOTE, None
         reader, client = found
         try:
@@ -472,7 +522,12 @@ class ChatService:
             await client.aclose()
             return NO_DOCS_NOTE, None
         ctx.confluence = reader
-        return index_note(reader.space, pages), client
+        note = index_note(reader.space, pages)
+        if write:
+            ctx.docs_writer = self._confluence.writer_for(reader, client, project_key)
+            if ctx.docs_writer is not None:
+                note = f"{note}\n\n{WRITE_NOTE}"
+        return note, client
 
     async def _summarize(
         self, uid: str, conversation: dict[str, Any], dropped: list[dict[str, Any]], turn: _Turn
@@ -558,7 +613,7 @@ class ChatService:
                         *window.messages,
                         HumanMessage(with_events(text, window.pending_events)),
                     ]
-                    agent = self._agent_for(docs=ctx.confluence is not None)
+                    agent = self._agent_for(self._toolset(ctx))
                     state: AgentState = {
                         "messages": cast(list[AnyMessage], messages),
                         "iterations": 0,

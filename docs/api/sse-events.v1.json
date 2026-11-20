@@ -16,14 +16,17 @@
         "kind": {
           "enum": [
             "create_issue",
-            "update_issue"
+            "update_issue",
+            "create_page",
+            "update_page",
+            "create_space"
           ],
           "title": "Kind",
           "type": "string"
         },
         "preview": {
           "additionalProperties": true,
-          "description": "project_key, project_name ou issue_key/url, issue_type, summary, priority, parent_key, markdown, sections [{title, markdown}], readiness, labels; em atualizações, before (valores atuais dos campos que mudam)",
+          "description": "Jira: project_key, project_name ou issue_key/url, issue_type, summary, priority, parent_key, markdown, sections [{title, markdown}], readiness, labels; em atualizações, before (valores atuais dos campos que mudam). Confluence (F20): title, page_type, summary, space {key, name, url}, parent_title ou url/version/previous_title, diff [{section, change: added|removed|changed, before, after}]; create_space: title, space_key, project_key, pages [títulos]",
           "title": "Preview",
           "type": "object"
         }

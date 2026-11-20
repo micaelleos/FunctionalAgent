@@ -1,4 +1,4 @@
-"""Cliente HTTP do Confluence Cloud, só leitura (F19-RT-01, ADR-009).
+"""Cliente HTTP do Confluence Cloud: leitura (F19-RT-01) e escrita (F20-RT-02), ADR-009.
 
 Mesma credencial e mesmo host da conexão Atlassian da F04 (`https://<site>.atlassian.net`, com o
 Confluence em `/wiki`): o guard de SSRF (`normalize_site_url`) vale igual. Uma instância por
@@ -44,6 +44,18 @@ class ConfluenceUnreachableError(ConfluenceError):
     """Fora do ar, lento demais, 3xx ou 5xx depois das tentativas."""
 
 
+class ConfluenceConflictError(ConfluenceError):
+    """409 numa escrita: a página mudou desde a versão vista, ou o título/chave já existe."""
+
+
+class ConfluenceUncertainError(ConfluenceError):
+    """Escrita enviada sem resposta (timeout): o Confluence pode ter gravado. Nunca repetir."""
+
+
+class ConfluenceRateLimitedError(ConfluenceError):
+    """429 numa escrita: nada foi gravado; dá para confirmar de novo depois."""
+
+
 @dataclass(frozen=True)
 class ConfluenceSpace:
     id: str
@@ -82,6 +94,24 @@ def _retry_after(response: httpx.Response, attempt: int) -> float:
         with contextlib.suppress(ValueError):
             return float(min(max(float(header), 0.0), MAX_RETRY_AFTER))
     return _backoff(attempt)
+
+
+def _message(response: httpx.Response) -> str:
+    """Mensagem de erro do Confluence (sem o corpo da requisição)."""
+    try:
+        data = response.json()
+    except ValueError:
+        return "o Confluence recusou a escrita"
+    if isinstance(data, dict):
+        errors = data.get("errors")
+        if isinstance(errors, list) and errors and isinstance(errors[0], dict):
+            return str(errors[0].get("title") or errors[0].get("detail") or "")[:300]
+        return str(data.get("message") or "o Confluence recusou a escrita")[:300]
+    return "o Confluence recusou a escrita"
+
+
+def _rest(page: "ConfluencePage") -> tuple[str, str, str, str, int]:
+    return page.title, page.url, page.space_id, page.storage, page.version
 
 
 def cql_string(value: str) -> str:
@@ -153,6 +183,95 @@ class ConfluenceClient:
                 raise ConfluenceUnreachableError("resposta inválida do Confluence") from None
             return data if isinstance(data, dict) else {}
         raise AssertionError("inalcançável")  # pragma: no cover
+
+    async def _send(self, method: str, path: str, body: Any) -> Any:
+        """Escrita (F20-RT-02): uma tentativa só, para nunca duplicar uma página."""
+        try:
+            response = await self._http.request(method, path, json=body)
+        except httpx.ConnectTimeout:
+            raise ConfluenceUnreachableError("sem conexão com o Confluence") from None
+        except httpx.TimeoutException:
+            raise ConfluenceUncertainError("o Confluence não respondeu a tempo") from None
+        except httpx.TransportError:
+            raise ConfluenceUnreachableError("sem conexão com o Confluence") from None
+        status = response.status_code
+        if status in {401, 403}:
+            raise ConfluenceAuthError(f"o Confluence respondeu {status}")
+        if status == 404:
+            raise ConfluenceNotFoundError("não encontrado no Confluence")
+        if status == 409:
+            raise ConfluenceConflictError("conflito de versão ou de nome")
+        if status == 429:
+            raise ConfluenceRateLimitedError("o Confluence está limitando as requisições")
+        if status == 400:
+            raise ConfluenceBadRequestError(_message(response))
+        if status >= 500:
+            raise ConfluenceUncertainError(f"o Confluence respondeu {status}")
+        if status >= 300:
+            raise ConfluenceUnreachableError(f"o Confluence respondeu {status}")
+        if status == 204 or not response.content:
+            return {}
+        try:
+            return response.json()
+        except ValueError:
+            return {}
+
+    async def create_space(self, key: str, name: str) -> ConfluenceSpace:
+        """Cria o espaço (v1, estável) e devolve a visão v2, com o id e a página inicial."""
+        await self._send("POST", "/rest/api/space", {"key": key, "name": name})
+        space = await self.space_by_key(key)
+        if space is None:
+            raise ConfluenceUncertainError("espaço criado mas não encontrado")
+        return space
+
+    async def create_page(
+        self, space_id: str, title: str, storage: str, parent_id: str | None = None
+    ) -> ConfluencePage:
+        body: dict[str, Any] = {
+            "spaceId": space_id,
+            "status": "current",
+            "title": title,
+            "body": {"representation": "storage", "value": storage},
+        }
+        if parent_id:
+            body["parentId"] = parent_id
+        data = await self._send("POST", "/api/v2/pages", body)
+        return self._page(data if isinstance(data, dict) else {}, storage)
+
+    async def update_page(
+        self, page_id: str, title: str, storage: str, version: int, message: str = ""
+    ) -> ConfluencePage:
+        """`version` é a vista na proposta; o Confluence recusa (409) se a página mudou."""
+        if not page_id.isdigit():
+            raise ConfluenceNotFoundError("página inválida")
+        body = {
+            "id": page_id,
+            "status": "current",
+            "title": title,
+            "body": {"representation": "storage", "value": storage},
+            "version": {"number": version + 1, "message": message[:250]},
+        }
+        data = await self._send("PUT", f"/api/v2/pages/{page_id}", body)
+        return self._page(data if isinstance(data, dict) else {}, storage)
+
+    async def add_labels(self, page_id: str, labels: list[str]) -> None:
+        if not page_id.isdigit() or not labels:
+            return
+        body = [{"prefix": "global", "name": name} for name in labels]
+        await self._send("POST", f"/rest/api/content/{page_id}/label", body)
+
+    def _page(self, data: dict[str, Any], storage: str = "") -> ConfluencePage:
+        body = ((data.get("body") or {}).get("storage") or {}).get("value") or storage
+        links = data.get("_links") if isinstance(data.get("_links"), dict) else {}
+        version = (data.get("version") or {}).get("number") or 0
+        return ConfluencePage(
+            id=str(data.get("id") or ""),
+            title=str(data.get("title") or ""),
+            url=self._url((links or {}).get("webui")),
+            space_id=str(data.get("spaceId") or ""),
+            storage=str(body),
+            version=int(version) if isinstance(version, int) else 0,
+        )
 
     def _url(self, webui: Any) -> str:
         path = str(webui or "")
@@ -235,14 +354,5 @@ class ConfluenceClient:
         if not page_id.isdigit():
             raise ConfluenceNotFoundError("página inválida")
         data = await self._get(f"/api/v2/pages/{page_id}", {"body-format": "storage"})
-        body = ((data.get("body") or {}).get("storage") or {}).get("value") or ""
-        links = data.get("_links") if isinstance(data.get("_links"), dict) else {}
-        version = (data.get("version") or {}).get("number") or 0
-        return ConfluencePage(
-            id=str(data.get("id") or page_id),
-            title=str(data.get("title") or ""),
-            url=self._url((links or {}).get("webui")),
-            space_id=str(data.get("spaceId") or ""),
-            storage=str(body),
-            version=int(version) if isinstance(version, int) else 0,
-        )
+        page = self._page(data)
+        return page if page.id else ConfluencePage(page_id, *_rest(page))

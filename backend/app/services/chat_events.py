@@ -36,12 +36,15 @@ class ToolEndEvent(_Event):
 class ActionProposedEvent(_Event):
     event: Literal["action_proposed"] = "action_proposed"
     action_id: str
-    kind: Literal["create_issue", "update_issue"]
+    kind: Literal["create_issue", "update_issue", "create_page", "update_page", "create_space"]
     preview: dict[str, Any] = Field(
         description=(
-            "project_key, project_name ou issue_key/url, issue_type, summary, priority, "
+            "Jira: project_key, project_name ou issue_key/url, issue_type, summary, priority, "
             "parent_key, markdown, sections [{title, markdown}], readiness, labels; em "
-            "atualizações, before (valores atuais dos campos que mudam)"
+            "atualizações, before (valores atuais dos campos que mudam). Confluence (F20): "
+            "title, page_type, summary, space {key, name, url}, parent_title ou url/version/"
+            "previous_title, diff [{section, change: added|removed|changed, before, after}]; "
+            "create_space: title, space_key, project_key, pages [títulos]"
         )
     )
 

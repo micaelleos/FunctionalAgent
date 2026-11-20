@@ -99,6 +99,12 @@ variable "confluence_enabled" {
   default     = false
 }
 
+variable "confluence_write_enabled" {
+  description = "Agente propõe páginas e o espaço no Confluence (F20); liga depois do aceite."
+  type        = bool
+  default     = false
+}
+
 variable "prompt_version" {
   description = "Versão do prompt de sistema do agente (backend/app/agent/prompts/system_<v>.md)."
   type        = string

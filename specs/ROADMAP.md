@@ -29,7 +29,7 @@
 | F17 | Contexto do repositório (GitHub, só leitura) para "Onde mexer" | 4 | Rascunho · plano após GA | F05, F12 | 5 d | 4 / 3 | [spec](017-contexto-repositorio/spec.md) |
 | F18 | Exportar specs para o repositório (formato Spec Kit, por PR) | 4 | Rascunho · plano após GA | F06, F17 | 4 d | 4 / 2 | [spec](018-exportar-specs-repositorio/spec.md) |
 | F19 | Contexto do Confluence e metodologia em fases no agente (leitura) | 4 | Em produção | F04, F05, F06, F09, F12 | 6 d | 9 / 12 | [spec](019-contexto-confluence/spec.md) · [plano](019-contexto-confluence/plan.md) · [tarefas](019-contexto-confluence/tasks.md) |
-| F20 | Documentação do projeto no Confluence (escrita por ação proposta) | 4 | Em implementação | F19, F06, F10 | 6 d | 8 / 8 | [spec](020-documentacao-confluence/spec.md) · [plano](020-documentacao-confluence/plan.md) · [tarefas](020-documentacao-confluence/tasks.md) |
+| F20 | Documentação do projeto no Confluence (escrita por ação proposta) | 4 | Em validação | F19, F06, F10 | 6 d | 8 / 8 | [spec](020-documentacao-confluence/spec.md) · [plano](020-documentacao-confluence/plan.md) · [tarefas](020-documentacao-confluence/tasks.md) |
 
 **Totais:** 19 features especificadas (F16 a especificar) · 120 requisitos funcionais · 119 técnicos · ~109,5 dias de estimativa
 (contados nas specs em 2026-11-20).

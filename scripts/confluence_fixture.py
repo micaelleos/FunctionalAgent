@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Páginas de teste da F19 no espaço do sandbox (AT-F19-02..04). Escreve no Confluence: rode só
+"""Páginas de teste da F19/F20 no espaço do sandbox (AT-F19-02..04, AT-F20-02..05). Escreve no Confluence: rode só
 com aprovação do PO.
 
     set -a; . ./.env.local; set +a
@@ -33,6 +33,12 @@ PAGES = {
         "glossario",
         "<table><tbody><tr><th>Termo</th><th>Definição</th></tr>"
         "<tr><td>Pedido</td><td>Compra confirmada pelo cliente</td></tr></tbody></table>",
+    ),
+    # F20: a confirmação acrescenta uma linha aqui (AT-F20-02).
+    "Registro de mudanças": (
+        "registro",
+        "<table><tbody><tr><th>Data</th><th>Página</th><th>Resumo</th><th>Autor</th></tr>"
+        "</tbody></table>",
     ),
     "Roadmap": (
         "roadmap",

@@ -25,6 +25,7 @@ from app.agent.spec.render import section_markdown, to_markdown
 from app.agent.spec.schema import EpicSpec, IssueKey, Title, WorkItemSpec
 from app.agent.tools.confluence_tools import CONFLUENCE_TOOLS, seen_ids
 from app.agent.tools.confluence_tools import PROGRESS as CONFLUENCE_PROGRESS
+from app.agent.tools.confluence_write_tools import PROGRESS as WRITE_PROGRESS
 from app.agent.tools.context import (
     REVIEW_PREFIX,
     Issue,
@@ -54,6 +55,7 @@ PROGRESS = {
     "propor_criacao_epico": "Preparando a proposta do épico…",
     "propor_atualizacao_issue": "Preparando a proposta de atualização…",
     **CONFLUENCE_PROGRESS,
+    **WRITE_PROGRESS,
 }
 
 

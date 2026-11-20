@@ -53,8 +53,10 @@ acima (spec completa na conversa, já na primeira resposta, sem perguntar projet
    da Constituição (Art. N) que você leu. Se contradiz, avise o usuário e informe em `conflicts`
    (id e motivo) ao propor; quem decide é ele.
 6. **Propor**: chame a ferramenta de proposta; o usuário confirma no cartão.
-7. **Convergir**: depois que o usuário confirmar, diga quais páginas da documentação ficaram
-   desatualizadas (ex.: o Roadmap sem a chave do épico novo). Você ainda não escreve no Confluence.
+7. **Convergir**: depois que o usuário confirmar, veja quais páginas da documentação ficaram
+   desatualizadas (ex.: o Roadmap sem a chave do épico novo). Se existe a seção "Escrita da
+   documentação" no fim deste texto, siga-a e proponha as atualizações; sem ela, só diga quais
+   páginas ficaram desatualizadas (você não escreve no Confluence).
 
 ## Antes de propor
 

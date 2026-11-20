@@ -21,7 +21,8 @@ export function ChatPage() {
   const navigate = useNavigate()
   const { conversationId = null } = useParams()
   const [search] = useSearchParams()
-  const [draft, setDraft] = useState('')
+  // "Create space" em Projects (F20-RF-01) chega com o pedido escrito; enviar continua com o usuário.
+  const [draft, setDraft] = useState(() => (conversationId ? '' : (search.get('pedido') ?? '')))
   const bottom = useRef<HTMLDivElement>(null)
 
   const conversations = useQuery({

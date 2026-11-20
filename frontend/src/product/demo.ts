@@ -90,6 +90,9 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
     resultKey: null,
     resultUrl: null,
     error: null,
+    errorCode: null,
+    doc: null,
+    warning: null,
   }
 
   const messages: Record<string, ChatMessage[]> = {
@@ -231,6 +234,21 @@ export function createDemoProductApi(now: () => number = Date.now): ProductApi {
       return connection
     },
     listProjects: async () => (connection ? projects : []),
+    listDocuments: async (projectKey) =>
+      [
+        {
+          pageId: '9001',
+          projectKey: 'PAG',
+          spaceKey: 'PAG',
+          type: 'glossario',
+          title: 'Glossário',
+          url: 'https://demo.atlassian.net/wiki/spaces/PAG/pages/9001',
+          version: 3,
+          operation: 'updated' as const,
+          createdAt: new Date(now() - 3 * 86_400_000).toISOString(),
+          updatedAt: new Date(now() - 3_600_000).toISOString(),
+        },
+      ].filter((d) => !projectKey || d.projectKey === projectKey),
     listIssues: async (filters) => ({
       items: issues
         .filter(

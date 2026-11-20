@@ -71,7 +71,7 @@ def _doc(ref: ConfluencePageRef) -> DocPage:
 class ConfluenceReaderAdapter:
     def __init__(self, client: ConfluenceClient, space: ConfluenceSpace, uid: str) -> None:
         self._client = client
-        self._space_id = space.id
+        self.space_id = space.id
         self._uid = uid
         self.space = DocSpace(space.key, space.name, space.url, client.site_url)
 
@@ -124,7 +124,7 @@ class ConfluenceReaderAdapter:
             page = await self._client.page(page_id)
         except ConfluenceError as exc:
             raise self._fail(exc) from None
-        if page.space_id and page.space_id != self._space_id:
+        if page.space_id and page.space_id != self.space_id:
             raise ConfluenceToolError("a página não é do espaço vinculado a este projeto")
         self._log("page", 1, started)
         return DocPage(

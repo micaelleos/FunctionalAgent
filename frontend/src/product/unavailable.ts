@@ -29,6 +29,7 @@ export const unavailableProductApi: ProductApi = {
   },
   listProjects: async () => [],
   listIssues: async () => ({ items: [], nextCursor: null }),
+  listDocuments: async () => [],
   issueStatuses: async () => ({}),
   agentPrompt: async () => {
     throw new NotAvailableError('The issue history')

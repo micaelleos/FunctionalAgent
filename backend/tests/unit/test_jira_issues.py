@@ -13,7 +13,7 @@ from app.api.deps import get_jira_issue_service, get_verifier
 from app.core.config import Settings, get_settings
 from app.core.errors import ApiProblemError
 from app.main import create_app
-from app.services.actions import ActionService
+from app.services.actions import ActionResult, ActionService
 from app.services.chat import ACTION_TTL
 from app.services.conversations import ConversationService
 from app.services.jira_connections import JiraConnectionService
@@ -61,7 +61,7 @@ class Env:
         )
         out = await self.actions.confirm(UID, aid)
         self.now += timedelta(minutes=1)
-        assert out.result is not None
+        assert isinstance(out.result, ActionResult)
         return out.result.issue_key
 
 

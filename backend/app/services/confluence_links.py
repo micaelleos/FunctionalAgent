@@ -23,6 +23,7 @@ from app.integrations.confluence.client import (
     cql_string,
 )
 from app.services.confluence_reader import ConfluenceReaderAdapter
+from app.services.confluence_writer import ConfluenceWriterAdapter, SpaceCreatorAdapter
 from app.services.jira_connections import JiraConnectionService, UnreachableError
 from app.services.jira_projects import JiraNotConnectedError
 
@@ -54,6 +55,8 @@ class ProjectConfluenceOut(BaseModel):
     suggestion: ConfluenceSuggestionOut | None
     # `False` quando a conta não tem acesso ao Confluence do site (F19-RF-09).
     available: bool = True
+    # Sem espaço achado e com a escrita ligada, o agente pode criar o espaço (F20-RF-01).
+    can_create: bool = False
 
 
 class LinkInput(BaseModel):
@@ -108,10 +111,13 @@ class ConfluenceLinkService:
         store: LinkStore,
         connections: JiraConnectionService,
         clock: Callable[[], datetime] | None = None,
+        *,
+        can_create: bool = False,
     ) -> None:
         self._store = store
         self._connections = connections
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._can_create = can_create
 
     async def _connection_id(self, uid: str) -> str:
         connections = await self._connections.list(uid)
@@ -153,7 +159,9 @@ class ConfluenceLinkService:
                 return ProjectConfluenceOut(link=None, suggestion=None, available=False)
             except ConfluenceError:
                 raise UnreachableError() from None
-        return ProjectConfluenceOut(link=None, suggestion=suggestion)
+        return ProjectConfluenceOut(
+            link=None, suggestion=suggestion, can_create=self._can_create and suggestion is None
+        )
 
     async def link(self, uid: str, project_key: str, data: LinkInput) -> ConfluenceLinkOut:
         connection_id, client = await self._client(uid)
@@ -221,3 +229,20 @@ class ConfluenceLinkService:
             url=str(doc["spaceUrl"]),
         )
         return ConfluenceReaderAdapter(client, space, uid), client
+
+    def writer_for(
+        self, reader: object, client: object, project_key: str
+    ) -> ConfluenceWriterAdapter | None:
+        """Escrita por ação proposta no espaço do leitor do turno (F20)."""
+        if isinstance(reader, ConfluenceReaderAdapter) and isinstance(client, ConfluenceClient):
+            return ConfluenceWriterAdapter(client, reader, project_key)
+        return None
+
+    async def space_creator_for(
+        self, uid: str, project_key: str, connection_id: str
+    ) -> tuple[SpaceCreatorAdapter, ConfluenceClient] | None:
+        """Criação do espaço (F20-RF-01) só para projeto sem vínculo; o chamador fecha o cliente."""
+        if await in_thread(self._store.get, uid, project_key):
+            return None
+        client = await self._connections.confluence_client_for(uid, connection_id)
+        return SpaceCreatorAdapter(client, project_key), client

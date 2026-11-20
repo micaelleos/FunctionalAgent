@@ -19,7 +19,7 @@ from app.agent.spec.jira_payload import (
 from app.core.config import Settings
 from app.core.errors import ApiProblemError
 from app.core.logging import uid_hash
-from app.services.actions import ActionService, translate
+from app.services.actions import ActionResult, ActionService, translate
 from app.services.chat import ACTION_TTL
 from app.services.jira_connections import JiraConnectionService
 from tests.chat_fakes import (
@@ -136,7 +136,7 @@ async def test_confirmar_cria_exatamente_o_que_foi_exibido() -> None:
     for section in ("Objetivo", "Critérios de aceite", "Fora de escopo", "Como verificar"):
         assert f"## {section}" in description
     assert out.status == "done"
-    assert out.result is not None
+    assert isinstance(out.result, ActionResult)
     assert (out.result.issue_key, out.result.url) == ("ABC-1", f"{SITE}/browse/ABC-1")
 
 
@@ -181,7 +181,7 @@ async def test_atualizacao_so_envia_os_campos_permitidos() -> None:
     assert json.loads(request.content) == {
         "fields": {"priority": {"name": "Low"}, "labels": ["specflow", "time-a"]}
     }
-    assert out.result is not None
+    assert isinstance(out.result, ActionResult)
     assert out.result.issue_key == "ABC-7"
     # F10: a atualização também entra no histórico, marcada como só atualizada.
     record = store.issues[UID]["ABC-7"]

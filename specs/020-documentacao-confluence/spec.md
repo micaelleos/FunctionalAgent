@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Em validação |
 | **Fase** | 4 — Evolução |
 | **Responsável** | PO |
 | **Dependências** | F19, F06, F10 |
@@ -136,16 +136,28 @@ Funcionalidade: Documentação no Confluence
 ### 10. Rastreabilidade
 | Requisito | Teste(s) | Status |
 |---|---|---|
-| F20-RF-01 | AT-F20-01, `tests/unit/test_confluence_actions.py` | ⬜ |
-| F20-RF-02 | AT-F20-02, `tests/unit/test_confluence_page_tools.py` | ⬜ |
-| F20-RF-03 | AT-F20-03, `tests/unit/test_page_diff.py` | ⬜ |
-| F20-RF-04 | AT-F20-04, `tests/unit/test_confluence_client_write.py` | ⬜ |
-| F20-RF-05 | AT-F20-03, evals `confluence-converge-write-*` | ⬜ |
-| F20-RF-06 | evals `confluence-adr-*` | ⬜ |
-| F20-RF-07 | AT-F20-02, `tests/unit/test_confluence_actions.py` | ⬜ |
-| F20-RF-08 | `IssuesPage.test.tsx` | ⬜ |
+| F20-RF-01 | AT-F20-01 (`e2e/f20-confluence-escrita.spec.ts`), `test_confluence_actions.py` (espaço e falha no meio), `test_confluence_writer.py`, `test_confluence_links.py` (`can_create`), `test_chat_confluence.py` (ferramenta só sem vínculo), `ProjectsDocs.test.tsx`, `DocActionCard.test.tsx` | ✅ unidade · ⏳ AT no sandbox |
+| F20-RF-02 | AT-F20-02, `test_confluence_page_tools.py`, `test_confluence_writer.py`, `DocActionCard.test.tsx` | ✅ unidade · ⏳ AT |
+| F20-RF-03 | AT-F20-03, `test_page_diff.py`, `test_confluence_writer.py`, `test_confluence_actions.py`, `DocActionCard.test.tsx`, evals `docs_update_*` | ✅ unidade e evals · ⏳ AT |
+| F20-RF-04 | AT-F20-04, `test_confluence_client_write.py`, `test_confluence_actions.py`, `DocActionCard.test.tsx` | ✅ unidade · ⏳ AT |
+| F20-RF-05 | AT-F20-03, `test_confluence_page_tools.py` (instrução), evals `docs_converge_*` | ✅ evals · ⏳ AT |
+| F20-RF-06 | `test_confluence_writer.py` (número livre, ADR aceita), evals `docs_adr_*` | ✅ |
+| F20-RF-07 | AT-F20-02, `test_confluence_actions.py` (linha do Registro) | ✅ unidade · ⏳ AT |
+| F20-RF-08 | `IssuesPage.test.tsx`, `tests/integration/test_documents_repo.py` | ✅ |
+
+**Ajustes da implementação (2026-11-20):**
+- **Resultado da ação:** as ações do Confluence devolvem `DocResult` (`page_id`, `title`, `url`, `warning`); o `ActionResult` do Jira não muda.
+- **Atualização segura:** a ferramenta só aceita atualizar uma página lida no mesmo turno (a proposta substitui a página inteira) e recusa página com mais de 8 mil caracteres, o limite de leitura da F19.
+- **O que fica de fora:** o Registro de mudanças não é atualizado pelo agente (só pela confirmação), e páginas fora do modelo não são atualizadas.
+- **Chave de espaço já usada:** `propor_criacao_espaco` não cria um segundo espaço e pede o vínculo em Projects.
+- **Aviso em vez de falha:** falha nos rótulos ou no Registro não derruba a escrita principal; o cartão mostra o aviso.
+- **Instruções no prompt:** as instruções de escrita (Convergir, ADR, numeração) entram como seção dinâmica `WRITE_NOTE` só no turno com escrita. O `system_v2.md` só diz que, sem essa seção, o agente aponta o que ficou desatualizado. Com a flag desligada, o prompt de prd não muda de comportamento.
+- **Projetos:** `ProjectConfluenceOut.can_create` diz se "Create space" aparece em Projects (escrita ligada e nenhum espaço achado).
+- **Confirmação:** com a flag desligada, confirmar uma ação do Confluence responde 503 `docs-writes-disabled`, e a proposta fica guardada.
 
 ### 11. Evidências
 | Data | Versão/commit | Ambiente | Execução (link CI) | Resultado | Aceito por |
 |---|---|---|---|---|---|
-| | | | | | |
+| 2026-11-20 | este PR | local | `make lint`, `make test`, `make trace` | Backend: unidade, integração (emulador) e contrato. Frontend: Vitest (cartão com diff, conflito, Discard, "Create space", aba Docs). Terraform validate | — |
+| 2026-11-20 | este PR | Gemini `gemini-3.5-flash-lite`, Confluence simulado | `evals/run.py --prompt v2 --dataset evals/datasets/f20_v1.jsonl` | 1ª rodada 7/8 (pulou o RN-06); com a regra "maior ID + 1" no `WRITE_NOTE`, 8/8 em todas as métricas | — |
+| 2026-11-20 | este PR | idem, Jira e Confluence simulados | `evals/run.py --prompt v2` (F05) e `--dataset evals/datasets/f19_v1.jsonl` | Sem regressão com o prompt v2 alterado (fase 7): F05 e F19 com 100% em todas as métricas | — |

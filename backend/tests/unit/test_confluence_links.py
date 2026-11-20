@@ -14,7 +14,7 @@ from app.core.config import Settings, get_settings
 from app.core.crypto import LocalFernetCipher
 from app.main import create_app
 from app.services.confluence_links import ConfluenceLinkService
-from app.services.jira_connections import JiraConnectionService
+from app.services.jira_connections import JiraConnectionInput, JiraConnectionService
 from tests.confluence_fake import SPACE, WIKI, search_json, spaces
 from tests.fakes import FakeVerifier, MemoryJiraStore, MemoryLinkStore
 from tests.jira_fake import EMAIL, SITE, TOKEN, myself
@@ -78,6 +78,7 @@ def test_sugere_espaco_com_a_mesma_chave_sem_salvar(
             "source": "same-key",
         },
         "available": True,
+        "can_create": False,
     }
     assert links.docs == {}  # a descoberta só sugere (Constituição IV)
 
@@ -191,3 +192,21 @@ def test_sem_jira_conectado_e_chave_invalida(client: TestClient) -> None:
     assert out.json()["type"].endswith("jira-not-connected")
     bad = client.get("/api/v1/jira/projects/a%2Fb/confluence", headers=ALICE)
     assert bad.status_code in (404, 422)
+
+
+@pytest.mark.req("F20-RF-01")
+@pytest.mark.parametrize(
+    ("found", "write", "can_create"), [([], True, True), ([SPACE], True, False), ([], False, False)]
+)
+async def test_criar_espaco_so_sem_espaco_achado_e_com_escrita(
+    atlassian: respx.MockRouter, found: list[dict[str, object]], write: bool, can_create: bool
+) -> None:
+    spaces(atlassian, *found)
+    _no_label(atlassian)
+    connections = JiraConnectionService(MemoryJiraStore(), LocalFernetCipher())
+    await connections.create(
+        "alice", JiraConnectionInput(site_url=SITE, email=EMAIL, api_token=TOKEN)
+    )
+    service = ConfluenceLinkService(MemoryLinkStore(), connections, can_create=write)
+    out = await service.get("alice", "SCRUM")
+    assert out.can_create is can_create

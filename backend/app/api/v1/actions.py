@@ -26,7 +26,7 @@ _PROBLEMS: dict[int | str, dict[str, Any]] = {
     },
 )
 async def confirm(action_id: str, user: CurrentUser, actions: Actions) -> ActionOut:
-    return await actions.confirm(user.uid, action_id)
+    return await actions.confirm(user.uid, action_id, user.name)
 
 
 @router.post(

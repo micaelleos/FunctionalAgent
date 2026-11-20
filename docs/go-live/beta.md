@@ -16,7 +16,7 @@
 > 3. Siga o roteiro abaixo e me responda as perguntas.
 >
 > Nada é escrito no Jira sem você clicar em **Confirm**. Privacidade: https://specsflow-ai.web.app/privacy.
-> Problemas: https://github.com/micaelleos/FunctionalAgent/issues ou direto comigo.
+> Problemas: https://github.com/micaelleos/SpecFlowAI/issues ou direto comigo.
 
 ## Roteiro (≈ 20 min)
 

@@ -64,7 +64,7 @@ permissions: { id-token: write, contents: read }
     service_account: deployer@functional-agent-prd.iam.gserviceaccount.com
 ```
 
-O provider WIF aceita apenas tokens com `repository == micaelleos/FunctionalAgent` e, para prd,
+O provider WIF aceita apenas tokens com `repository == micaelleos/SpecFlowAI` e, para prd,
 `environment == prd` (GitHub Environments com revisores obrigatórios).
 
 ## 3. Deploy do backend

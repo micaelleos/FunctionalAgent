@@ -9,7 +9,7 @@
 Três PRs, porque o beta e o `enforce` do App Check têm datas:
 
 1. **PR 1 — preparação (2026-11-18/19), branch `feat/F12-go-live`:**
-   - Rodapé da landing com "Help" (`https://github.com/micaelleos/FunctionalAgent/issues`), "Privacy" e o
+   - Rodapé da landing com "Help" (`https://github.com/micaelleos/SpecFlowAI/issues`), "Privacy" e o
      status da API (`ApiStatus`); a página About saiu (ajuste do PO) e `/about` leva a `/`. `PrivacyPage`
      pública em `/privacy`, ligada também no cadastro. Textos em `i18n/en.ts`.
    - `docs/go-live/checklist.md` (itens do F12-RT-01 com coluna de evidência) e `docs/go-live/beta.md`

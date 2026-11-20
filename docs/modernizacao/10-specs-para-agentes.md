@@ -190,6 +190,8 @@ A lista de termos e os limites são versionados com o prompt (`prompts/`), para 
 | F15 Evals | Métricas de contrato e rubrica de prontidão; eval de implementabilidade como Could | +1 d (5 → 6) |
 | F17 (nova) | Contexto do repositório GitHub (só leitura) | 5 d, Fase 4 |
 | F18 (nova) | Exportar specs para o repositório (Spec Kit) | 4 d, Fase 4 |
+| F19 (nova, 2026-11-20) | Contexto do Confluence: o texto das regras (`RN-nn`), ADRs e glossário entra em "Contexto" e "Restrições e contratos"; seção nova **Referências** (título + link das páginas usadas) ao fim, complementar: RA-09 e P-10 continuam valendo; `AgentReadySpec` v2 com `references` | 6 d, Fase 4 ([metodologia](../metodologia/README.md), ADR-009) |
+| F20 (nova, 2026-11-20) | Documentação do projeto no Confluence por ação proposta (não muda o formato do issue) | 6 d, Fase 4 |
 
 F01–F04 e F11–F13 não mudam. F16 (Analytics) segue a especificar.
 

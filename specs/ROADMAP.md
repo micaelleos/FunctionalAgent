@@ -28,9 +28,11 @@
 | F16 | Google Analytics (consentimento LGPD, CSP, eventos) | 4 | A especificar (aprovado pelo PO em 2026-11-14) | F02, F08 | — | — | — |
 | F17 | Contexto do repositório (GitHub, só leitura) para "Onde mexer" | 4 | Rascunho · plano após GA | F05, F12 | 5 d | 4 / 3 | [spec](017-contexto-repositorio/spec.md) |
 | F18 | Exportar specs para o repositório (formato Spec Kit, por PR) | 4 | Rascunho · plano após GA | F06, F17 | 4 d | 4 / 2 | [spec](018-exportar-specs-repositorio/spec.md) |
+| F19 | Contexto do Confluence e metodologia em fases no agente (leitura) | 4 | Rascunho | F04, F05, F06, F09, F12 | 6 d | 9 / 12 | [spec](019-contexto-confluence/spec.md) · [plano](019-contexto-confluence/plan.md) · [tarefas](019-contexto-confluence/tasks.md) |
+| F20 | Documentação do projeto no Confluence (escrita por ação proposta) | 4 | Rascunho | F19, F06, F10 | 6 d | 8 / 8 | [spec](020-documentacao-confluence/spec.md) · [plano](020-documentacao-confluence/plan.md) · [tarefas](020-documentacao-confluence/tasks.md) |
 
-**Totais:** 17 features especificadas (F16 a especificar) · 103 requisitos funcionais · 99 técnicos · ~97,5 dias de estimativa
-(contados nas specs em 2026-11-16).
+**Totais:** 19 features especificadas (F16 a especificar) · 120 requisitos funcionais · 119 técnicos · ~109,5 dias de estimativa
+(contados nas specs em 2026-11-20).
 Status, dependências e estimativas vêm do cabeçalho de cada `spec.md` — atualize lá e reflita aqui.
 
 > **Revisão de 2026-11-16 — specs para agentes de código.** O leitor principal das issues que o SpecFlow cria passa a
@@ -42,7 +44,11 @@ Status, dependências e estimativas vêm do cabeçalho de cada `spec.md` — atu
 > de OpenAI, mantendo LangGraph; limite da imagem do backend sobe para 400 MiB
 > ([ADR-008](../docs/modernizacao/adr/ADR-008-llm-gemini-vertex.md), Constituição v2.2.0). F05 ganha a T010 (+0,5 d).
 
-Nova feature: `/speckit-specify <descrição>` cria `specs/019-…/spec.md` a partir do template do
+> **Revisão de 2026-11-20 — Confluence e metodologia.** A documentação principal de cada projeto passa a viver no
+> Confluence, lida pelo agente (F19) e mantida por ação proposta (F20), seguindo a
+> [metodologia SpecFlow](../docs/metodologia/README.md) ([ADR-009](../docs/modernizacao/adr/ADR-009-confluence-como-documentacao.md)).
+
+Nova feature: `/speckit-specify <descrição>` cria `specs/021-…/spec.md` a partir do template do
 projeto (`.specify/templates/overrides/spec-template.md`); depois `/speckit-plan` e `/speckit-tasks`.
 
 ## 1. Visão das fases
@@ -74,6 +80,8 @@ gantt
     F15 Evals contínuas                    :f15, after f12, 6d
     F17 Contexto do repositório            :f17, after f12, 5d
     F18 Exportar specs para o repositório  :f18, after f17, 4d
+    F19 Contexto do Confluence             :f19, after f12, 6d
+    F20 Documentação no Confluence         :f20, after f19, 6d
 ```
 
 > Com **2 devs** (front e back), F08 começa logo após F03 usando mocks (MSW) gerados do contrato OpenAPI,
@@ -105,8 +113,9 @@ issues no formato "spec pronta para agente de código" (ADR-007).
 
 ### Fase 4 — Evolução (após GA, priorizar por feedback)
 - F13 OAuth Atlassian (elimina API token manual) · F14 Editor de artefatos · F15 Evals contínuas (com eval de
-  implementabilidade) · F17 Contexto do repositório · F18 Exportar specs para o repositório.
-- Ideias de backlog (sem spec ainda): templates de documentação por empresa, exportar para Confluence, títulos de seção em inglês,
+  implementabilidade) · F17 Contexto do repositório · F18 Exportar specs para o repositório · F19 Contexto do Confluence · F20
+  Documentação no Confluence (metodologia em `docs/metodologia/`).
+- Ideias de backlog (sem spec ainda): templates de documentação por empresa, títulos de seção em inglês,
   atribuir a issue direto a um agente de código (Rovo Dev, Copilot para Jira), ler o resultado do PR de volta,
   análise de lacunas do backlog (épicos sem critério de aceite), priorização impacto × esforço,
   workspaces compartilhados entre membros do time, suporte a múltiplos provedores de LLM na UI.
@@ -130,6 +139,8 @@ flowchart LR
     F06 --> F18
     F06 & F08 --> F14
     F05 --> F15
+    F04 & F05 & F06 & F09 & F12 --> F19 --> F20
+    F06 & F10 --> F20
 ```
 
 > Ordem de execução (Fase 4): F13, F14 e F15 ficam **após o GA** (F12) por decisão de roadmap,

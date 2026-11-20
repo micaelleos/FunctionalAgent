@@ -84,6 +84,10 @@ uv run --project backend pytest -q scripts --rootdir scripts -p no:cacheprovider
   SSE events are versioned in `docs/api/sse-events.v1.json` (regenerate with `make api-types`). Tests use
   `ScriptedChatModel` (`agent/fake_llm.py`); `LLM_PROVIDER=fake` echoes locally; `LLM_PROJECT` points Vertex at
   `pcb-inspect` while Firebase uses the emulator. Evals: `evals/run.py`; acceptance: `backend/tests/acceptance/`.
+- **Methodology (F19/F20, ADR-009, drafts):** how SpecFlow specifies for users' projects — 7 phases
+  (discover → clarify → specify → plan → verify → propose → converge) with each project's docs in a Confluence
+  space (`docs/metodologia/`, page templates in `docs/metodologia/modelos/`). Confluence content is untrusted data;
+  writes are proposed actions like Jira.
 - Target design (agent graph, tools, SSE event schema, Firestore model, API v1) is in
   `docs/modernizacao/03-arquitetura.md`; decisions in `docs/modernizacao/adr/`.
 
